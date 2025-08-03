@@ -1495,7 +1495,7 @@ class TokenPriceMonitor {
             $(`#totalTokens${target}`).text(totalTokens);
             $(`#activeTokens${target}`).text(activeTokens.length);
             $(`#inactiveTokens${target}`).text(inactiveTokens.length);
-
+/*
             for (const chainKey in CHAIN_CONFIG) {
                 const chain = CHAIN_CONFIG[chainKey];
                 const chainName = chain.name; // Misal: "Polygon", "Ethereum"
@@ -1507,7 +1507,28 @@ class TokenPriceMonitor {
                 const count = this.tokens.filter(t => t.chain === chainName).length;
                 $(`#${htmlId}Count${target}`).text(count);
             }
+*/            
+
+            for (const chainKey in CHAIN_CONFIG) {
+                // Total, aktif, tidak aktif
+                $(`#totalTokens${target}`).text(totalTokens);
+                $(`#activeTokens${target}`).text(activeTokens.length);
+                $(`#inactiveTokens${target}`).text(inactiveTokens.length);
+
+                const chain = CHAIN_CONFIG[chainKey];
+                const chainName = chain.name; // e.g., "BSC", "Polygon"
+                const htmlId = chain.short?.toLowerCase(); // e.g., "bsc", "poly"
+
+                if (!htmlId || !$(`#${htmlId}Count${target}`).length) continue;
+
+                const totalPerChain = this.tokens.filter(t => t.chain === chainName).length;
+                const activePerChain = this.tokens.filter(t => t.chain === chainName && t.isActive).length;
+
+                $(`#${htmlId}Count${target}`).text(`${activePerChain}/${totalPerChain}`).attr("title", `Aktif ${activePerChain} dari TOTAL ${totalPerChain} Koin`);
+            }
         }
+
+       
 
         // Total baris monitoring = jumlah token aktif × banyaknya selectedCEX
         let totalBaris = 0;
@@ -2415,20 +2436,42 @@ class TokenPriceMonitor {
                         
                     break;
 
-                case 'KyberSwap': {
-                    const kyberData = await fetchWithCountdown(
-                        safeCellId, dexName,
-                        () => DEXAPIs.getKyberSwapPrice(inputContract, outputContract, rawAmountIn, network),
-                        timeoutLimit
-                    );
+                case 'KyberSwap': 
+                        if (direction === 'cex_to_dex') {
+                            const kyberData = await fetchWithCountdown(
+                                    safeCellId, dexName,
+                                    () => DEXAPIs.getKyberSwapPrice(inputContract, outputContract, rawAmountIn, network),
+                                    timeoutLimit
+                                );
 
-                        if (kyberData?.status === 'timeout' || kyberData?.error) {
-                            throw new Error(`KyberSwap error: ${kyberData.error || kyberData.status}`);
+                                    if (kyberData?.status === 'timeout' || kyberData?.error) {
+                                        throw new Error(`KyberSwap error: ${kyberData.error || kyberData.status}`);
+                                    }
+
+                                    handleResult('KyberSwap', kyberData);
+                        }else{
+                                const zeroData = await fetchWithCountdown(
+                                    safeCellId, dexName,
+                                    () => DEXAPIs.getZeroKyberPrice(
+                                        inputContract,
+                                        outputContract,
+                                        rawAmountIn,
+                                        inputDecimals,
+                                        outputDecimals,
+                                        chainId,
+                                        direction,
+                                        network
+                                    ),
+                                    timeoutLimit
+                                );
+
+                                if (zeroData?.status === 'timeout' || zeroData?.error) {
+                                    throw new Error(`ZERO (KYBER) error: ${zeroData.error || zeroData.status}`);
+                                }
+
+                                handleResult('KyberSwap', { ...zeroData });
                         }
-
-                        handleResult('KyberSwap', kyberData);
-                        break;
-                    }
+                    break;
 
                 case 'Matcha': {
                     const matchaData = await fetchWithCountdown(
@@ -2444,8 +2487,7 @@ class TokenPriceMonitor {
                         handleResult('Matcha', matchaData, 'buyAmount');
                         break;
                     }
-
-                    
+                   
                 case 'OKXDEX': {
                     const okxData = await fetchWithCountdown(
                         safeCellId, dexName,
@@ -2460,7 +2502,7 @@ class TokenPriceMonitor {
                         handleResult('OKXDEX', okxData);
                         break;
                     }
-                /*   
+               
                 case 'ODOS': {
                     const odosIn = [{ tokenAddress: inputContract, amount: rawAmountIn.toString() }];
                     const odosOut = [{ tokenAddress: outputContract, proportion: 1 }];
@@ -2495,7 +2537,7 @@ class TokenPriceMonitor {
 
                     break;
                 }
-                
+                /*
                 case 'LIFI':
                         const MarbleData = await fetchWithCountdown(
                                 safeCellId, dexName,
@@ -2522,6 +2564,7 @@ class TokenPriceMonitor {
 
                     break;
                     */
+                   /*
                     case 'ODOS': {
                         const odosIn = [{ tokenAddress: inputContract, amount: rawAmountIn.toString() }];
                         const odosOut = [{ tokenAddress: outputContract, proportion: 1 }];
@@ -2555,7 +2598,7 @@ class TokenPriceMonitor {
                         handleResult('ODOS', { ...odosData, amountOut: odosData.outAmounts?.[0] || '0' });
                         break;
                     }
-
+                    */
                     case 'LIFI': {
                         const MarbleData = await DEXAPIs.getMarblePrice(
                             inputContract,
@@ -2585,11 +2628,11 @@ class TokenPriceMonitor {
 
          } catch (err) {
             const fallbackSlugMap = {
-                'KyberSwap': 'kyberswap',
+//                'KyberSwap': 'kyberswap',
                 'Matcha': '0x',
                 'OKXDEX': 'okx',
-//                'ODOS': 'odos',
-                'ParaSwap': 'paraswap',
+                'ODOS': 'odos',
+//                'ParaSwap': 'paraswap',
             };
             const slug = fallbackSlugMap[dexName];
             
@@ -3288,7 +3331,7 @@ class TokenPriceMonitor {
         const ss = String(now.getSeconds()).padStart(2, '0');
 
         const timestamp = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss}`;
-        const fullMessage = `${timestamp} [${message}]`;
+        const fullMessage = `${timestamp} </br> [${message}]`;
 
         // Simpan ke localStorage
         localStorage.setItem("MULTI_ACTIONS", fullMessage);
