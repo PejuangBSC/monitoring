@@ -1842,16 +1842,16 @@ $(document).ready(function() {
                 chainName2 = "bnb";
             }
 
-            const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${DTChain.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=501&outputCurrency=${data.sc_out}`, '#OK', 'uk-text-secondary');
-            const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${DTChain.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UN', 'uk-text-warning');
-            const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${chainName}&toBlockchain=${chainName}&fromToken=${data.symbol_in}--${data.sc_in}&toToken=${data.symbol_out}--${data.sc_out}`, '#RNGX', 'uk-text-success');
-            const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${chainName}&toChain=${chainName}&from=${data.sc_in}&to=${data.sc_out}`, '#RBCX', 'uk-text-warning');
-            const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${DTChain.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DF', 'uk-text-primary');
-            const OPEN = createHoverLink(` https://app.openocean.finance/swap/${DTChain.Nama_Chain}/${data.symbol_in}/${data.symbol_out}`, '#OPEN', 'uk-text-danger');
-            const FINCH = createHoverLink(`https://app.1inch.io/swap?src=${DTChain.Kode_Chain}:${data.symbol_in}&dst=${DTChain.Kode_Chain}:${data.symbol_out}`, '#1INCH', 'uk-text-warning');
-            const linkRelay = createHoverLink(`https://relay.link/bridge/${chainName2}?fromChainId=${DTChain.Kode_Chain}&fromCurrency=${data.sc_in}&toCurrency=${data.sc_out}`, '#RX', 'uk-text-warning');
-            const linkLiFi = createHoverLink(`https://jumper.exchange/?fromChain=${DTChain.Kode_Chain}&fromToken=${data.sc_in}&toChain=${DTChain.Kode_Chain}&toToken==${data.sc_out}`, '#LF', 'uk-text-warning');
-            const Link1INCH = createHoverLink(`https://app.1inch.io/advanced/swap?network=${DTChain.Kode_Chain}&src=${data.sc_in}&dst=${data.sc_out}`, '#1NC', 'uk-text-danger');
+           // const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${DTChain.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=501&outputCurrency=${data.sc_out}`, '#OK', 'uk-text-secondary');
+            const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${DTChain.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UND', 'uk-text-secondary');
+            const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${chainName}&toBlockchain=${chainName}&fromToken=${data.symbol_in}--${data.sc_in}&toToken=${data.symbol_out}--${data.sc_out}`, '#RGX', 'uk-text-success');
+          //  const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${chainName}&toChain=${chainName}&from=${data.sc_in}&to=${data.sc_out}`, '#RBCX', 'uk-text-warning');
+            const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${DTChain.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-primary');
+          //  const OPEN = createHoverLink(` https://app.openocean.finance/swap/${DTChain.Nama_Chain}/${data.symbol_in}/${data.symbol_out}`, '#OPEN', 'uk-text-danger');
+          //  const FINCH = createHoverLink(`https://app.1inch.io/swap?src=${DTChain.Kode_Chain}:${data.symbol_in}&dst=${DTChain.Kode_Chain}:${data.symbol_out}`, '#1INCH', 'uk-text-warning');
+          //  const linkRelay = createHoverLink(`https://relay.link/bridge/${chainName2}?fromChainId=${DTChain.Kode_Chain}&fromCurrency=${data.sc_in}&toCurrency=${data.sc_out}`, '#RX', 'uk-text-warning');
+            const linkLiFi = createHoverLink(`https://jumper.exchange/?fromChain=${DTChain.Kode_Chain}&fromToken=${data.sc_in}&toChain=${DTChain.Kode_Chain}&toToken==${data.sc_out}`, '#LFX', 'uk-text-warning');
+          //  const Link1INCH = createHoverLink(`https://app.1inch.io/advanced/swap?network=${DTChain.Kode_Chain}&src=${data.sc_in}&dst=${data.sc_out}`, '#1NC', 'uk-text-danger');
 
            let row = document.createElement('tr');
             row.dataset.index = index;
@@ -1902,7 +1902,7 @@ $(document).ready(function() {
                 <a href="${DTChain.URL_Chain}/token/${data.sc_in}" target="_blank" class="uk-link">[SC]</a>: ${linkStokToken}<br>    
                 <span class="uk-text-primary uk-text-bolder">${data.symbol_out}</span> 
                 <a href="${DTChain.URL_Chain}/token/${data.sc_out}" target="_blank" class="uk-link">[SC]</a>: ${linkStokPair}<br>                   
-                ${linkUNIDEX} ${linkOKDEX} ${linkDEFIL} ${Link1INCH} 
+                ${linkUNIDEX} ${linkRango} ${linkDEFIL} ${linkLiFi}
             `;
             row.appendChild(detailTd);
 
