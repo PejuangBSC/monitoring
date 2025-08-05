@@ -1568,6 +1568,9 @@ $(document).ready(function() {
             updateProgress(totalTokens, totalTokens, startTime, "SELESAI");
             form_on();
 
+            config.run = "NO";
+            localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
+
             $("#stopSCAN").hide().prop("disabled", false);
             $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container").css("pointer-events", "auto").css("opacity", "1");
         }
