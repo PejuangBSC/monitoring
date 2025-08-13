@@ -15,11 +15,37 @@
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.70.0/lib/index.iife.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script> 
     
-    <link id="favicon" rel="icon" type="image/png" >
+    <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/5422/5422573.png" />
+
     <script src="config.js"></script>
     <script src="main.js"></script>
     <style>
-        .uk-container { width: 96%; max-width: none; }
+        /* Override semua class UIkit text* agar mengikuti warna Bootstrap */
+[class*="uk-text"] {
+    color: inherit !important; /* Default mengikuti Bootstrap */
+}
+
+/* Mapping warna Bootstrap */
+.uk-text-primary    { color: var(--bs-primary) !important; }
+.uk-text-secondary  { color: var(--bs-secondary) !important; }
+.uk-text-success    { color: var(--bs-success) !important; }
+.uk-text-danger     { color: var(--bs-danger) !important; }
+.uk-text-warning    { color: var(--bs-warning) !important; }
+.uk-text-info       { color: var(--bs-info) !important; }
+.uk-text-light      { color: var(--bs-light) !important; }
+
+/* Kalau Bootstrap < 5, bisa pakai kode warna manual */
+:root {
+    --bs-primary:   #0d6efd;
+    --bs-secondary: #000204;
+    --bs-success:   #05a705;
+    --bs-danger:    #ea0c0c;
+    --bs-warning:   #f68f02;
+    --bs-info:      #0dcaf0;
+    --bs-light:     #f8f9fa;
+}
+
+        .uk-container {  max-width: none; }        
         .status-active { color: green; }
         .status-inactive { color: red; }
         .sort-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
@@ -74,8 +100,8 @@
 
         .uk-table tbody td {
             font-size: 11.5px;
-            border: 0.85px solid #ddd;
-            padding: 6px;
+            border: 0.85px solid #121010;
+            padding: 4px;
             white-space: nowrap;
         }
         .uk-background{
@@ -101,7 +127,7 @@
         }
         .error{
             color: #fafafa!important;
-            background-color: #f39999!important;
+            background-color: #ffe0e6!important;
         }
         .errorrestapi{
             background-color: #f6f2f1!important;
@@ -119,16 +145,17 @@
             color: #0f0f0f;
         }
         .icon-wrapper {
+            margin: 4px;
             display: inline-flex;          /* Menjadikan elemen inline fleksibel */
             justify-content: center;       /* Pusatkan gambar secara horizontal */
             align-items: center;           /* Pusatkan gambar secara vertikal */
-            margin: 10px;
-            transform: scale(1.6);              /* Tinggi ikon */
-            background-color: #f97aa8;     /* Warna latar belakang */
+            transform: scale(1.8);              /* Tinggi ikon */
+            background-color: #f04545;     /* Warna latar belakang */
             border-radius: 35%;            /* Membuat bentuk lingkaran */
             cursor: pointer;               /* Ubah kursor menjadi tangan saat diklik */
             transition: background-color 0.3s ease; /* Animasi untuk efek hover */
         }
+        
         /* Warna link default (light mode) */
         a, .uk-link {
             color: inherit !important;
@@ -150,15 +177,15 @@
         }
 
         /* Mode terang (default) */
-        /* #sinyal-container {
-            background-color: #eefbef !important;
-            color: #000 !important;
-        } */
+        #sinyal-container {
+           color: #000 !important;
+            margin-top: 10px;
+        }
         /* Mode gelap */
-        body.uk-dark #sinyal-container {
+        /* body.uk-dark #sinyal-container {
             background-color: #605d5d !important;
             color: #f0f0f0 !important;
-        }
+        } */
 
         /* CSS dark mode */
         body {
@@ -202,7 +229,7 @@
         .dark-mode .sell {
             color: #ff6666 !important;
         }
-        #darkModeToggle {
+        /* #darkModeToggle {
             width: 17px;
             height: 17px;
             background-color: #f0f0f0;
@@ -217,10 +244,10 @@
             z-index: 9999;
             box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
             transition: background-color 0.3s ease;
-        }
-        .dark-mode #darkModeToggle {
+        } */
+        /* .dark-mode #darkModeToggle {
             background-color: #333;
-        }
+        } */
 
         .hover-link {
             text-decoration: underline dotted;
@@ -238,128 +265,257 @@
             color: #fff;
             font-weight: bold;
         }
+       .icon {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+        }
+
+        .icon:hover {
+            transform: scale(1.6); /* membesarkan 30% */
+        }
+
+
+        .header-card {
+            padding: 6px 12px !important; /* lebih kecil agar rapat */
+            border: 1px solid black;
+        }
+
+        .header-card h3 {
+            font-size: 18px;
+            line-height: 1.2;
+            margin: 0;
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Flex baris kedua (info + konfigurasi) */
+        .info-config-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap; /* biar responsif */
+        }
+
+        .info-left,
+        .info-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .uk-container {
+            max-width: 100% !important;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        .uk-card,
+        .uk-card-default {
+            border-radius: 5px; /* bisa diganti 8px/16px sesuai selera */
+            overflow: hidden;    /* biar konten ikut rounded */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08); /* optional, biar soft */
+        }
+
+        .uk-card img,
+        .uk-card-default img {
+            border-radius: 5px 5px 0 0; /* gambar di atas ikut rounded */
+        }
+
+        /* Baris ganjil */
+        .uk-table tbody tr:nth-child(odd) {
+            background-color: #f7f7f7 !important; /* warna abu muda */
+        }
+
+        /* Baris genap */
+        .uk-table tbody tr:nth-child(even) {
+            background-color: #ececec !important; /* abu sedikit lebih gelap */
+        }
+
+        /* Opsional: hover effect */
+        .uk-table tbody tr:hover {
+            background-color: #f8f2d0 !important; /* abu hover */
+        }
+
     </style>
     <!-- <base href="/V1/"> -->
     </head>
     <body>
     <div class="uk-container uk-margin-small-top uk-background-a">
-            <div class="uk-flex uk-flex-between uk-grid-small uk-margin " uk-grid style="flex: 1;">
-                <!-- Bagian Kiri (Form) -->
-                <div class="uk-width-auto">
-                    <div id="darkModeToggle" onclick="toggleDarkMode()" class="icon-wrapper" title="Ganti Mode Gelap/Terang">
-                        <span uk-icon="icon: moon; ratio: 0.4"></span> 🌓
+        <!-- Card Bagian Header -->
+        <div class="uk-card uk-card-default uk-margin-small header-card">
+            <div class="uk-grid-small uk-flex-middle" uk-grid>
+                    
+                    <!-- Kiri: Judul -->
+                    <div class="uk-width-expand@s uk-width-1-1">
+                        <div class="uk-flex uk-flex-middle uk-flex-wrap">
+                            <h3 id="judul" class="uk-margin-remove" 
+                                style="font-size: 18px; line-height: 1.2; color: #000; font-weight: bold;">
+                                MONITORING [GLOBAL] :: <label id="namachain"></label> 
+                                <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" />
+                            </h3>
+                            <span class="uk-margin-small-left">[ &nbsp;<b> 
+                                <span class="uk-text-danger uk-text-small" id="infoAPP">???</span> 
+                            </b>&nbsp; ]</span>
+                        </div>
                     </div>
-                    <h2 id="judul" class="uk-margin-remove" style="font-size: 30px; text-align:center;">
-                        MONITORING V1  :: <label id="namachain"></label> 
-                        <img src="https://coopsugar.org/storage/2022/03/new.gif" width="50px" /> &nbsp;
-                    </h2>
-                    <img class="icon" id="LoadDataBtn" title="LOAD DATA TOKEN" width="30px" src="https://png.pngtree.com/png-clipart/20230815/original/pngtree-database-sync-icon-icon-symbol-data-vector-picture-image_10830033.png" />
-                    <img class="icon" id="SettingModal" title="CONFIG SCANNER" width="30px" src="https://cdn-icons-png.flaticon.com/512/1170/1170635.png" />
-                    <img class="icon" id="UpdateWalletCEX" title="UPDATE WALLET CEX" width="30px" src="https://images.freeimages.com/fic/images/icons/2770/ios_7_icons/512/wallet.png" />
-                    <a href="modal.html" target="_blank">
-                        <img class="icon" id="Modal" title="MANAJEMEN ASSET" width="30px" src="https://cdn-icons-png.flaticon.com/512/1194/1194711.png" />
-                    </a>
-                    <a href="multipair.html" target="_blank">
-                        <img class="icon" id="MasterData" title="SETTING DATA" width="30px" src="https://cdn-icons-png.flaticon.com/128/3934/3934107.png" />
-                    </a>
-                    
-                    <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank">
-                        <img class="icon" id="BukaKunci" title="BUKA AKSES" width="30px" src="https://cdn-icons-png.flaticon.com/512/9921/9921748.png" />
-                    </a>
-                    <img class="icon" id="reload" title="RESET PROSES" width="30px" src="https://cdn-icons-png.flaticon.com/512/2546/2546705.png"   />
-                
-                    <span id="chain-links-container"></span>        
-                    <h6 id="config" class="uk-margin-remove uk-text-left uk-text-danger">---</h6>        
-                </div>
-        
-                <!-- Bagian Kanan (Konten Lainnya) -->
-                <div class="uk-width-expand uk-margin-small-top">
-                    <form id="cryptoForm" style=" width: 96%;">
-                            <div class="dex-group  uk-grid-small uk-flex uk-flex-between" uk-grid>
+
+                    <!-- Kanan: Toolbar icon -->
+                    <div class="uk-width-auto@s uk-width-1-1">
+                        <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s" style="gap: 6px;">
+                            <!-- <a href="multiall.html"><img class="icon" title="MULTI SCANNER" width="22px"
+                                src="https://cdn-icons-png.flaticon.com/512/30/30279.png" /></a> -->
+                            <!-- <span id="chain-links-container"></span>
+                            <img class="icon" id="reload" title="RESET PROSES" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/512/2546/2546705.png" />
+                            <img class="icon" id="LoadDataBtn" title="LOAD DATA TOKEN" width="24px"
+                                src="https://png.pngtree.com/png-clipart/20230815/original/pngtree-database-sync-icon-icon-symbol-data-vector-picture-image_10830033.png" />
+                            <img class="icon" id="SettingModal" title="CONFIG SCANNER" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/512/1170/1170635.png" />
+                            <img class="icon" id="UpdateWalletCEX" title="UPDATE WALLET CEX" width="24px"
+                                src="https://images.freeimages.com/fic/images/icons/2770/ios_7_icons/512/wallet.png" />
+                            <a href="modal.html" target="_blank"><img class="icon" title="MANAJEMEN ASSET" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/512/1194/1194711.png" /></a>
+                            <a href="multipair.html" target="_blank"><img class="icon" title="SETTING DATA" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/128/3934/3934107.png" /></a>
+                            <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank"><img class="icon" title="BUKA AKSES" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/512/9921/9921748.png" /></a>
                             
-                                <div class="uk-width-auto uk-flex uk-flex-middle  uk-text-small">                                   
-                                    <!-- Tombol Download (ikon merah) -->
-                                    <a href="#" onclick="downloadTokenScannerJSON()" title="Download LIST TOKEN"  style=" color: red !important;">
-                                        <span uk-icon="icon: bag; ratio: 0.7"></span>
-                                    </a>
+                            <a href="#" class="icon" onclick="downloadTokenScannerJSON()" title="EXPORT KOIN">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2767/2767865.png" width="24px" />
+                            </a>
+                            <label for="uploadJSON" title="IMPORT KOIN" style="cursor:pointer;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1362/1362889.png" width="24px" />
+                            </label>
+                            <input type="file" id="uploadJSON" accept="application/json" style="display:none;" onchange="uploadTokenScannerJSON(event)">
+                            <img class="icon" id="darkModeToggle" title="Ganti Mode Gelap/Terang" width="24px"
+                                src="https://cdn-icons-png.flaticon.com/512/3751/3751403.png" onclick="toggleDarkMode()" /> -->
+<a href="multiall.html" 
+   onclick="event.preventDefault(); alert('SABAR YA... FITUR MASIH DIKERJAKAN \u002d\u005f\u002d');">
+   <img class="icon" title="MULTI SCANNER" width="22px"
+        src="https://cdn-icons-png.flaticon.com/512/30/30279.png" />
+</a>
+<span id="chain-links-container"></span>
+<a id="reload" uk-icon="refresh" class="icon" title="RESET PROSES"></a>
+<a id="LoadDataBtn" uk-icon="server" class="icon" title="LOAD DATA TOKEN"></a>
+<a id="SettingModal" uk-icon="cog" class="icon" title="KONFIGURASI SCANNER"></a>
+<a id="UpdateWalletCEX" uk-icon="world" class="icon" title="UPDATE WALLET EXCHANGER"></a>
+<a href="modal.html" target="_blank" uk-icon="album" class="icon" title="MANAJEMEN ASSET"></a>
+<a href="multipair.html" target="_blank" uk-icon="database" class="icon" title="SETTING DATA" id="MasterData"></a>
+<a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" uk-icon="unlock" class="icon" title="BUKA AKSES"></a>
+<a href="#" onclick="downloadTokenScannerJSON()" uk-icon="cloud-download" class="icon" title="EXPORT KOIN"></a>
+<label for="uploadJSON" uk-icon="cloud-upload" class="icon" title="IMPORT KOIN" style="cursor:pointer;"></label>
+<input type="file" id="uploadJSON" accept="application/json" style="display:none;" onchange="uploadTokenScannerJSON(event)">
+<a id="darkModeToggle" uk-icon="desktop" class="icon" title="GANTI MODE GELAP/TERANG" onclick="toggleDarkMode()"></a>
 
-                                    <!-- Tombol Upload (ikon hijau) -->
-                                    <label for="uploadJSON" title="Upload LIST TOKEN" style=" color: green !important; cursor:pointer; margin-left:5px;">
-                                        <span uk-icon="icon: cloud-upload; ratio: 0.9"></span>
-                                    </label>
-                                    &nbsp;&nbsp; 
-                                    <input type="file" id="uploadJSON" accept="application/json" style="display:none;" onchange="uploadTokenScannerJSON(event)">
-                    
-                                    <b><span class="uk-text-secondary uk-text-medium">INFO: &nbsp;</span></b>
-                                    <b><span class="uk-text-primary uk-text-medium" id="infoAPP">???</span></b>&nbsp; &nbsp; &nbsp;
-                                </div> 
-                                    
-                                <!-- Kolom untuk CEX -->
-                                <div class="uk-width-auto uk-flex uk-flex-middle uk-margin-small-top uk-text-small">
-                                    <div id="cex-options" class="uk-form-controls" style="display: flex;">
-                                        <!-- Radio button CEX akan di-generate di sini -->
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
 
-                                <div class="uk-width-auto uk-flex uk-flex-middle  uk-margin-remove-top uk-text-small">
-                                    <div id="dex-options" class="uk-form-controls" style="display: flex;">
-                                        <!-- Radio button DEX akan di-generate di sini -->
-                                    </div>
-                                    &nbsp;&nbsp; | &nbsp;&nbsp;
-                                    <b><span class="uk-text-secondary uk-text-medium">PAIR&nbsp;</span></b> <span id="tokenCount" class="uk-text-danger uk-text-bolder" > </span>&nbsp;:
-                                    <div id="dexpair-options" class="uk-form-controls" style="display: flex;">
-                                        <!-- Radio button PAIR DEX akan di-generate di sini -->
-                                    </div> 
-                                </div>
-    
+            </div>
+        </div>
 
-                                <div class="uk-flex uk-flex-middle uk-flex-between uk-margin-small uk-child-width-auto uk-grid-small  uk-text-small" uk-grid>
-                                    <!-- Bagian SCANNER dan Filter -->
-                                    <div class="uk-flex uk-flex-middle uk-flex-wrap">
-                                        <span class="uk-form-label uk-text-secondary uk-text-bolder uk-margin-small-right">SCANNER:</span>
-                                        <label class="uk-margin-small-right">
-                                            <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
-                                            <span class="uk-text-success">KIRI</span>
-                                        </label>
-                                        <label class="uk-margin-small-right">
-                                            <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
-                                            <span class="uk-text-success">KANAN</span>
-                                        </label>
-                                        <label class="uk-margin-small-right">
-                                            <input class="uk-checkbox" id="strictFilter" type="checkbox" checked>
-                                            <span class="uk-text-primary">WALLET CEX</span>
-                                        </label>
-                                        <label>
-                                            <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
-                                            <span class="uk-text-danger">VOL CHECK</span>
-                                        </label>
-                                    </div>
+        <!-- Card Bagian Info & Konfigurasi Scanner -->
+        <div class="uk-card uk-card-default uk-padding-small" style="border: 1px solid;padding-top: 6px;padding-bottom: 6px;" id="scanner-config">
+            <div class="uk-grid-small uk-flex-middle" uk-grid>
 
-                                    <!-- Bagian SORTING dan ACTION -->
-                                    <div class="uk-flex uk-flex-middle uk-flex-wrap">
-                                        <!-- Sorting Toggle -->
-                                        <div class="uk-button-group uk-margin-small-right" title="Urutkan A ke Z / Z ke A">
-                                            <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active" data-sort="opt_A">
-                                                <input class="uk-hidden" type="radio" name="toggle" value="opt_A" checked> A-Z
-                                            </label>
-                                            <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle" data-sort="opt_B">
-                                                <input class="uk-hidden" type="radio" name="toggle" value="opt_B"> Z-A
-                                            </label>
-                                        </div>
-
-                                        <!-- Action Buttons -->
-                                        <div class="uk-button-group">
-                                            <button type="button" id="startSCAN" style="display: none;" class="uk-button uk-button-secondary uk-button-small">START</button>
-                                            <button type="button" id="stopSCAN" style="display: none;" class="uk-button uk-button-danger uk-button-small">STOP</button>
-                                        </div>
-                                    </div>
-                                </div> 
-                            </div>
+                <!-- Form Setting responsif -->
+                <div class="uk-width-1-1">
+                    <form id="cryptoForm" class="uk-flex uk-flex-middle uk-flex-wrap" style="gap: 8px;">
+                        <div id="cex-options" class="uk-flex uk-flex-middle"></div> &nbsp;|&nbsp;
+                        <div id="dex-options" class="uk-flex uk-flex-middle"></div>&nbsp;|&nbsp;
+                        <b><span class="uk-text-secondary">PAIR:</span></b>
+                        <span id="tokenCount" class="uk-text-danger uk-text-bolder"></span>
+                        <div id="dexpair-options" class="uk-flex uk-flex-middle"></div>&nbsp;|&nbsp;
+                        <span class="uk-text-secondary uk-text-bolder">SCANNER:</span>
+                        <label><input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked> <span class="uk-text-success uk-form-label">KIRI</span></label>
+                        <label><input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked> <span class="uk-text-success uk-form-label">KANAN</span></label>
+                        <label><input class="uk-checkbox" id="strictFilter" type="checkbox" checked> <span class="uk-text-primary uk-form-label">WALLET CEX</span></label>
+                        <label><input class="uk-checkbox vol-check" id="checkVOL" type="checkbox"> <span class="uk-text-danger uk-form-label">VOL CHECK</span></label>
+                        <div class="uk-button-group">
+                            <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active" data-sort="opt_A">
+                                <input class="uk-hidden" type="radio" name="toggle" value="opt_A" checked> A-Z
+                            </label>
+                            <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle" data-sort="opt_B">
+                                <input class="uk-hidden" type="radio" name="toggle" value="opt_B"> Z-A
+                            </label>
+                        </div>
+                        <div class="uk-button-group">
+                            <button type="button" id="startSCAN" class="uk-button uk-button-secondary uk-button-small">START</button>
+                            <button type="button" id="stopSCAN" class="uk-button uk-button-danger uk-button-small">STOP</button>
+                        </div>
                     </form>
                 </div>
+
+            </div>
+        </div>
+
+        <!-- Modal IMPORT TOKEN MULTIALL -->
+        <div id="multiTokenModal" uk-modal>
+        <div class="uk-modal-dialog uk-modal-body">
+
+            <h3 class="uk-modal-title uk-margin-remove-bottom">Import Koin MultiScan</h3>
+            <hr class="uk-margin-small-top uk-margin-small-bottom">
+
+            <!-- Info Token -->
+            <div id="multiTokenInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
+            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                <div>
+                <b>Nama Token [Desimal] :</b> 
+                <span id="infoSymbolToken"></span> [<span id="infoDesToken"></span>]
+                </div>
+                <div>
+                <b>Smart Contract :</b> 
+                <span id="infoSCToken"></span>
+                </div>
+            </div>
             </div>
 
-        <!-- Modal UIKIT -->
+            <!-- Info Pair -->
+            <div id="multiPairInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
+            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                <div>
+                <b>Nama Pair [Desimal] :</b> 
+                <span id="infoSymbolPair"></span> [<span id="infoDesPair"></span>]
+                </div>
+                <div>
+                <b>Smart Contract :</b> 
+                <span id="infoSCPair"></span>
+                </div>
+            </div>
+            </div>
+
+            <!-- Form -->
+        <form id="multiTokenForm">
+            <div class="uk-card uk-card-default uk-card-small uk-card-body">
+                <div class="uk-grid-small" uk-grid>
+                    <!-- Kolom CEX -->
+                    <div class="uk-width-1-3@m">
+                        <label class="uk-form-label uk-text-bold">Pilih CEX</label>
+                        <div id="cex-checkbox-group" class="uk-margin-small-top"></div>
+                    </div>
+
+                    <!-- Kolom DEX -->
+                    <div class="uk-width-2-3@m">
+                        <label class="uk-form-label uk-text-bold">Pilih DEX (Maks 4) & Modal {KIRI,KANAN}</label>
+                        <div id="dex-checkbox-group" class="uk-margin-small-top"></div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="multiTokenIndex">
+            </div>
+
+            <div class="uk-flex uk-flex-right uk-margin-top">
+                <button class="uk-button uk-button-default uk-modal-close" type="button">Batal</button>
+                <button class="uk-button uk-button-primary" type="submit">Simpan</button>
+            </div>
+        </form>
+
+
+        </div>
+        </div>
+
+        <!-- Modal SETTING APLIKASI -->
         <div id="modal-setting" class="uk-modal-full" uk-modal>
             <div class="uk-modal-dialog">
                 <button class="uk-modal-close-full uk-close-large" type="button" uk-close></button>
@@ -398,7 +554,7 @@
                                             <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="3"  name="koin-group"> 3</label>  
                                             <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="2"  name="koin-group"> 2</label>  
                                             <label class="uk-form-label uk-text-success"><input class="uk-radio" type="radio" value="1"  name="koin-group"> 1</label>  
-                                            </div>
+                                        </div>
                                         </div>
                                     <div class="uk-flex uk-flex-middle uk-margin ">
                                         <div>
@@ -448,9 +604,10 @@
             </div>
         </div>
 
+        <!-- HEADER TABEL DAN INFO SINYAL PER DEX -->
         <div>
             <!-- Bagian untuk menampilkan sinyal DEX -->
-            <div class="uk-text uk-text-small uk-margin-small-top" id="sinyal-container">
+            <div  id="sinyal-container">
                 <!-- Sinyal DEX akan dimuat di sini -->
             </div>
             <div class="uk-grid-small uk-flex uk-flex-middle  uk-margin-small-top" uk-grid>
@@ -491,8 +648,8 @@
                     <!-- Baris-baris data akan ditambahkan secara dinamis -->
                 </tbody>
             </table>
-            <div id="InfoAPP" style="text-align:center; font-weight:bold; color:red;"></div>    
-            <div id="InfoStatus" style="text-align:center; font-weight:bold; color:red;"></div>    
+            <!-- <div id="InfoAPP" style="text-align:center; font-weight:bold; color:red;"></div>    
+            <div id="InfoStatus" style="text-align:center; font-weight:bold; color:red;"></div>     -->
         </div>
     </div>
 
@@ -654,7 +811,177 @@
         reader.readAsText(file);
     }
    
-    // Fungsi untuk mendapatkan data chain berdasarkan nama chain
+$(document).on('click', `[id^="SelMulti-"]`, function () {
+    const index = $(this).data('index');
+    const item = filteredTokens[index];
+    if (!item) {
+        toastr.error("Data tidak ditemukan di filteredTokens");
+        return;
+    }
+    $('#multiTokenIndex').val(index);
+
+    // Tampilkan info token dan pair di modal
+    $('#infoSymbolToken').text(item.symbol_in || '-');
+    $('#infoSCToken').text(item.sc_in || '-');
+    $('#infoDesToken').text(item.des_in || '-');
+    $('#infoSymbolPair').text(item.symbol_out || '-');
+    $('#infoSCPair').text(item.sc_out || '-');
+    $('#infoDesPair').text(item.des_out || '-');
+
+    // Generate CEX checkbox tanpa input modal
+    const cexList = Object.keys(CONFIG_CEX || {});
+    let cexHtml = '';
+    cexList.forEach(cex => {
+        cexHtml += `
+            <div class="uk-flex uk-flex-middle uk-margin-small-bottom">
+                <input type="checkbox" class="cex-checkbox" value="${cex}" style="margin-right:6px;">
+                <span style="min-width:70px;display:inline-block;">${cex}</span>
+            </div>
+        `;
+    });
+    $('#cex-checkbox-group').html(cexHtml);
+
+    // Generate DEX checkbox + input modal kiri/kanan
+    const dexList = (DTChain.DEXS || []);
+    let dexHtml = '';
+    dexList.forEach(dex => {
+        dexHtml += `
+            <div class="uk-flex uk-flex-middle uk-margin-small-bottom" style="gap:8px;">
+                <input type="checkbox" class="dex-checkbox" value="${dex}">
+                <span style="min-width:70px;display:inline-block;">${dex.toUpperCase()}</span>
+                <input type="number" class="uk-input uk-form-small dex-modal-left" 
+                       data-dex="${dex}" value="100" style="width:80px;" min="0" 
+                       placeholder="Modal Kiri">
+                <input type="number" class="uk-input uk-form-small dex-modal-right" 
+                       data-dex="${dex}" value="100" style="width:80px;" min="0" 
+                       placeholder="Modal Kanan">
+            </div>
+        `;
+    });
+    $('#dex-checkbox-group').html(dexHtml);
+
+    UIkit.modal('#multiTokenModal').show();
+});
+
+
+// Handler submit form modal
+// Handler submit form modal
+$('#multiTokenForm').on('submit', function (e) {
+    e.preventDefault();
+
+    const index = $('#multiTokenIndex').val();
+    const item = filteredTokens[index];
+    if (!item) {
+        toastr.error("Data tidak ditemukan di filteredTokens");
+        return;
+    }
+
+    let tokens = JSON.parse(localStorage.getItem('MULTIALL_V1_TOKEN_SCANNER') || '[]');
+    if (!Array.isArray(tokens)) tokens = [];
+
+    const timestamp = Date.now().toString();
+    const counter = (tokens.length + 1).toString();
+
+    const rawChain = (Nama_Chain || "bsc").toLowerCase();
+    const chainFormatted = rawChain === "bsc"
+        ? "BSC"
+        : rawChain.charAt(0).toUpperCase() + rawChain.slice(1);
+
+    // Cek duplikat
+    const isExist = tokens.some(t =>
+        t.symbol_in === item.symbol_in &&
+        t.symbol_out === item.symbol_out &&
+        (t.chain || '').toLowerCase() === rawChain
+    );
+    if (isExist) {
+        toastr.error("Token sudah pernah ditambahkan sebelumnya.", "❌ Duplikat");
+        UIkit.modal('#multiTokenModal').hide();
+        return;
+    }
+
+    // Ambil CEX terpilih
+    let selectedCexs = [];
+    $('.cex-checkbox:checked').each(function () {
+        selectedCexs.push($(this).val());
+    });
+
+    // Build object info CEX
+    const tokenSymbol = $('#infoSymbolToken').text().trim();
+    const pairSymbol  = $('#infoSymbolPair').text().trim();
+
+    const CexsWithInfo = {};
+    selectedCexs.forEach(cex => {
+        const walletToken = WalletCEX.find(w => w.cex === cex && w.tokenName === tokenSymbol);
+        const walletPair  = WalletCEX.find(w => w.cex === cex && w.tokenName === pairSymbol);
+
+        CexsWithInfo[cex] = {
+            feeWDToken: walletToken?.feeWDs || 0,
+            feeWDPair: walletPair?.feeWDs || 0,
+            depositToken: walletToken?.depositEnable || false,
+            withdrawToken: walletToken?.withdrawEnable || false,
+            depositPair: walletPair?.depositEnable || false,
+            withdrawPair: walletPair?.withdrawEnable || false
+        };
+    });
+
+    // Ambil DEX terpilih & modal left/right
+    let selectedDexs = [];
+    let modalDexs = {};
+    $('.dex-checkbox:checked').each(function () {
+        const dex = $(this).val();
+        selectedDexs.push(dex);
+        const modalLeft = Number($(`.dex-modal-left[data-dex="${dex}"]`).val()) || 0;
+        const modalRight = Number($(`.dex-modal-right[data-dex="${dex}"]`).val()) || 0;
+        modalDexs[dex] = { left: modalLeft, right: modalRight };
+    });
+
+    // Validasi jumlah DEX
+    if (selectedDexs.length < 1) {
+        toastr.warning("Minimal pilih 1 DEX", "❗ Input Kurang");
+        return;
+    }
+    if (selectedDexs.length > 4) {
+        toastr.warning("Maksimal 4 DEX yang boleh dipilih", "❗ Input Berlebih");
+        return;
+    }
+
+    // Ambil info SC & desimal
+    const tokenSC       = $('#infoSCToken').text().trim();
+    const tokenDecimals = Number($('#infoDesToken').text().trim()) || 18;
+
+    const pairSC        = $('#infoSCPair').text().trim();
+    const pairDecimals  = Number($('#infoDesPair').text().trim()) || 18;
+
+    // Data akhir
+    const tokenData = {
+        id: timestamp,
+        no: parseInt(counter),
+        symbol_in: tokenSymbol,
+        symbol_out: pairSymbol,
+        chain: chainFormatted,
+        sc_in: tokenSC,
+        des_in: tokenDecimals,
+        sc_out: pairSC, 
+        des_out: pairDecimals,
+        dataCexs: CexsWithInfo, // Info lengkap CEX tanpa modal
+        dataDexs: modalDexs,    // DEX dengan left/right
+        status: true,
+        selectedCexs,
+        selectedDexs
+    };
+
+    tokens.push(tokenData);
+    localStorage.setItem('MULTIALL_V1_TOKEN_SCANNER', JSON.stringify(tokens));
+
+    UIkit.modal('#multiTokenModal').hide();
+    toastr.success(`✔️ Simpan ${tokenSymbol} VS ${pairSymbol} di Chain ${chainFormatted}`, "✅ Tersimpan", {
+        timeOut: 4000,
+        closeButton: true
+    });
+});
+
+
+// Fungsi untuk mendapatkan data chain berdasarkan nama chain
     function getChainData(chainName) {
         const chainData = CONFIG_CHAINS[chainName]; // base
         
@@ -790,15 +1117,22 @@
     // Inisialisasi dengan status awal checkbox
     filterTokens($("#strictFilter").is(":checked"));
 
+    // Simpan urutan awal saat data pertama kali dimuat
+    let originalTokens = [...filteredTokens];
+
     $("input[name='toggle']").change(function () {
         var selectedOption = $("input[name='toggle']:checked").val();
+
         if (selectedOption === "opt_B") {
-            // Jika "Z" dipilih, balik urutan
-            filteredTokens.reverse();
+            // Urutkan Z ke A (balik dari urutan asli)
+            filteredTokens = [...originalTokens].reverse();
             toastr.info("SORTING TOKEN PAIR BERUBAH KE -Z");
-        }else{
+        } else {
+            // Urutkan A ke Z (urutan asli)
+            filteredTokens = [...originalTokens];
             toastr.info("SORTING TOKEN PAIR BERUBAH KE -A");
         }
+
         // Lakukan update tampilan sesuai perubahan sorting
         loadStoredData(filteredTokens);
     });
@@ -900,15 +1234,18 @@
         });
     }
 
-    // Fungsi untuk menonaktifkan semua input di dalam form
+    // Matikan semua elemen input di form
     function form_off() {
-        $('input, select, textarea, button').prop('disabled', true); 
+        $('input, select, textarea, button').prop('disabled', true);
+        $('.toggle-radio').addClass('uk-disabled').removeClass('active');
     }
 
-    // Fungsi untuk mengaktifkan semua input di dalam form
+    // Nyalakan semua elemen input di form
     function form_on() {
-        $('input, select, button').prop('disabled', false);
+        $('input, select, textarea, button').prop('disabled', false);
+        $('.toggle-radio').removeClass('uk-disabled');
     }
+
 
     UIkit.util.on('#modal-setting', 'show', function () {
         form_on();
@@ -922,16 +1259,20 @@
         if (!MasterTokens.length) {
             errorMessages.push('TIDAK ADA DATA PADA SETTINGAN!!, SILAKAN KE MENU SETTINGAN.');
             $("#MasterData").addClass("icon-wrapper");
+            $("#scanner-config").hide();
             $('#UpdateWalletCEX,#LoadDataBtn,#SettingModal').css('pointer-events', 'none').css('opacity', '0.4');
             info = false;
+            form_off();
         } else if (!DataTokens.length) {
             form_off();
             $("#LoadDataBtn").addClass("icon-wrapper");
+            $("#scanner-config").hide();
             errorMessages.push('<b>SILAKAN LOAD DATA TERLEBIH DAHULU !!</b><br/>');
             info = false;
         } else if (!SavedSettingData || SavedSettingData.walletMeta === '-') {
             errorMessages.push('CEK, SETTINGAN APLIKASI {MODAL,WALLET ADDRESS}!');
             $("#SettingModal").addClass("icon-wrapper");
+            $("#scanner-config").hide();
             form_off();
             info = false;
         } else if (!WalletCEX.length) {
@@ -949,7 +1290,7 @@
 
             generateInputCheckbox(savedCexs, "cex-options", "", "EXCH: ", "uk-form-label uk-text-success");
             generateInputCheckbox(DTChain.DEXS, "dex-options", "D", "DEFI: ", "uk-form-label uk-text-danger");
-            generateInputCheckbox(savedPairs, "dexpair-options", "", "", "uk-form-label uk-text-primary");
+            generateInputCheckbox(savedPairs, "dexpair-options", "", " ", "uk-form-label uk-text-primary");
             generateInputModal(DTChain.DEXS);            
             loadCheckboxSelections();
 
@@ -1060,9 +1401,7 @@ $(document).ready(function() {
 
                     var warnaAsli = selectedChain.WARNA; // Contoh: "#FF0000"
                     var warnaFaded = hexToRgba(warnaAsli, 0.1); // Alpha 0.3
-
-                    $('#sinyal-container').css('background-color', warnaFaded);
-
+                
                     // Update tampilan dengan nama chain dan warna
                     $('title').text("SCANNER " + Nama_Chain.toUpperCase());
                     $('#namachain').text(Nama_Chain.toUpperCase());
@@ -1082,9 +1421,14 @@ $(document).ready(function() {
                         const chain = CONFIG_CHAINS[chainKey];
                         const isActive = chain.Nama_Chain === Nama_Chain;
                         const linkHTML = `<span class="chain-link" style="${!isActive ? 'opacity: 0.3;' : ''}">
-                                <a href="${currentPage}?chain=${chain.Nama_Chain}" ><img src="${chain.ICON}" alt="${chain.Nama_Chain} icon" width="${isActive ? '30' : '30'}"></a></span>`;
+                                <a href="${currentPage}?chain=${chain.Nama_Chain}" ><img src="${chain.ICON}" alt="${chain.Nama_Chain} icon" width="${isActive ? '30' : '22'}"></a></span>`;
                         $('#chain-links-container').append(linkHTML);
                     });
+
+                    // Terapkan background linear gradient ke header card
+                    document.querySelector('.header-card').style.background = 
+                        `linear-gradient(to right, ${selectedChain.WARNA} 0%,  rgb(234 234 234) 60%)`;
+
                 } else {
                     alert(`Chain dengan nama ${Nama_Chain} tidak ditemukan.`);
                 }
@@ -1287,7 +1631,7 @@ $(document).ready(function() {
 
         // ⬇️ Eksekusi efek langsung juga di tab ini
         $('#startSCAN').prop('disabled', true).text('Running...');
-        
+
         cekDataAwal();
         sendStatusTELE(SavedSettingData.nickname, 'ONLINE');
         CekIdentitas();
@@ -1297,11 +1641,11 @@ $(document).ready(function() {
         $("#autoScrollCheckbox").show().prop('disabled', false);
         $("#stopSCAN").show().prop('disabled', false);
 
-        $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container').css('pointer-events', 'none').css('opacity', '0.4');
+        $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container,.sort-toggle').css('pointer-events', 'none').css('opacity', '0.4');
 
         // Pastikan checkbox tetap aktif dan bisa diubah statusnya
         $('.statusCheckbox').css({ 'pointer-events': 'auto', 'opacity': '1' }).prop('disabled', false);
-
+        
         let ConfigScan = getFromLocalStorage('DATA_SETTING', {});
         let scanPerKoin = parseInt(ConfigScan.scanPerKoin);
         let jedaKoin = parseInt(ConfigScan.jedaKoin);
@@ -1447,7 +1791,7 @@ $(document).ready(function() {
                                                             $(`#${IdTokentoPair}`).css('background-color', '#ded5d5');
                                                             $(`span#LEFT_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
                                                             $(`span#RIGHT_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
-                                                                ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,'TokentoPair',buyVolToken);
+                                                                ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,'TokentoPair',buyVolToken,altDataDEX);
                                                             }
                                                         else{
                                                                 $(`#${IdTokentoPair}`).css('background-color',altError.color);
@@ -1461,7 +1805,7 @@ $(document).ready(function() {
                                                 $(`span#LEFT_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
                                                 $(`span#RIGHT_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
                                                 
-                                                ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,'TokentoPair',buyVolToken);
+                                                ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,'TokentoPair',buyVolToken,DataDEX);
                                             }
                                         });                     
                                     }
@@ -1488,7 +1832,7 @@ $(document).ready(function() {
                                                                 $(`span#LEFT_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
                                                                 $(`span#RIGHT_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
 
-                                                                ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,'PairtoToken',sellVolPair);
+                                                                ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,'PairtoToken',sellVolPair,altDataDEX);
                                                             }else{
                                                                 $(`#${IdPairtoToken}`).css('background-color',altError.color);
                                                                 $(`#SWAP_${IdPairtoToken}`).html(`${dex.toUpperCase()} <br/> <span <span class=uk-text-danger title="${altError.pesanDEX}">[ERROR]</span>`);
@@ -1502,7 +1846,7 @@ $(document).ready(function() {
                                             //$(`#${IdPairtoToken}`).css('background-color', "#faf6f6");
                                                 $(`span#LEFT_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
                                                 $(`span#RIGHT_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
-                                                ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,'PairtoToken',sellVolPair);
+                                                ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,'PairtoToken',sellVolPair,DataDEX);
                                            }
                                         
                                     });
@@ -1577,7 +1921,7 @@ $(document).ready(function() {
             localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
             $('#startSCAN').prop('disabled', false).text('Start');
 
-            $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container").css("pointer-events", "auto").css("opacity", "1");
+            $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle").css("pointer-events", "auto").css("opacity", "1");
         }
 
         processTokens();
@@ -1682,39 +2026,191 @@ $(document).ready(function() {
         const cexConfig = CONFIG_CEX[cex.toUpperCase()]; // Ambil konfigurasi berdasarkan nama CEX
         return cexConfig && cexConfig.WARNA ? cexConfig.WARNA : 'black'; // Gunakan warna dari konfigurasi atau 'black' jika tidak ditemukan
     }
+    // INFO SIGNAL PERBARIS
+function loadSignalDataPERBARIS() {
+    let selectedDEX = getFromLocalStorage('DEX_PILIH', []);
+    const appSettings = getFromLocalStorage('DATA_SETTING', {});
 
-    //fungsi filter TOKEN berdasarkan CEX,DEX dan DEX-PAIR
-    
-    // Fungsi untuk menampilkan sinyal DEX
-    function loadSignalData() {
-        let selectedDEX = getFromLocalStorage('DEX_PILIH', []); // Ambil pilihan DEX dari localStorage
-        const appSettings = getFromLocalStorage('DATA_SETTING', {});
+    let sinyalContainer = document.getElementById('sinyal-container');
+    sinyalContainer.innerHTML = '';
 
-        let sinyalContainer = document.getElementById('sinyal-container');
-        sinyalContainer.innerHTML = ''; // Kosongkan sebelumnya jika ada perubahan
+    // Jadikan container list vertikal (tanpa grid)
+    sinyalContainer.className = ''; // hapus semua class sebelumnya
+    sinyalContainer.style.display = 'block'; // biar vertikal semua
 
-        selectedDEX.forEach(dex => {
-            const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
-            // Menambahkan elemen sinyal untuk setiap DEX yang dipilih
-            let sinyalItem = document.createElement('div');
-            sinyalItem.classList.add('sinyal-item');
-            sinyalItem.setAttribute('data-dex', `${dex}`);
+    selectedDEX.forEach((dex, index) => {
+        const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
 
-            let label = document.createElement('b');
-            label.innerText = dex.toUpperCase(); // Menampilkan nama DEX
+        let gridItem = document.createElement('div');
+        gridItem.style.marginBottom = '8px'; // jarak antar card
 
-            let signalSpan = document.createElement('span');
-            signalSpan.classList.add('uk-text', 'uk-text-small', 'uk-text-primary');
-            signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`); // ID dinamis untuk sinyal setiap DEX
+        let card = document.createElement('div');
+        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
 
-            sinyalItem.appendChild(label);
-            sinyalItem.innerHTML += ` : `; // Separator
-            sinyalItem.appendChild(signalSpan);
+        let cardHeader = document.createElement('div');
+        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
+        cardHeader.style.backgroundColor = selectedChain.WARNA;
+        cardHeader.style.height = '30px';
+        cardHeader.style.display = 'flex';
+        cardHeader.style.alignItems = 'center';
+        cardHeader.style.justifyContent = 'space-between';
 
-            sinyalContainer.appendChild(sinyalItem);
-        });
-    }
-    
+        let bodyId = `body-${dex.toLowerCase()}-${index}`;
+        cardHeader.innerHTML = `
+            <div class="uk-flex uk-flex-middle" style="gap:8px;">
+                <span class="uk-text-bold" style="color:#000;">${dex.toUpperCase()}</span>
+            </div>
+            <a class="uk-icon-link uk-text-danger uk-text-bolder" uk-icon="chevron-up" uk-toggle="target: #${bodyId}"></a>
+        `;
+
+        let cardBody = document.createElement('div');
+        cardBody.classList.add('uk-card-body', 'uk-padding-remove', 'uk-background-muted');
+        cardBody.id = bodyId;
+
+        let signalSpan = document.createElement('div');
+        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
+        signalSpan.style.fontSize = '13.5px';
+        signalSpan.style.border = `1px solid ${selectedChain.WARNA}`;
+        signalSpan.style.padding = '4px';
+
+        cardBody.appendChild(signalSpan);
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        gridItem.appendChild(card);
+        sinyalContainer.appendChild(gridItem);
+    });
+}
+//SIGNAL DINAMIS BENTUK CARD
+function loadSignalData() {
+    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); 
+    const appSettings = getFromLocalStorage('DATA_SETTING', {});
+
+    let sinyalContainer = document.getElementById('sinyal-container');
+    sinyalContainer.innerHTML = '';
+
+    // Grid horizontal UIkit
+    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
+    sinyalContainer.setAttribute('uk-grid', '');
+
+    selectedDEX.forEach(dex => {
+        // Get left and right modal values
+        const modalLeft = appSettings[`MODAL_KIRI_${dex.toUpperCase()}`] || 0;
+        const modalRight = appSettings[`MODAL_KANAN_${dex.toUpperCase()}`] || 0;
+
+        // Grid item
+        let gridItem = document.createElement('div');
+
+        // Card UIkit dengan radius & border rapi
+        let card = document.createElement('div');
+        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
+        card.style.borderRadius = '5px';
+        card.style.overflow = 'hidden';
+        card.style.border = `1px solid ${getWarnaCEX(dex)}`;
+
+        // Header card
+        let cardHeader = document.createElement('div');
+        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
+        cardHeader.style.backgroundColor = selectedChain.WARNA;
+        cardHeader.style.height = '30px';
+        cardHeader.style.lineHeight = '20px';
+        cardHeader.style.display = 'flex';
+        cardHeader.style.alignItems = 'center';
+        cardHeader.style.justifyContent = 'space-between';
+        cardHeader.innerHTML = `
+            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">
+                ${dex.toUpperCase()} <span style="color: white !important;" class="uk-text-bold"> [ KIRI: $${modalLeft} | KANAN: $${modalRight} ] </span>
+            </span>
+        `;
+
+        // Body card
+        let cardBody = document.createElement('div');
+        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
+        cardBody.style.padding = '8px 12px';
+
+        // Tempat sinyal
+        let signalSpan = document.createElement('div');
+        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
+        signalSpan.style.fontSize = '13px';
+        signalSpan.style.whiteSpace = 'normal';
+        signalSpan.style.wordWrap = 'break-word';
+        signalSpan.style.overflowWrap = 'break-word';
+        signalSpan.style.lineHeight = '1.4';
+        signalSpan.style.color = '#333';
+
+        // Gabungkan elemen
+        cardBody.appendChild(signalSpan);
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        gridItem.appendChild(card);
+        sinyalContainer.appendChild(gridItem);
+    });
+}
+
+function loadSignalDataLAMA() {
+    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); // Ambil pilihan DEX dari localStorage
+    const appSettings = getFromLocalStorage('DATA_SETTING', {});
+
+    let sinyalContainer = document.getElementById('sinyal-container');
+    sinyalContainer.innerHTML = '';
+
+    // Jadikan container grid horizontal
+    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
+    sinyalContainer.setAttribute('uk-grid', '');
+
+    selectedDEX.forEach(dex => {
+        const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
+
+        // Wrapper grid item
+        let gridItem = document.createElement('div');
+
+        // Card UIkit
+        let card = document.createElement('div');
+        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
+
+        // Card header
+        let cardHeader = document.createElement('div');
+        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
+        cardHeader.style.backgroundColor = selectedChain.WARNA;
+        cardHeader.style.height = '30px'; // tinggi tetap
+        cardHeader.style.lineHeight = '20px'; // vertikal align teks
+        cardHeader.style.display = 'flex';
+        cardHeader.style.alignItems = 'center';
+        cardHeader.style.justifyContent = 'space-between';
+
+        cardHeader.innerHTML = `
+            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">${dex.toUpperCase()} [${modalValue}]</span>
+        `;
+
+        // Card body
+        let cardBody = document.createElement('div');
+        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
+        cardBody.style.border = `1px solid ${getWarnaCEX(dex)}`;    
+        cardBody.style.borderRadius = `5px`; 
+
+        // Pastikan padding cukup dan teks bisa wrap dengan baik
+        cardBody.style.padding = '8px 12px'; // beri padding agak lega
+
+        let signalSpan = document.createElement('div');
+        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
+        signalSpan.style.fontSize = '13px';
+
+        // Tambahkan style agar teks wrap dan tidak overflow
+        signalSpan.style.whiteSpace = 'normal';  // teks bisa wrap ke baris baru
+        signalSpan.style.wordWrap = 'break-word'; // pecah kata jika terlalu panjang
+        signalSpan.style.overflowWrap = 'break-word';
+        signalSpan.style.lineHeight = '1.4'; // jarak antar baris agar enak dibaca
+        signalSpan.style.color = '#333'; // warna teks agar kontras dengan background
+
+        cardBody.appendChild(signalSpan);
+
+        // Gabungkan
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        gridItem.appendChild(card);
+        sinyalContainer.appendChild(gridItem);
+    });
+}
+
     function createLink(url, text, className = '') {
         return url
             ? `<a href="${url}" target="_blank" class="${className}"><b>${text}</b></a>`
@@ -1731,6 +2227,8 @@ $(document).ready(function() {
     }
 
     function loadStoredData(filteredData) {
+       // console.log("LOAD DATA KOIN KE TABEL", filteredData);
+
         $('.table-header th').css('background-color', DTChain.COLOR_CHAIN);
         loadSignalData();
        // console.warn("KOIN FILTERING",filteredData);
@@ -1842,7 +2340,7 @@ $(document).ready(function() {
                 chainName2 = "bnb";
             }
 
-           // const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${DTChain.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=501&outputCurrency=${data.sc_out}`, '#OK', 'uk-text-secondary');
+            const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${DTChain.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=501&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-secondary');
             const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${DTChain.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UND', 'uk-text-secondary');
             const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${chainName}&toBlockchain=${chainName}&fromToken=${data.symbol_in}--${data.sc_in}&toToken=${data.symbol_out}--${data.sc_out}`, '#RGX', 'uk-text-success');
           //  const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${chainName}&toChain=${chainName}&from=${data.sc_in}&to=${data.sc_out}`, '#RBCX', 'uk-text-warning');
@@ -1878,9 +2376,9 @@ $(document).ready(function() {
                 td.id = idCELL;
 
                 let innerHTML = `
-                    <a href="#"><span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span></a><br>
-                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}">  </span><br>
-                    <a href="#"><span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span></a><br>
+                    <span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span><br>
+                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}"> ${dex.toUpperCase()} </span><br>
+                     <span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span><br>
                     <hr class="uk-divider-small uk-margin-remove">
                     <span class="uk-text-primary" id="RESULT_${idCELL}">  </span>
                 `;
@@ -1890,11 +2388,18 @@ $(document).ready(function() {
 
             // Kolom DETAIL TOKEN
             let detailTd = document.createElement('td');
-            detailTd.className = 'uk-text-center uk-background uk-text-nowrap';
+            detailTd.className = 'uk-text-center uk-text-nowrap';
+            // Contoh: tambahkan transparansi pada warna chain
+            const hex = selectedChain.WARNA.replace('#', '');
+            const r = parseInt(hex.substring(0,2), 16);
+            const g = parseInt(hex.substring(2,4), 16);
+            const b = parseInt(hex.substring(4,6), 16);
+            detailTd.style.backgroundColor = `rgba(${r},${g},${b},0.18)`;
 
             detailTd.innerHTML = `
                 <input type="checkbox" class="statusCheckbox" data-id="${index}" data-index="${data.no}" ${data.status ? 'checked' : ''}>#${index+1}
-                <span style="color: ${warnaCEX}; font-weight:bolder;">${data.cex} </span><br/>
+                <span style="color: ${warnaCEX}; font-weight:bolder;">${data.cex} </span>
+                <span id="SelMulti-${index}" data-index="${index}" uk-icon="icon:crosshairs; ratio: 0.8"  class="uk-text-secondary uk-text-bolder"  > </span><br/>
                 <span class="uk-text-danger uk-text-bolder">${linkToken} VS ${linkPair}</span><br/>
                 <span class="uk-text-primary uk-text-bolder">${withdrawToken}~${depositToken}</span> | 
                 <span class="uk-text-primary uk-text-bolder">${withdrawPair}~${depositPair}</span><br/>
@@ -1902,7 +2407,7 @@ $(document).ready(function() {
                 <a href="${DTChain.URL_Chain}/token/${data.sc_in}" target="_blank" class="uk-link">[SC]</a>: ${linkStokToken}<br>    
                 <span class="uk-text-primary uk-text-bolder">${data.symbol_out}</span> 
                 <a href="${DTChain.URL_Chain}/token/${data.sc_out}" target="_blank" class="uk-link">[SC]</a>: ${linkStokPair}<br>                   
-                ${linkUNIDEX} ${linkRango} ${linkDEFIL} ${linkLiFi}
+                ${linkUNIDEX} ${linkOKDEX} ${linkDEFIL} ${linkLiFi}
             `;
             row.appendChild(detailTd);
 
@@ -1915,9 +2420,9 @@ $(document).ready(function() {
                 td.id = idCELL;
 
                 let innerHTML = `
-                    <a href="#"><span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span></a><br>
-                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}">  </span><br>
-                    <a href="#"><span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span></a><br>
+                     <span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span><br>
+                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}"> ${dex.toUpperCase()} </span><br>
+                     <span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span><br>
                     <hr class="uk-divider-small uk-margin-remove">
                     <span class="uk-text-primary" id="RESULT_${idCELL}">  </span>
                 `;
@@ -1947,13 +2452,6 @@ $(document).ready(function() {
         $('#tokenCount').text(`(${filteredData.length})`);
 
         $InfoStatus.text("SELESAI, Memuat DATA TOKEN !!");
-        if (selectedDEX.length <= 4) {
-            $("#startSCAN").show();
-        }else{
-            alert("❌ MAX 4 DEX, SILAKAN KURANGI!! ❌");
-            return; // Hentikan proses jika lebih dari 4 DEX
-        }
-
         setTimeout(() => $InfoStatus.fadeOut(), 2000);
 
         $(".table-header th").css({
@@ -1969,7 +2467,7 @@ $(document).ready(function() {
 
         updateSortIcons();
     }
-
+ 
     document.addEventListener('mouseover', function (e) {
         const el = e.target;
         if (el.classList.contains('hover-link') && el.dataset.url) {
@@ -2199,35 +2697,46 @@ $(document).ready(function() {
         location.reload();
     });
 
-    $(document).on('change', '#cex-options input[type="checkbox"], #dex-options input[type="checkbox"], #dexpair-options input[type="checkbox"]', function() {
-        // Menentukan kategori checkbox berdasarkan ID
-        const groupName = $(this).closest('div[id^="cex-options"], div[id^="dex-options"], div[id^="dexpair-options"]').attr('id');
-        let selectedValues = [];
-        $(`#${groupName} input[type="checkbox"]:checked`).each(function() {
-            selectedValues.push($(this).val());
-        });
-
-        // Tentukan key lokalStorage berdasarkan groupName
-        const localStorageKeyMap = {
-            'cex-options': 'CEX_PILIH',
-            'dex-options': 'DEX_PILIH',
-            'dexpair-options': 'DEXPAIR_PILIH'
-        };
-        const localStorageKey = localStorageKeyMap[groupName];
-
-        if (localStorageKey) {
-            saveToLocalStorage(localStorageKey, selectedValues);  // Simpan ke localStorage
-            UIkit.notification(`SETTING APLIKASI ${groupName.toUpperCase()} menjadi ${selectedValues.join(', ')} !`, { status: 'success' });
-        }
-
-        // Memanggil fungsi filter dan reload data
-        const filteredTokens = filterTokens(selectedValues);  // Pastikan filterTokens menerima nilai yang difilter
-       // console.log("TOKEN TERFILTER ",filteredTokens);
-        loadStoredData(filteredTokens); // fungsi kamu
-        
-        location.reload()
-        // Memuat data yang sudah difilter
+   $(document).on('change', '#cex-options input[type="checkbox"], #dex-options input[type="checkbox"], #dexpair-options input[type="checkbox"]', function() {
+    const groupName = $(this).closest('div[id^="cex-options"], div[id^="dex-options"], div[id^="dexpair-options"]').attr('id');
+    let selectedValues = [];
+    $(`#${groupName} input[type="checkbox"]:checked`).each(function() {
+        selectedValues.push($(this).val());
     });
+
+    // ❌ Khusus untuk DEX: Batasi max 4
+    if (groupName === "dex-options" && selectedValues.length > 4) {
+        $(this).prop("checked", false);
+        UIkit.notification("❌ MAX 4 DEX, SILAKAN KURANGI!! ❌", { status: 'danger' });
+        return;
+    }
+
+    // ❌ Cegah kosong: minimal 1 harus terpilih
+    if (selectedValues.length === 0) {
+        $(this).prop("checked", true); // kembalikan centang
+        UIkit.notification("⚠ MINIMAL PILIH 1 DEX!", { status: 'warning' });
+        return;
+    }
+
+    // Map key localStorage
+    const localStorageKeyMap = {
+        'cex-options': 'CEX_PILIH',
+        'dex-options': 'DEX_PILIH',
+        'dexpair-options': 'DEXPAIR_PILIH'
+    };
+    const localStorageKey = localStorageKeyMap[groupName];
+
+    if (localStorageKey) {
+        saveToLocalStorage(localStorageKey, selectedValues);
+        UIkit.notification(`SETTING APLIKASI ${groupName.toUpperCase()} menjadi ${selectedValues.join(', ')} !`, { status: 'success' });
+    }
+
+    // Filter dan reload data
+    const filteredTokens = filterTokens(selectedValues);
+    loadStoredData(filteredTokens);
+    location.reload();
+});
+
 
     // Fungsi untuk mengurutkan tabel
     function sortTable(columnIndex) {
@@ -2571,98 +3080,177 @@ $(document).ready(function() {
   
     // list api OKXDEX sell_BINANCE_USDT_buy_0x_BAL
     const apiKeysOKXDEX = [
-       {
-            ApiKeyOKX : "a4569d13-8a59-4ecd-9936-6c4e1233bff8",
-            secretKeyOKX : "4484BC9B2FC22C35CB1071A2A520FDC8",
-            PassphraseOKX : "Macpro-2025",
-            },{
-            ApiKeyOKX : "4e34bc4c-3cdb-404c-b21e-892fcb20c08e",
-            secretKeyOKX : "7C693E2F8ED3EEC9DB100A6F547684F3",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "51c6d463f648cfaac41cc9c3d1a60e040",
-            },{
-            ApiKeyOKX : "1f460b15-76bc-4c26-ba36-af6c0acf41f8",
-            secretKeyOKX : "10858E91E66DA673AAD7B1EB63335557",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "6a82f552b5489a4172b44741d48e1655"
-            },
+            // {
+            // ApiKeyOKX : "a4569d13-8a59-4ecd-9936-6c4e1233bff8",
+            // secretKeyOKX : "4484BC9B2FC22C35CB1071A2A520FDC8",
+            // PassphraseOKX : "Macpro-2025",
+            // },
+            //  {
+            // ApiKeyOKX : "71cbe094-380a-4146-b619-e81a254c0702",
+            // secretKeyOKX : "5116D48C1847EB2D7BDD6DDD1FC8B199",
+            // PassphraseOKX : "Macpro-2025"
+            // },
+            //  {
+            // ApiKeyOKX : "81a072cc-b079-410c-9963-fb8e49c16d9d",
+            // secretKeyOKX : "BF44AE00CF775DC6DDB0FDADF61EC724",
+            // PassphraseOKX : "Macpro-2025"
+            // },
+            // {
+            // ApiKeyOKX : "adad55d1-bf90-43ac-ac03-0a43dc7ccee2",
+            // secretKeyOKX : "528AFB3ECC88653A9070F05CC3839611",
+            // PassphraseOKX : "Cek_Horeg_911",
+            // },
+            // {
+            // ApiKeyOKX : "6866441f-6510-4175-b032-342ad6798817",
+            // secretKeyOKX : "E6E4285106CB101B39FECC385B64CAB1",
+            // PassphraseOKX : "Arekpinter123.",
+            // }
 
-            {
-            ApiKeyOKX : "f47557fc-3fcc-45e0-b297-bd1244ccf93c",
-            secretKeyOKX : "C9689A761F2B7A51E8FA03E874905604",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "5e5cd09efbe202ba8ff5b0d6cc67765c"
-            },
-            {
-            ApiKeyOKX : "fb713c1b-634b-40b4-a6e3-02e441e14504",
-            secretKeyOKX : "459160A7AD08A2F38DA205599FAB3CCE",
-            PassphraseOKX : "Bismillah-100493",
-            ProjectOKX: "d54877fe8feb85d57133cf4f7533c711"
-            },
-             {
-            ApiKeyOKX : "f47557fc-3fcc-45e0-b297-bd1244ccf93c",
-            secretKeyOKX : "C9689A761F2B7A51E8FA03E874905604",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "5e5cd09efbe202ba8ff5b0d6cc67765c"
-            },{
-            ApiKeyOKX : "4e34bc4c-3cdb-404c-b21e-892fcb20c08e",
-            secretKeyOKX : "7C693E2F8ED3EEC9DB100A6F547684F3",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "51c6d463f648cfaac41cc9c3d1a60e040",
-            },{
-            ApiKeyOKX : "1f460b15-76bc-4c26-ba36-af6c0acf41f8",
-            secretKeyOKX : "10858E91E66DA673AAD7B1EB63335557",
-            PassphraseOKX : "Sukses-2025",
-            ProjectOKX: "6a82f552b5489a4172b44741d48e1655"
-            },
-            // {
-            // ProjectOKX : "346d87e69f7038d66def274f35111654",
-            // ApiKeyOKX : "e9d2ec06-24eb-468e-9590-9dabd8e5f2e9",
-            // secretKeyOKX : "E9D97914D154F1446EB057A1D4B7A673",
-            // PassphraseOKX : "211293-Dd"
-            // },
-            // {
-            // ProjectOKX : "bc4a68edd9f763493c41d86e1ed135d9",
-            // ApiKeyOKX : "eb630b79-862d-4751-bfb9-a44e61730812",
-            // secretKeyOKX : "ED5709291C78EC01B913B37F11E324A7",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ProjectOKX : "6dbac47726ef6e7aed71cb0e0159c0a4",
-            // ApiKeyOKX : "bf099815-cbb3-424c-a4be-20b9b1d6ee40",
-            // secretKeyOKX : "A41A8E3D311CDF762ED73333FC47B3A1",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ProjectOKX : "1a97d60d4f20802f407d0773b566820a",
-            // ApiKeyOKX : "97a59ab5-d561-4666-9974-96bf85746933",
-            // secretKeyOKX : "CDF2B02006AD182F53FA20104E890213",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ProjectOKX : "314eabf2463dacb891af50c6e48b25fb",
-            // ApiKeyOKX : "bbee0aed-c60e-4431-922c-b5df4db8f46d",
-            // secretKeyOKX : "3C8600681DF86B2FB29C041F8E9ECBDA",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ProjectOKX : "66f6b0feb7d4ca900e64abb412b24043",
-            // ApiKeyOKX : "a7c49a4d-0d18-40a8-80e6-59ba30d20e71",
-            // secretKeyOKX : "DF8E561B5BC86543834A9B1B93B61A65",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ProjectOKX : "fb0d5484dcad49c2b2fb31cbecfe753d",
-            // ApiKeyOKX : "3d7d292a-aef2-45af-a8f0-0eb89eb34abd",
-            // secretKeyOKX : "0E3E221267C52F8978E5376C1DED72F7",
-            // PassphraseOKX : "999999-Dd"
-            // },
-            // {
-            // ApiKeyOKX : "fb713c1b-634b-40b4-a6e3-02e441e14504",
-            // secretKeyOKX : "459160A7AD08A2F38DA205599FAB3CCE",
-            // PassphraseOKX : "Bismillah-100493",
-            // ProjectOKX: "d54877fe8feb85d57133cf4f7533c711"
-            // },
+{
+    ApiKeyOKX: "28bc65f0-8cd1-4ecb-9b53-14d84a75814b",
+    secretKeyOKX: "E8C92510E44400D8A709FBF140AABEC1",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "04f923ec-98f2-4e60-bed3-b8f2d419c773",
+    secretKeyOKX: "3D7D0BD3D985C8147F70592DF6BE3C48",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "cf214e57-8af2-42bf-8afa-3b7880c5a152",
+    secretKeyOKX: "26AA1E415682BD8BBDF44A9B1CFF4759",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "a77871bd-7855-484c-a675-e429bad3490e",
+    secretKeyOKX: "830C9BB8D963F293857DB0CCA5459089",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "87db4731-fbe3-416f-8bb4-a4f5e5cb64f7",
+    secretKeyOKX: "B773838680FF09F2069AEE28337BBCD0",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "aec98aef-e2b6-4fb2-b63b-89e358ba1fe1",
+    secretKeyOKX: "DB683C83FF6FB460227ACB57503F9233",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "6636873a-e8ab-4063-a602-7fbeb8d85835",
+    secretKeyOKX: "B83EF91AFB861BA3E208F2680FAEDDC3",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "989d75b7-49ff-40a1-9c8a-ba94a5e76793",
+    secretKeyOKX: "C30FCABB0B95BE4529D5BA1097954D34",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "43c169db-db8c-4aeb-9c25-a2761fdcae49",
+    secretKeyOKX: "7F812C175823BBD9BD5461B0E3A106F5",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "904cefba-08ce-48e9-9e8b-33411bf44a0f",
+    secretKeyOKX: "91F2761A0B77B1DEED87A54E75BE1CCE",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "bfbd60b5-9aee-461d-9c17-3b401f9671d1",
+    secretKeyOKX: "D621020540042C41D984E2FB78BED5E4",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "86f40277-661c-4290-929b-29a25b851a87",
+    secretKeyOKX: "9274F990B5BEDAB5EB0C035188880081",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "32503ada-3d34-411a-b50b-b3e0f36f3b47",
+    secretKeyOKX: "196658185E65F93963323870B521A6F6",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "80932e81-45b1-497e-bc14-81bdb6ed38d5",
+    secretKeyOKX: "4CA9689FA4DE86F4E4CBF2B777CBAA91",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "a81d5a32-569a-401c-b207-3f0dd8f949c7",
+    secretKeyOKX: "307D988DA44D37C911AA8A171B0975DB",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "ca59e403-4bcb-410a-88bb-3e931a2829d5",
+    secretKeyOKX: "AC7C6D593C29F3378BF93E7EDF74CB6D",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "97439591-ea8e-4d78-86bb-bdac8e43e835",
+    secretKeyOKX: "54970C78369CE892E2D1B8B296B4E572",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "f7a23981-af15-47f4-8775-8200f9fdfe5d",
+    secretKeyOKX: "4F61764255CEDE6D5E151714B3E1E93B",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "4f708f99-2e06-4c81-88cb-3c8323fa42c5",
+    secretKeyOKX: "A5B7DCA10A874922F54DC2204D6A0435",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "61061ef4-6d0a-412a-92a9-bdc29c6161a7",
+    secretKeyOKX: "4DDF73FD7C38EB50CD09BF84CDB418ED",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "b63f3f68-2008-4df5-9d2e-ae888435332b",
+    secretKeyOKX: "1427387D7B1A67018AA26D364700527B",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "ecc51700-e7a2-4c93-9c8d-dbc43bda74c1",
+    secretKeyOKX: "6A897CF4D6B56AF6B4E39942C8811871",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "dd3f982e-0e20-4ecd-8a03-12d7b0f54586",
+    secretKeyOKX: "9F69EEB1A17CCCE9862B797428D56C00",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "a6fd566b-90ed-42c1-8575-1e15c05e395c",
+    secretKeyOKX: "77FA24FA1DBFFBA5C9C83367D0EAE676",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "a499fca1-14cd-41c3-a5bc-0eb37581eff9",
+    secretKeyOKX: "B8101413760E26278FFAF6F0A2BCEA73",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "c3c7e029-64b7-4704-8fdc-6d1861ad876a",
+    secretKeyOKX: "B13A8CFA344038FAACB44A3E92C9C057",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "1974cbac-2a05-4892-88e0-eb262d5d2798",
+    secretKeyOKX: "6A24A249F758047057A993D9A460DA7F",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "41826044-b7bb-4465-a903-3da61e336747",
+    secretKeyOKX: "F42BD9E95F01BCD248C94EE2EECDE19A",
+    PassphraseOKX: "Regi!#007"
+},
+{
+    ApiKeyOKX: "08af14cb-2f97-472c-90cd-fefd2103f253",
+    secretKeyOKX: "FFC78575E3961D11BF134C8DE9CBE7F8",
+    PassphraseOKX: "Regi!#007"
+},    
       ];
       
        // Fungsi untuk Signature
@@ -2770,6 +3358,10 @@ $(document).ready(function() {
                 <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
                 <span class="uk-text-warning" title="GET NETTO / PNL" > ${PNL.toFixed(2)}$</span>
             `);
+             // Panggil InfoSinyal jika PNL > totalFee
+            if (PNL > totalFee) {
+                InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
+            }
         }
 
         // Highlight PNL < -50% dari modal (rugi besar)
@@ -2788,24 +3380,29 @@ $(document).ready(function() {
     }
 
     // Fungsi untuk menampilkan sinyal hasil scan dan memutar suara
-    function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,profitLossPercent,modal,trx) {
-        // Menentukan warna teks berdasarkan `cex` menggunakan fungsi getWarnaCEX
+    function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, trx) {
+        var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
         var warnaCEX = getWarnaCEX(cex);
         let idCELL = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${(DTChain.Nama_Chain).toUpperCase()}`;
 
         let warnaPNL = trx === "TokentoPair" ? "uk-text-success" : "uk-text-danger";
 
+        // Default style
+        let highlightStyle = "";
+        if (PNL > filterPNLValue) {
+            highlightStyle = "background-color:#daf4c2; border-left:1px solid #black";
+        }
+
         var sLink = `<a href="#${idCELL}" class="buy">
-            <span style="color:${warnaCEX}; font-weight:bolder;">
+            <span style="color:${warnaCEX}; font-weight:bolder; display:inline-block; ${highlightStyle}">
                 [ ${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
-               <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span class="uk-text-warning">${PNL.toFixed(2)}$</span> ]
+                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:#ff7d04;">${PNL.toFixed(2)}$</span> ]
             </span>
         </a>`;
 
-        // Menambahkan link ke elemen dengan ID yang sesuai
         $("#sinyal" + DEXPLUS.toLowerCase()).append(` ${sLink} `);
-        
-        var audio = new Audio('audio.mp3');  // Ganti dengan path file suara yang sesuai
+
+        var audio = new Audio('audio.mp3');
         audio.play();
     }
 
@@ -3018,7 +3615,7 @@ $(document).ready(function() {
             saveToLocalStorage("WALLET_CEX", allFeeWD);
             saveToLocalStorage("LASTUPDATE_FEEWD", lastModifiedTime);
 
-            const storedScanner = getFromLocalStorage("TOKEN_FAV_SCANNER", []);
+            const storedScanner = getFromLocalStorage("MULTI_SCANNER", []);
             const storedFav = getFromLocalStorage("TOKEN_SCANNER", []);
             const WalletCEXData = getFromLocalStorage("WALLET_CEX", []);
 
@@ -3048,10 +3645,10 @@ $(document).ready(function() {
             const updatedFav = mergeTokenData(storedFav);
 
             if (confirm('RELOAD STATUS WITHDRAW & DEPOSIT CEX?')) {
-                saveToLocalStorage("TOKEN_FAV_SCANNER", updatedScanner);
+                saveToLocalStorage("MULTI_SCANNER", updatedScanner);
                 saveToLocalStorage("TOKEN_SCANNER", updatedFav);
 
-                const savedScanner = getFromLocalStorage("TOKEN_FAV_SCANNER", []);
+                const savedScanner = getFromLocalStorage("MULTI_SCANNER", []);
                 const savedFav = getFromLocalStorage("TOKEN_SCANNER", []);
 
                 const scannerOK = savedScanner.length === updatedScanner.length;
