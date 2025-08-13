@@ -21,29 +21,29 @@
     <script src="main.js"></script>
     <style>
         /* Override semua class UIkit text* agar mengikuti warna Bootstrap */
-[class*="uk-text"] {
-    color: inherit !important; /* Default mengikuti Bootstrap */
-}
+    [class*="uk-text"] {
+        color: inherit !important; /* Default mengikuti Bootstrap */
+    }
 
-/* Mapping warna Bootstrap */
-.uk-text-primary    { color: var(--bs-primary) !important; }
-.uk-text-secondary  { color: var(--bs-secondary) !important; }
-.uk-text-success    { color: var(--bs-success) !important; }
-.uk-text-danger     { color: var(--bs-danger) !important; }
-.uk-text-warning    { color: var(--bs-warning) !important; }
-.uk-text-info       { color: var(--bs-info) !important; }
-.uk-text-light      { color: var(--bs-light) !important; }
+    /* Mapping warna Bootstrap */
+    .uk-text-primary    { color: var(--bs-primary) !important; }
+    .uk-text-secondary  { color: var(--bs-secondary) !important; }
+    .uk-text-success    { color: var(--bs-success) !important; }
+    .uk-text-danger     { color: var(--bs-danger) !important; }
+    .uk-text-warning    { color: var(--bs-warning) !important; }
+    .uk-text-info       { color: var(--bs-info) !important; }
+    .uk-text-light      { color: var(--bs-light) !important; }
 
-/* Kalau Bootstrap < 5, bisa pakai kode warna manual */
-:root {
-    --bs-primary:   #0d6efd;
-    --bs-secondary: #000204;
-    --bs-success:   #05a705;
-    --bs-danger:    #ea0c0c;
-    --bs-warning:   #f68f02;
-    --bs-info:      #0dcaf0;
-    --bs-light:     #f8f9fa;
-}
+    /* Kalau Bootstrap < 5, bisa pakai kode warna manual */
+    :root {
+        --bs-primary:   #0d6efd;
+        --bs-secondary: #000204;
+        --bs-success:   #05a705;
+        --bs-danger:    #ea0c0c;
+        --bs-warning:   #f68f02;
+        --bs-info:      #0dcaf0;
+        --bs-light:     #f8f9fa;
+    }
 
         .uk-container {  max-width: none; }        
         .status-active { color: green; }
@@ -99,7 +99,7 @@
         }
 
         .uk-table tbody td {
-            font-size: 11.5px;
+            font-size: 12px;
             border: 0.85px solid #121010;
             padding: 4px;
             white-space: nowrap;
@@ -181,12 +181,6 @@
            color: #000 !important;
             margin-top: 10px;
         }
-        /* Mode gelap */
-        /* body.uk-dark #sinyal-container {
-            background-color: #605d5d !important;
-            color: #f0f0f0 !important;
-        } */
-
         /* CSS dark mode */
         body {
             transition: background-color 0.3s, color 0.3s;
@@ -337,6 +331,42 @@
         .uk-table tbody tr:hover {
             background-color: #f8f2d0 !important; /* abu hover */
         }
+        #progress-container {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden; /* biar ujung bar tetap rapi saat animasi */
+        }
+
+        #progress-bar {
+            height: 14px;
+            width: 0%;
+            border-radius: 5px;
+            position: relative;
+
+            /* Warna dasar + pola strip diagonal */
+            background-color: #5c9513;
+            background-image: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.3) 0,
+                rgba(255, 255, 255, 0.3) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+            background-size: 20px 20px;
+
+            /* Animasi strip bergerak */
+            animation: move-stripes 1s linear infinite;
+        }
+
+        #progress-bar span {
+            color: white;
+            text-align: center;
+            line-height: 14px;
+            display: block;
+            font-weight: bold;
+        } 
 
     </style>
     <!-- <base href="/V1/"> -->
@@ -391,8 +421,7 @@
                             <input type="file" id="uploadJSON" accept="application/json" style="display:none;" onchange="uploadTokenScannerJSON(event)">
                             <img class="icon" id="darkModeToggle" title="Ganti Mode Gelap/Terang" width="24px"
                                 src="https://cdn-icons-png.flaticon.com/512/3751/3751403.png" onclick="toggleDarkMode()" /> -->
-<a href="multiall.html" 
-   onclick="event.preventDefault(); alert('SABAR YA... FITUR MASIH DIKERJAKAN \u002d\u005f\u002d');">
+<a href="multiall.html"  target="_blank">
    <img class="icon" title="MULTI SCANNER" width="22px"
         src="https://cdn-icons-png.flaticon.com/512/30/30279.png" />
 </a>
@@ -416,7 +445,7 @@
         </div>
 
         <!-- Card Bagian Info & Konfigurasi Scanner -->
-        <div class="uk-card uk-card-default uk-padding-small" style="border: 1px solid;padding-top: 6px;padding-bottom: 6px;" id="scanner-config">
+        <div class="uk-card uk-card-default uk-padding-small uk-card-hover" style="border: 1px solid;padding-top: 6px;padding-bottom: 6px;" id="scanner-config">
             <div class="uk-grid-small uk-flex-middle" uk-grid>
 
                 <!-- Form Setting responsif -->
@@ -452,67 +481,79 @@
 
         <!-- Modal IMPORT TOKEN MULTIALL -->
         <div id="multiTokenModal" uk-modal>
-        <div class="uk-modal-dialog uk-modal-body">
+            <div class="uk-modal-dialog uk-modal-body uk-border-rounded">
 
-            <h3 class="uk-modal-title uk-margin-remove-bottom">Import Koin MultiScan</h3>
-            <hr class="uk-margin-small-top uk-margin-small-bottom">
-
-            <!-- Info Token -->
-            <div id="multiTokenInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
-            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
-                <div>
-                <b>Nama Token [Desimal] :</b> 
-                <span id="infoSymbolToken"></span> [<span id="infoDesToken"></span>]
-                </div>
-                <div>
-                <b>Smart Contract :</b> 
-                <span id="infoSCToken"></span>
-                </div>
-            </div>
-            </div>
-
-            <!-- Info Pair -->
-            <div id="multiPairInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
-            <div class="uk-grid-small uk-child-width-1-1" uk-grid>
-                <div>
-                <b>Nama Pair [Desimal] :</b> 
-                <span id="infoSymbolPair"></span> [<span id="infoDesPair"></span>]
-                </div>
-                <div>
-                <b>Smart Contract :</b> 
-                <span id="infoSCPair"></span>
-                </div>
-            </div>
-            </div>
-
-            <!-- Form -->
-        <form id="multiTokenForm">
-            <div class="uk-card uk-card-default uk-card-small uk-card-body">
-                <div class="uk-grid-small" uk-grid>
-                    <!-- Kolom CEX -->
-                    <div class="uk-width-1-3@m">
-                        <label class="uk-form-label uk-text-bold">Pilih CEX</label>
-                        <div id="cex-checkbox-group" class="uk-margin-small-top"></div>
+              <!-- Header Modal -->
+                <div class="uk-flex uk-flex-middle uk-margin-small-bottom" id="judulmodal">
+                    <div class="uk-width-expand"></div>
+                    <div class="uk-text-center uk-width-auto">
+                        <h4 class="uk-modal-title uk-margin-remove">Import Koin [SNIPER]</h4>
                     </div>
-
-                    <!-- Kolom DEX -->
-                    <div class="uk-width-2-3@m">
-                        <label class="uk-form-label uk-text-bold">Pilih DEX (Maks 4) & Modal {KIRI,KANAN}</label>
-                        <div id="dex-checkbox-group" class="uk-margin-small-top"></div>
+                    <div class="uk-width-expand uk-text-right">
+                        <button class="uk-modal-close-default" type="button" uk-close></button>
                     </div>
                 </div>
 
-                <input type="hidden" id="multiTokenIndex">
+                <hr class="uk-margin-remove-top uk-margin-small-bottom">
+
+                <!-- Info Token -->
+                <div id="multiTokenInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
+                    <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                        <div>
+                            <b>Nama Token [Desimal] :</b>
+                            <span id="infoSymbolToken"></span> [<span id="infoDesToken"></span>]
+                        </div>
+                        <div>
+                            <b>Smart Contract :</b>
+                            <span id="infoSCToken"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Pair -->
+                <div id="multiPairInfo" class="uk-card uk-card-default uk-card-small uk-card-body uk-margin-small-bottom">
+                    <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+                        <div>
+                            <b>Nama Pair [Desimal] :</b>
+                            <span id="infoSymbolPair"></span> [<span id="infoDesPair"></span>]
+                        </div>
+                        <div>
+                            <b>Smart Contract :</b>
+                            <span id="infoSCPair"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form -->
+                <form id="multiTokenForm">
+                    <div class="uk-card uk-card-default uk-card-small uk-card-body">
+                        <div class="uk-grid-small" uk-grid>
+                            <!-- Kolom CEX -->
+                            <div class="uk-width-1-3@m">
+                                <label class="uk-form-label uk-text-bold">Pilih CEX</label>
+                                <div id="cex-checkbox-group" class="uk-margin-small-top"></div>
+                            </div>
+
+                            <!-- Kolom DEX -->
+                            <div class="uk-width-2-3@m">
+                                <label class="uk-form-label uk-text-bold">
+                                    Pilih DEX (Maks 4) & Modal {KIRI,KANAN}
+                                </label>
+                                <div id="dex-checkbox-group" class="uk-margin-small-top"></div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="multiTokenIndex">
+                    </div>
+
+                    <!-- Tombol Action -->
+                    <div class="uk-flex uk-flex-right uk-margin-top">
+                        <button class="uk-button uk-button-default uk-modal-close" type="button" id="batalimportkoin">Batal</button>
+                        <button class="uk-button uk-button-primary" type="submit" id="importkoin">Import</button>
+                    </div>
+                </form>
+
             </div>
-
-            <div class="uk-flex uk-flex-right uk-margin-top">
-                <button class="uk-button uk-button-default uk-modal-close" type="button">Batal</button>
-                <button class="uk-button uk-button-primary" type="submit">Simpan</button>
-            </div>
-        </form>
-
-
-        </div>
         </div>
 
         <!-- Modal SETTING APLIKASI -->
@@ -593,7 +634,7 @@
                                     
                                     <p class="uk-text-right">
                                         <button class="uk-button uk-button-default uk-modal-close" type="button">Tutup</button>
-                                        <button type="button" id="save-config" class="uk-button uk-button-primary">SIMPAN</button>  
+                                        <button type="button" id="save-config" class="uk-button uk-button-primary" >SIMPAN</button>  
                                     </p>   
                                 </div>
                             </div>
@@ -656,7 +697,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
 <script>
-    console.log("👂 Listener storage AKTIF di tab:", window.location.href);
+   // console.log("👂 Listener storage AKTIF di tab:", window.location.href);
 
     window.addEventListener('storage', function (event) {
        // console.log("📦 EVENT STORAGE TERDETEKSI:", event);
@@ -1409,6 +1450,7 @@ $(document).ready(function() {
                     $('h2#judul').css('color', selectedChain.WARNA);
                     $('#favicon').attr('href', DTChain.ICON_CHAIN); 
                     $('#progress-bar').css('background-color', selectedChain.WARNA);
+                    $('#judulmodal').css({ 'background-color': selectedChain.WARNA,  'color': 'black' });
 
                     $('#sinyal-container').css('color',"black");
 
@@ -1638,7 +1680,7 @@ $(document).ready(function() {
         $('#sinyal-container span[id^="sinyal"]').empty();
         form_off();
 
-        $("#autoScrollCheckbox").show().prop('disabled', false);
+        $("#autoScrollCheckbox,#batalimportkoin,#importkoin").show().prop('disabled', false);
         $("#stopSCAN").show().prop('disabled', false);
 
         $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container,.sort-toggle').css('pointer-events', 'none').css('opacity', '0.4');
@@ -2026,190 +2068,71 @@ $(document).ready(function() {
         const cexConfig = CONFIG_CEX[cex.toUpperCase()]; // Ambil konfigurasi berdasarkan nama CEX
         return cexConfig && cexConfig.WARNA ? cexConfig.WARNA : 'black'; // Gunakan warna dari konfigurasi atau 'black' jika tidak ditemukan
     }
-    // INFO SIGNAL PERBARIS
-function loadSignalDataPERBARIS() {
-    let selectedDEX = getFromLocalStorage('DEX_PILIH', []);
-    const appSettings = getFromLocalStorage('DATA_SETTING', {});
+    //SIGNAL DINAMIS BENTUK CARD
+    function loadSignalData() {
+        let selectedDEX = getFromLocalStorage('DEX_PILIH', []); 
+        const appSettings = getFromLocalStorage('DATA_SETTING', {});
 
-    let sinyalContainer = document.getElementById('sinyal-container');
-    sinyalContainer.innerHTML = '';
+        let sinyalContainer = document.getElementById('sinyal-container');
+        sinyalContainer.innerHTML = '';
 
-    // Jadikan container list vertikal (tanpa grid)
-    sinyalContainer.className = ''; // hapus semua class sebelumnya
-    sinyalContainer.style.display = 'block'; // biar vertikal semua
+        // Grid horizontal UIkit
+        sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
+        sinyalContainer.setAttribute('uk-grid', '');
 
-    selectedDEX.forEach((dex, index) => {
-        const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
+        selectedDEX.forEach(dex => {
+            // Get left and right modal values
+            const modalLeft = appSettings[`MODAL_KIRI_${dex.toUpperCase()}`] || 0;
+            const modalRight = appSettings[`MODAL_KANAN_${dex.toUpperCase()}`] || 0;
 
-        let gridItem = document.createElement('div');
-        gridItem.style.marginBottom = '8px'; // jarak antar card
+            // Grid item
+            let gridItem = document.createElement('div');
 
-        let card = document.createElement('div');
-        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
+            // Card UIkit dengan radius & border rapi
+            let card = document.createElement('div');
+            card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
+            card.style.borderRadius = '5px';
+            card.style.overflow = 'hidden';
+            card.style.border = `1px solid ${getWarnaCEX(dex)}`;
 
-        let cardHeader = document.createElement('div');
-        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
-        cardHeader.style.backgroundColor = selectedChain.WARNA;
-        cardHeader.style.height = '30px';
-        cardHeader.style.display = 'flex';
-        cardHeader.style.alignItems = 'center';
-        cardHeader.style.justifyContent = 'space-between';
+            // Header card
+            let cardHeader = document.createElement('div');
+            cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
+            cardHeader.style.backgroundColor = selectedChain.WARNA;
+            cardHeader.style.height = '30px';
+            cardHeader.style.lineHeight = '20px';
+            cardHeader.style.display = 'flex';
+            cardHeader.style.alignItems = 'center';
+            cardHeader.style.justifyContent = 'space-between';
+            cardHeader.innerHTML = `
+                <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">
+                    ${dex.toUpperCase()} <span style="color: white !important;" class="uk-text-bold"> [ KIRI: $${modalLeft} | KANAN: $${modalRight} ] </span>
+                </span>
+            `;
 
-        let bodyId = `body-${dex.toLowerCase()}-${index}`;
-        cardHeader.innerHTML = `
-            <div class="uk-flex uk-flex-middle" style="gap:8px;">
-                <span class="uk-text-bold" style="color:#000;">${dex.toUpperCase()}</span>
-            </div>
-            <a class="uk-icon-link uk-text-danger uk-text-bolder" uk-icon="chevron-up" uk-toggle="target: #${bodyId}"></a>
-        `;
+            // Body card
+            let cardBody = document.createElement('div');
+            cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
+            cardBody.style.padding = '8px 12px';
 
-        let cardBody = document.createElement('div');
-        cardBody.classList.add('uk-card-body', 'uk-padding-remove', 'uk-background-muted');
-        cardBody.id = bodyId;
+            // Tempat sinyal
+            let signalSpan = document.createElement('div');
+            signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
+            signalSpan.style.fontSize = '13px';
+            signalSpan.style.whiteSpace = 'normal';
+            signalSpan.style.wordWrap = 'break-word';
+            signalSpan.style.overflowWrap = 'break-word';
+            signalSpan.style.lineHeight = '1.4';
+            signalSpan.style.color = '#333';
 
-        let signalSpan = document.createElement('div');
-        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
-        signalSpan.style.fontSize = '13.5px';
-        signalSpan.style.border = `1px solid ${selectedChain.WARNA}`;
-        signalSpan.style.padding = '4px';
-
-        cardBody.appendChild(signalSpan);
-        card.appendChild(cardHeader);
-        card.appendChild(cardBody);
-        gridItem.appendChild(card);
-        sinyalContainer.appendChild(gridItem);
-    });
-}
-//SIGNAL DINAMIS BENTUK CARD
-function loadSignalData() {
-    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); 
-    const appSettings = getFromLocalStorage('DATA_SETTING', {});
-
-    let sinyalContainer = document.getElementById('sinyal-container');
-    sinyalContainer.innerHTML = '';
-
-    // Grid horizontal UIkit
-    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
-    sinyalContainer.setAttribute('uk-grid', '');
-
-    selectedDEX.forEach(dex => {
-        // Get left and right modal values
-        const modalLeft = appSettings[`MODAL_KIRI_${dex.toUpperCase()}`] || 0;
-        const modalRight = appSettings[`MODAL_KANAN_${dex.toUpperCase()}`] || 0;
-
-        // Grid item
-        let gridItem = document.createElement('div');
-
-        // Card UIkit dengan radius & border rapi
-        let card = document.createElement('div');
-        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
-        card.style.borderRadius = '5px';
-        card.style.overflow = 'hidden';
-        card.style.border = `1px solid ${getWarnaCEX(dex)}`;
-
-        // Header card
-        let cardHeader = document.createElement('div');
-        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
-        cardHeader.style.backgroundColor = selectedChain.WARNA;
-        cardHeader.style.height = '30px';
-        cardHeader.style.lineHeight = '20px';
-        cardHeader.style.display = 'flex';
-        cardHeader.style.alignItems = 'center';
-        cardHeader.style.justifyContent = 'space-between';
-        cardHeader.innerHTML = `
-            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">
-                ${dex.toUpperCase()} <span style="color: white !important;" class="uk-text-bold"> [ KIRI: $${modalLeft} | KANAN: $${modalRight} ] </span>
-            </span>
-        `;
-
-        // Body card
-        let cardBody = document.createElement('div');
-        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
-        cardBody.style.padding = '8px 12px';
-
-        // Tempat sinyal
-        let signalSpan = document.createElement('div');
-        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
-        signalSpan.style.fontSize = '13px';
-        signalSpan.style.whiteSpace = 'normal';
-        signalSpan.style.wordWrap = 'break-word';
-        signalSpan.style.overflowWrap = 'break-word';
-        signalSpan.style.lineHeight = '1.4';
-        signalSpan.style.color = '#333';
-
-        // Gabungkan elemen
-        cardBody.appendChild(signalSpan);
-        card.appendChild(cardHeader);
-        card.appendChild(cardBody);
-        gridItem.appendChild(card);
-        sinyalContainer.appendChild(gridItem);
-    });
-}
-
-function loadSignalDataLAMA() {
-    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); // Ambil pilihan DEX dari localStorage
-    const appSettings = getFromLocalStorage('DATA_SETTING', {});
-
-    let sinyalContainer = document.getElementById('sinyal-container');
-    sinyalContainer.innerHTML = '';
-
-    // Jadikan container grid horizontal
-    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
-    sinyalContainer.setAttribute('uk-grid', '');
-
-    selectedDEX.forEach(dex => {
-        const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
-
-        // Wrapper grid item
-        let gridItem = document.createElement('div');
-
-        // Card UIkit
-        let card = document.createElement('div');
-        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
-
-        // Card header
-        let cardHeader = document.createElement('div');
-        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
-        cardHeader.style.backgroundColor = selectedChain.WARNA;
-        cardHeader.style.height = '30px'; // tinggi tetap
-        cardHeader.style.lineHeight = '20px'; // vertikal align teks
-        cardHeader.style.display = 'flex';
-        cardHeader.style.alignItems = 'center';
-        cardHeader.style.justifyContent = 'space-between';
-
-        cardHeader.innerHTML = `
-            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">${dex.toUpperCase()} [${modalValue}]</span>
-        `;
-
-        // Card body
-        let cardBody = document.createElement('div');
-        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
-        cardBody.style.border = `1px solid ${getWarnaCEX(dex)}`;    
-        cardBody.style.borderRadius = `5px`; 
-
-        // Pastikan padding cukup dan teks bisa wrap dengan baik
-        cardBody.style.padding = '8px 12px'; // beri padding agak lega
-
-        let signalSpan = document.createElement('div');
-        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
-        signalSpan.style.fontSize = '13px';
-
-        // Tambahkan style agar teks wrap dan tidak overflow
-        signalSpan.style.whiteSpace = 'normal';  // teks bisa wrap ke baris baru
-        signalSpan.style.wordWrap = 'break-word'; // pecah kata jika terlalu panjang
-        signalSpan.style.overflowWrap = 'break-word';
-        signalSpan.style.lineHeight = '1.4'; // jarak antar baris agar enak dibaca
-        signalSpan.style.color = '#333'; // warna teks agar kontras dengan background
-
-        cardBody.appendChild(signalSpan);
-
-        // Gabungkan
-        card.appendChild(cardHeader);
-        card.appendChild(cardBody);
-        gridItem.appendChild(card);
-        sinyalContainer.appendChild(gridItem);
-    });
-}
+            // Gabungkan elemen
+            cardBody.appendChild(signalSpan);
+            card.appendChild(cardHeader);
+            card.appendChild(cardBody);
+            gridItem.appendChild(card);
+            sinyalContainer.appendChild(gridItem);
+        });
+    }
 
     function createLink(url, text, className = '') {
         return url
