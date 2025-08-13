@@ -20,7 +20,32 @@
     <script src="config.js"></script>
     <script src="main.js"></script>
     <style>
-        .uk-container {  max-width: none; }
+        /* Override semua class UIkit text* agar mengikuti warna Bootstrap */
+[class*="uk-text"] {
+    color: inherit !important; /* Default mengikuti Bootstrap */
+}
+
+/* Mapping warna Bootstrap */
+.uk-text-primary    { color: var(--bs-primary) !important; }
+.uk-text-secondary  { color: var(--bs-secondary) !important; }
+.uk-text-success    { color: var(--bs-success) !important; }
+.uk-text-danger     { color: var(--bs-danger) !important; }
+.uk-text-warning    { color: var(--bs-warning) !important; }
+.uk-text-info       { color: var(--bs-info) !important; }
+.uk-text-light      { color: var(--bs-light) !important; }
+
+/* Kalau Bootstrap < 5, bisa pakai kode warna manual */
+:root {
+    --bs-primary:   #0d6efd;
+    --bs-secondary: #000204;
+    --bs-success:   #05a705;
+    --bs-danger:    #ea0c0c;
+    --bs-warning:   #f68f02;
+    --bs-info:      #0dcaf0;
+    --bs-light:     #f8f9fa;
+}
+
+        .uk-container {  max-width: none; }        
         .status-active { color: green; }
         .status-inactive { color: red; }
         .sort-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
@@ -75,8 +100,8 @@
 
         .uk-table tbody td {
             font-size: 11.5px;
-            border: 0.85px solid #ddd;
-            padding: 6px;
+            border: 0.85px solid #121010;
+            padding: 4px;
             white-space: nowrap;
         }
         .uk-background{
@@ -253,6 +278,7 @@
 
         .header-card {
             padding: 6px 12px !important; /* lebih kecil agar rapat */
+            border: 1px solid black;
         }
 
         .header-card h3 {
@@ -285,6 +311,32 @@
             padding-right: 8px;
         }
 
+        .uk-card,
+        .uk-card-default {
+            border-radius: 5px; /* bisa diganti 8px/16px sesuai selera */
+            overflow: hidden;    /* biar konten ikut rounded */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08); /* optional, biar soft */
+        }
+
+        .uk-card img,
+        .uk-card-default img {
+            border-radius: 5px 5px 0 0; /* gambar di atas ikut rounded */
+        }
+
+        /* Baris ganjil */
+        .uk-table tbody tr:nth-child(odd) {
+            background-color: #f7f7f7 !important; /* warna abu muda */
+        }
+
+        /* Baris genap */
+        .uk-table tbody tr:nth-child(even) {
+            background-color: #ececec !important; /* abu sedikit lebih gelap */
+        }
+
+        /* Opsional: hover effect */
+        .uk-table tbody tr:hover {
+            background-color: #f8f2d0 !important; /* abu hover */
+        }
 
     </style>
     <!-- <base href="/V1/"> -->
@@ -300,7 +352,7 @@
                         <div class="uk-flex uk-flex-middle uk-flex-wrap">
                             <h3 id="judul" class="uk-margin-remove" 
                                 style="font-size: 18px; line-height: 1.2; color: #000; font-weight: bold;">
-                                MONITORING V1 :: <label id="namachain"></label> 
+                                MONITORING [GLOBAL] :: <label id="namachain"></label> 
                                 <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" />
                             </h3>
                             <span class="uk-margin-small-left">[ &nbsp;<b> 
@@ -1084,7 +1136,6 @@ $('#multiTokenForm').on('submit', function (e) {
         // Lakukan update tampilan sesuai perubahan sorting
         loadStoredData(filteredTokens);
     });
-
     
     // Mapping konfigurasi untuk setiap exchange
     const exchangeConfig = {
@@ -2031,6 +2082,71 @@ function loadSignalDataPERBARIS() {
 }
 //SIGNAL DINAMIS BENTUK CARD
 function loadSignalData() {
+    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); 
+    const appSettings = getFromLocalStorage('DATA_SETTING', {});
+
+    let sinyalContainer = document.getElementById('sinyal-container');
+    sinyalContainer.innerHTML = '';
+
+    // Grid horizontal UIkit
+    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
+    sinyalContainer.setAttribute('uk-grid', '');
+
+    selectedDEX.forEach(dex => {
+        // Get left and right modal values
+        const modalLeft = appSettings[`MODAL_KIRI_${dex.toUpperCase()}`] || 0;
+        const modalRight = appSettings[`MODAL_KANAN_${dex.toUpperCase()}`] || 0;
+
+        // Grid item
+        let gridItem = document.createElement('div');
+
+        // Card UIkit dengan radius & border rapi
+        let card = document.createElement('div');
+        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
+        card.style.borderRadius = '5px';
+        card.style.overflow = 'hidden';
+        card.style.border = `1px solid ${getWarnaCEX(dex)}`;
+
+        // Header card
+        let cardHeader = document.createElement('div');
+        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
+        cardHeader.style.backgroundColor = selectedChain.WARNA;
+        cardHeader.style.height = '30px';
+        cardHeader.style.lineHeight = '20px';
+        cardHeader.style.display = 'flex';
+        cardHeader.style.alignItems = 'center';
+        cardHeader.style.justifyContent = 'space-between';
+        cardHeader.innerHTML = `
+            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">
+                ${dex.toUpperCase()} <span style="color: white !important;" class="uk-text-bold"> [ KIRI: $${modalLeft} | KANAN: $${modalRight} ] </span>
+            </span>
+        `;
+
+        // Body card
+        let cardBody = document.createElement('div');
+        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
+        cardBody.style.padding = '8px 12px';
+
+        // Tempat sinyal
+        let signalSpan = document.createElement('div');
+        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
+        signalSpan.style.fontSize = '13px';
+        signalSpan.style.whiteSpace = 'normal';
+        signalSpan.style.wordWrap = 'break-word';
+        signalSpan.style.overflowWrap = 'break-word';
+        signalSpan.style.lineHeight = '1.4';
+        signalSpan.style.color = '#333';
+
+        // Gabungkan elemen
+        cardBody.appendChild(signalSpan);
+        card.appendChild(cardHeader);
+        card.appendChild(cardBody);
+        gridItem.appendChild(card);
+        sinyalContainer.appendChild(gridItem);
+    });
+}
+
+function loadSignalDataLAMA() {
     let selectedDEX = getFromLocalStorage('DEX_PILIH', []); // Ambil pilihan DEX dari localStorage
     const appSettings = getFromLocalStorage('DATA_SETTING', {});
 
@@ -2062,13 +2178,14 @@ function loadSignalData() {
         cardHeader.style.justifyContent = 'space-between';
 
         cardHeader.innerHTML = `
-            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">${dex.toUpperCase()}</span>
+            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">${dex.toUpperCase()} [${modalValue}]</span>
         `;
 
         // Card body
         let cardBody = document.createElement('div');
         cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
-        cardBody.style.border = `1px solid ${getWarnaCEX(dex)}`;
+        cardBody.style.border = `1px solid ${getWarnaCEX(dex)}`;    
+        cardBody.style.borderRadius = `5px`; 
 
         // Pastikan padding cukup dan teks bisa wrap dengan baik
         cardBody.style.padding = '8px 12px'; // beri padding agak lega
@@ -2086,59 +2203,6 @@ function loadSignalData() {
 
         cardBody.appendChild(signalSpan);
 
-        // Gabungkan
-        card.appendChild(cardHeader);
-        card.appendChild(cardBody);
-        gridItem.appendChild(card);
-        sinyalContainer.appendChild(gridItem);
-    });
-}
-
-function loadSignalDataX() {
-    let selectedDEX = getFromLocalStorage('DEX_PILIH', []); // Ambil pilihan DEX dari localStorage
-    const appSettings = getFromLocalStorage('DATA_SETTING', {});
-
-    let sinyalContainer = document.getElementById('sinyal-container');
-    sinyalContainer.innerHTML = '';
-
-    // Jadikan container grid horizontal
-    sinyalContainer.classList.add('uk-grid', 'uk-child-width-expand@s', 'uk-grid-small');
-    sinyalContainer.setAttribute('uk-grid', '');
-
-    selectedDEX.forEach(dex => {
-        const modalName = appSettings[`MODAL_${dex.toUpperCase()}`] || 0;
-
-        // Wrapper grid item
-        let gridItem = document.createElement('div');
-
-        // Card UIkit
-        let card = document.createElement('div');
-        card.classList.add('uk-card', 'uk-card-default', 'uk-card-hover');
-
-        // Card header
-        let cardHeader = document.createElement('div');
-        cardHeader.classList.add('uk-card-header', 'uk-padding-remove-vertical', 'uk-padding-small');
-        cardHeader.style.backgroundColor = selectedChain.WARNA;
-        cardHeader.style.height = '30px'; // tinggi tetap
-        cardHeader.style.lineHeight = '20px'; // vertikal align teks
-        cardHeader.style.display = 'flex';
-        cardHeader.style.alignItems = 'center';
-        cardHeader.style.justifyContent = 'space-between';
-
-        cardHeader.innerHTML = `
-            <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13px;">${dex.toUpperCase()}</span>
-        `;
-
-        // Card body
-        let cardBody = document.createElement('div');
-        cardBody.classList.add('uk-card-body', 'uk-padding-small', 'uk-background-muted');
-
-        let signalSpan = document.createElement('div');
-        signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
-        signalSpan.style.fontSize = '13px';
-
-        cardBody.appendChild(signalSpan);
-        cardBody.style.border = `1px solid ${getWarnaCEX(dex)}`;
         // Gabungkan
         card.appendChild(cardHeader);
         card.appendChild(cardBody);
@@ -2312,9 +2376,9 @@ function loadSignalDataX() {
                 td.id = idCELL;
 
                 let innerHTML = `
-                    <a href="#"><span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span></a><br>
-                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}">  </span><br>
-                    <a href="#"><span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span></a><br>
+                    <span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span><br>
+                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}"> ${dex.toUpperCase()} </span><br>
+                     <span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span><br>
                     <hr class="uk-divider-small uk-margin-remove">
                     <span class="uk-text-primary" id="RESULT_${idCELL}">  </span>
                 `;
@@ -2324,12 +2388,18 @@ function loadSignalDataX() {
 
             // Kolom DETAIL TOKEN
             let detailTd = document.createElement('td');
-            detailTd.className = 'uk-text-center uk-background uk-text-nowrap';
+            detailTd.className = 'uk-text-center uk-text-nowrap';
+            // Contoh: tambahkan transparansi pada warna chain
+            const hex = selectedChain.WARNA.replace('#', '');
+            const r = parseInt(hex.substring(0,2), 16);
+            const g = parseInt(hex.substring(2,4), 16);
+            const b = parseInt(hex.substring(4,6), 16);
+            detailTd.style.backgroundColor = `rgba(${r},${g},${b},0.18)`;
 
             detailTd.innerHTML = `
                 <input type="checkbox" class="statusCheckbox" data-id="${index}" data-index="${data.no}" ${data.status ? 'checked' : ''}>#${index+1}
                 <span style="color: ${warnaCEX}; font-weight:bolder;">${data.cex} </span>
-                <span id="SelMulti-${index}" data-index="${index}" uk-icon="icon:crosshairs; ratio: 0.8"  class="uk-text-secondary uk-text-bolder"  style="cursor:default; pointer-events:none;"> </span><br/>
+                <span id="SelMulti-${index}" data-index="${index}" uk-icon="icon:crosshairs; ratio: 0.8"  class="uk-text-secondary uk-text-bolder"  > </span><br/>
                 <span class="uk-text-danger uk-text-bolder">${linkToken} VS ${linkPair}</span><br/>
                 <span class="uk-text-primary uk-text-bolder">${withdrawToken}~${depositToken}</span> | 
                 <span class="uk-text-primary uk-text-bolder">${withdrawPair}~${depositPair}</span><br/>
@@ -2350,9 +2420,9 @@ function loadSignalDataX() {
                 td.id = idCELL;
 
                 let innerHTML = `
-                    <a href="#"><span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span></a><br>
-                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}">  </span><br>
-                    <a href="#"><span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span></a><br>
+                     <span class="buy" id="LEFT_${idCELL}" title="LEFT_${idCELL}">  </span><br>
+                    <span class="uk-text-primary uk-text-bolder" id="SWAP_${idCELL}"> ${dex.toUpperCase()} </span><br>
+                     <span class="sell" id="RIGHT_${idCELL}" title="RIGHT_${idCELL}">  </span><br>
                     <hr class="uk-divider-small uk-margin-remove">
                     <span class="uk-text-primary" id="RESULT_${idCELL}">  </span>
                 `;
@@ -2382,14 +2452,6 @@ function loadSignalDataX() {
         $('#tokenCount').text(`(${filteredData.length})`);
 
         $InfoStatus.text("SELESAI, Memuat DATA TOKEN !!");
-        // if (selectedDEX.length <= 4) {
-        //     $("#startSCAN").show();
-        // }else{
-        //     $("#startSCAN").hide();
-        //     alert("❌ MAX 4 DEX, SILAKAN KURANGI!! ❌");
-        //     return; // Hentikan proses jika lebih dari 4 DEX
-        // }
-
         setTimeout(() => $InfoStatus.fadeOut(), 2000);
 
         $(".table-header th").css({
@@ -2405,7 +2467,7 @@ function loadSignalDataX() {
 
         updateSortIcons();
     }
-
+ 
     document.addEventListener('mouseover', function (e) {
         const el = e.target;
         if (el.classList.contains('hover-link') && el.dataset.url) {
@@ -3296,6 +3358,10 @@ function loadSignalDataX() {
                 <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
                 <span class="uk-text-warning" title="GET NETTO / PNL" > ${PNL.toFixed(2)}$</span>
             `);
+             // Panggil InfoSinyal jika PNL > totalFee
+            if (PNL > totalFee) {
+                InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
+            }
         }
 
         // Highlight PNL < -50% dari modal (rugi besar)
@@ -3314,24 +3380,29 @@ function loadSignalDataX() {
     }
 
     // Fungsi untuk menampilkan sinyal hasil scan dan memutar suara
-    function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,profitLossPercent,modal,trx) {
-        // Menentukan warna teks berdasarkan `cex` menggunakan fungsi getWarnaCEX
+    function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, trx) {
+        var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
         var warnaCEX = getWarnaCEX(cex);
         let idCELL = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${(DTChain.Nama_Chain).toUpperCase()}`;
 
         let warnaPNL = trx === "TokentoPair" ? "uk-text-success" : "uk-text-danger";
 
+        // Default style
+        let highlightStyle = "";
+        if (PNL > filterPNLValue) {
+            highlightStyle = "background-color:#e9fbd6; border-radius:4px; padding:2px 4px;";
+        }
+
         var sLink = `<a href="#${idCELL}" class="buy">
-            <span style="color:${warnaCEX}; font-weight:bolder; display:inline-block;">
+            <span style="color:${warnaCEX}; font-weight:bolder; display:inline-block; ${highlightStyle}">
                 [ ${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
-               <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span class="uk-text-warning">${PNL.toFixed(2)}$</span> ]
+                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:#ff7d04;">${PNL.toFixed(2)}$</span> ]
             </span>
         </a>`;
 
-        // Menambahkan link ke elemen dengan ID yang sesuai
         $("#sinyal" + DEXPLUS.toLowerCase()).append(` ${sLink} `);
-        
-        var audio = new Audio('audio.mp3');  // Ganti dengan path file suara yang sesuai
+
+        var audio = new Audio('audio.mp3');
         audio.play();
     }
 
