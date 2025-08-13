@@ -470,6 +470,7 @@
                 try {
                         switch (dexType) {
                             case 'kyberswap':
+                                dexTitle="KYBESWAP";
                                 if (action === "TokentoPair") {
                                     amount_out = response.data.routeSummary.amountOut / Math.pow(10, des_output);
                                     FeeSwap =  parseFloat(response.data.routeSummary.gasUsd);
@@ -498,6 +499,7 @@
                                 break;
                             
                             case 'odos':
+                                dexTitle="ODOS";
                                 if (action === "TokentoPair") {
                                    amount_out = parseFloat(response.odosResponse.outValues[0]) / PriceRate; 
                                    FeeSwap = response.odosResponse.gasEstimateValue;
@@ -515,6 +517,7 @@
                                 break;
 
                             case '1inch':
+                                dexTitle="1INCH";
                                 if (action === "TokentoPair") {
                                     const key = Object.keys(response)[0];
                                     const quoteData = response[key]?.quoteRates?.oneInchViaLifi;
@@ -544,12 +547,12 @@
                             case '0x':
                                 // Konversi buyAmount ke satuan desimal (jumlah token yang diterima)
                                 amount_out = response.buyAmount / Math.pow(10, des_output);
-
+                                dexTitle="0X";
                                 if (DTChain.Nama_Chain.toLowerCase() === 'solana') {
                                     // Jika jaringan adalah Solana, fee berasal dari totalNetworkFee (dalam lamport)
                                     let feeLamport = Number(response.totalNetworkFee || 0); // fallback jika null
                                     FeeSwap =( feeLamport / 1e9)* parseFloat(getFromLocalStorage('PRICEGAS', 0)); // konversi lamport ke SOL
-                                   
+                                    
                                 } else {
                                     const gasUsed = parseFloat(response.gas); // contoh: 164208
                                     const gasPriceGwei = parseFloat(response.gasPrice) / 1e9; // dari wei → gwei
@@ -561,14 +564,10 @@
                                 break;
 
                             case 'okx':
+                                dexTitle="0KX";
                                 amount_out = response.data[0].toTokenAmount / Math.pow(10, des_output);
                                 FeeSwap = (response.data[0].estimateGasFee / Math.pow(10, 9)) * parseFloat(getFromLocalStorage('gasGWEI', 0)) * parseFloat(getFromLocalStorage('PRICEGAS', 0));            
                                 break;  
-                            case 'jupiter':
-                                var amount_out = response.outAmount / Math.pow(10, des_output);
-                                
-                                FeeSwap =0.1;
-                                break; 
 
                             case 'lifi':
                                 if (action === "TokentoPair") {
@@ -595,6 +594,9 @@
                                     if (bestQuote) {
                                         amount_out = bestAmount;
                                         FeeSwap = parseFloat(bestQuote.gasCostUSD || "0");
+                                        // Ambil nama tool dan susun title
+                                        const toolName = bestQuote.steps?.[0]?.tool || "unknown";
+                                        dexTitle = `${toolName} via LIFI`;
                                     } else {
                                         console.error("Respon Marble valid tapi tidak ada quote terbaik:", response);
                                         throw new Error("Quote terbaik via Marble tidak ditemukan");
@@ -629,6 +631,10 @@
                                         // Ambil gas fee dengan validasi aman
                                         const gasFeeUSD = bestQuote?.fee?.gasFee?.[0]?.amountUSD;
                                         FeeSwap = isNaN(parseFloat(gasFeeUSD)) ? 0 : parseFloat(gasFeeUSD);
+                                          // Buat dexTitle: nama DEX via DZAP
+                                        const dexName = response[key]?.recommendedSource || bestSource || "unknown";
+                                        dexTitle = `${dexName} via DZAP`;
+
                                     } else {
                                         console.error("Respon DZAP valid tapi tidak ada quote terbaik:", response);
                                         throw new Error("Quote terbaik via DZAP tidak ditemukan");
@@ -642,6 +648,7 @@
                         }
                 
                         const result = {
+                            dexTitle: dexTitle,
                             sc_input: sc_input,
                             des_input: des_input,
                             sc_output: sc_output,
@@ -781,6 +788,7 @@
                     var amount_out = parseFloat(response.amountOutWei) / Math.pow(10, des_output);
                     var FeeSwap = ((parseFloat(getFromLocalStorage('gasGWEI')) * 250000) / Math.pow(10, 9))*parseFloat(getFromLocalStorage('PRICEGAS'));
                     const result = {
+                            dexTitle: dexType+" via SWOOP",
                             sc_input: sc_input,
                             des_input: des_input,
                             sc_output: sc_output,
@@ -1082,8 +1090,9 @@
         });
     }
 
-    function ResultEksekusi(amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype, trx, vol) {
-            var NameX = Name_in + "_" + Name_out;
+    function ResultEksekusi(amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype, trx, vol,DataDEX) {
+        // console.log("DataDEX",DataDEX);    
+        var NameX = Name_in + "_" + Name_out;
             var FeeWD = parseFloat(feeWD);
             var FeeTrade = parseFloat(0.0014 * Modal);
     
@@ -1155,7 +1164,7 @@
                 currency: "IDR"
             }) : "N/A";
 
-            let titleInfo = `${dextype.toUpperCase()}: `;
+            let titleInfo = `${DataDEX.dexTitle.toUpperCase()}: `;
             let RateSwap = "";
 
             if (stablecoins.includes(Name_in)) {
@@ -1177,7 +1186,7 @@
                     // Khusus USDT saat PairtoToken → ambil rate dari PAIR (symbol_out)
                     titleInfo += ` ${formatPrice(rateBuyPairDEX/priceBuyToken_CEX)} ${Name_in}/${Name_out}`;
                     titleInfo += ` | ${toIDR(rateBuyPairDEX)}`;
-                    RateSwap = `<label class="uk-text-primary" title="B:${titleInfo}">${formatPrice(rateBuyPairDEX)}</label>`;
+                    RateSwap = `<label class="uk-text-primary" title="${titleInfo}">${formatPrice(rateBuyPairDEX)}</label>`;
                 }
                 
 
