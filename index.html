@@ -115,11 +115,9 @@
         }
         .buy {
             color:#05a705;
-            font-weight:bolder;
         }
         .sell {
             color:#ea0c0c;
-            font-weight:bolder;
         }
         .ijo {
             color: black !important;
@@ -3132,7 +3130,7 @@ $(document).ready(function() {
 
         // Kirim pesan multi-send kalau PNL besar
         if (PNL > 1 && parseFloat(vol) >= parseFloat(modal)) {
-           // MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
+            MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
         }
     }
 
@@ -3147,13 +3145,13 @@ $(document).ready(function() {
         // Default style
         let highlightStyle = "";
         if (PNL > filterPNLValue) {
-            highlightStyle = "background-color:#daf4c2; border-left:1px solid #black";
+            highlightStyle = "background-color:#daf4c2; font-weight:bolder;";
         }
 
        var sLink = `<a href="#${idCELL}" class="buy">
             <span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-right:7px;">
                 [ ${cex.toUpperCase()}
-                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:#dd9d06;">${PNL.toFixed(2)}$</span> ]
+                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:black;">${PNL.toFixed(2)}$</span> ]
             </span>
         </a>`;
 
