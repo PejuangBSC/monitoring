@@ -663,7 +663,7 @@
                         callback({
                             statusCode: 500,
                             pesanDEX: `Error DEX : ${error.message}`,
-                            color: "#f39999",
+                            color: "#ffe0e6",
                             DEX: dexType.toUpperCase(),
                         }, null);
                     }
@@ -671,7 +671,7 @@
             
             error: function (xhr) {
                 var alertMessage = "Terjadi kesalahan";
-                var warna = "#f39999";
+                var warna = "#ffe0e6";
                 switch (xhr.status) {
                     case 0:  
                         if(dexType=='kyberswap' || dexType =='odos' ||  dexType == '0x'){
@@ -689,7 +689,7 @@
                                 (errorResponse.error && errorResponse.error.toLowerCase().includes("no routes found with enough liquidity"))
                             ) {
                                 alertMessage = "NO LP (No Liquidity Provider)";
-                                warna = "#f39999";
+                                warna = "#ffe0e6";
                             } else {
                                 alertMessage = errorResponse.detail || errorResponse.description || errorResponse.error || "KONEKSI BURUK";
                             }
@@ -708,7 +708,7 @@
                         alertMessage = "Permintaan tidak ditemukan";
                         break ;
                     case 429:
-                            warna = "#f39999";
+                            warna = "#ffe0e6";
                             alertMessage = "AKSES KENA LIMIT";
                         break;
                     case 500:
@@ -716,7 +716,7 @@
                             var errorResponse = JSON.parse(xhr.responseText);
                             if (errorResponse.msg && errorResponse.msg.toLowerCase().includes("too many requests")) {
                                 alertMessage = "AKSES KENA LIMIT (500 Too Many Requests)";
-                                warna = "#f39999";
+                                warna = "#ffe0e6";
                             } else {
                                 alertMessage = errorResponse.detail || "GAGAL DAPATKAN DATA";
                             }
@@ -731,7 +731,7 @@
                         alertMessage = "Respons tidak valid";
                         break;
                     default:
-                        warna = "#f39999";
+                        warna = "#ffe0e6";
                         alertMessage = "Status: " + xhr.status;
                 }
                 $(`#SWAP_${dexId}`).html(`<a href="${linkDEX}" title="${dexType.toUpperCase()}: ${alertMessage}" target="_blank" class="uk-text-danger"><i class="bi bi-x-circle"></i> ${dexType.toUpperCase()} </a>`);
@@ -801,7 +801,7 @@
                     },
             error: function (xhr) {
                 var alertMessage = "Terjadi kesalahan";
-                var warna = "#f39999";
+                var warna = "#ffe0e6";
             
                 switch (xhr.status) {
                     case 0:
@@ -839,7 +839,7 @@
                         alertMessage = "Respons tidak valid";
                         break;
                     default:
-                        warna = "#f39999";
+                        warna = "#ffe0e6";
                         alertMessage = "Status: " + xhr.status;
                 }
 
@@ -957,7 +957,7 @@
             
             error: function (xhr) {
                 let alertMessage = "Kesalahan tidak diketahui";
-                let warna = "#f39999";
+                let warna = "#ffe0e6";
             
                 // Jika ada responseJSON dan memiliki key description, gunakan pesan ini
                 if (xhr.responseJSON && xhr.responseJSON.description) {
@@ -987,7 +987,7 @@
                             alertMessage = "Layanan tidak tersedia"; 
                             break;
                         default: 
-                           warna = "#f39999";
+                           warna = "#ffe0e6";
                             alertMessage = `Status: ${xhr.status}`;
                     }
                 }
@@ -1015,7 +1015,7 @@
             return callback({
                 statusCode: 400,
                 pesanDEX: "DATA INPUT TIDAK LENGKAP / SALAH",
-                color: "#f39999",
+                color: "#ffe0e6",
                 DEX: dexType.toUpperCase()
             }, null);
         }
