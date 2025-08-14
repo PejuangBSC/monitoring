@@ -1657,7 +1657,7 @@ $(document).ready(function() {
         // ⬇️ Eksekusi efek langsung juga di tab ini
         $('#startSCAN').prop('disabled', true).text('Running...');
 
-        //cekDataAwal();
+        cekDataAwal();
         sendStatusTELE(SavedSettingData.nickname, 'ONLINE');
         CekIdentitas();
         $('#sinyal-container span[id^="sinyal"]').empty();
