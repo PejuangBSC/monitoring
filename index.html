@@ -21,29 +21,29 @@
     <script src="main.js"></script>
     <style>
         /* Override semua class UIkit text* agar mengikuti warna Bootstrap */
-    [class*="uk-text"] {
-        color: inherit !important; /* Default mengikuti Bootstrap */
-    }
+        [class*="uk-text"] {
+            color: inherit !important; /* Default mengikuti Bootstrap */
+        }
 
-    /* Mapping warna Bootstrap */
-    .uk-text-primary    { color: var(--bs-primary) !important; }
-    .uk-text-secondary  { color: var(--bs-secondary) !important; }
-    .uk-text-success    { color: var(--bs-success) !important; }
-    .uk-text-danger     { color: var(--bs-danger) !important; }
-    .uk-text-warning    { color: var(--bs-warning) !important; }
-    .uk-text-info       { color: var(--bs-info) !important; }
-    .uk-text-light      { color: var(--bs-light) !important; }
+        /* Mapping warna Bootstrap */
+        .uk-text-primary    { color: var(--bs-primary) !important; }
+        .uk-text-secondary  { color: var(--bs-secondary) !important; }
+        .uk-text-success    { color: var(--bs-success) !important; }
+        .uk-text-danger     { color: var(--bs-danger) !important; }
+        .uk-text-warning    { color: var(--bs-warning) !important; }
+        .uk-text-info       { color: var(--bs-info) !important; }
+        .uk-text-light      { color: var(--bs-light) !important; }
 
-    /* Kalau Bootstrap < 5, bisa pakai kode warna manual */
-    :root {
-        --bs-primary:   #0d6efd;
-        --bs-secondary: #000204;
-        --bs-success:   #05a705;
-        --bs-danger:    #ea0c0c;
-        --bs-warning:   #f68f02;
-        --bs-info:      #0dcaf0;
-        --bs-light:     #f8f9fa;
-    }
+        /* Kalau Bootstrap < 5, bisa pakai kode warna manual */
+        :root {
+            --bs-primary:   #0d6efd;
+            --bs-secondary: #000204;
+            --bs-success:   #05a705;
+            --bs-danger:    #ea0c0c;
+            --bs-warning:   #f68f02;
+            --bs-info:      #0dcaf0;
+            --bs-light:     #f8f9fa;
+        }
 
         .uk-container {  max-width: none; }        
         .status-active { color: green; }
@@ -99,7 +99,7 @@
         }
 
         .uk-table tbody td {
-            font-size: 12px;
+            font-size: 11.2px;
             border: 0.85px solid #121010;
             padding: 4px;
             white-space: nowrap;
@@ -222,26 +222,7 @@
 
         .dark-mode .sell {
             color: #ff6666 !important;
-        }
-        /* #darkModeToggle {
-            width: 17px;
-            height: 17px;
-            background-color: #f0f0f0;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            z-index: 9999;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
-            transition: background-color 0.3s ease;
-        } */
-        /* .dark-mode #darkModeToggle {
-            background-color: #333;
-        } */
+        } 
 
         .hover-link {
             text-decoration: underline dotted;
@@ -263,6 +244,8 @@
             width: 24px;
             height: 24px;
             vertical-align: middle;
+            stroke-width: 1.2;    
+            stroke: black;
         }
 
         .icon:hover {
@@ -436,7 +419,7 @@
 <a href="#" onclick="downloadTokenScannerJSON()" uk-icon="cloud-download" class="icon" title="EXPORT KOIN"></a>
 <label for="uploadJSON" uk-icon="cloud-upload" class="icon" title="IMPORT KOIN" style="cursor:pointer;"></label>
 <input type="file" id="uploadJSON" accept="application/json" style="display:none;" onchange="uploadTokenScannerJSON(event)">
-<a id="darkModeToggle" uk-icon="desktop" class="icon" title="GANTI MODE GELAP/TERANG" onclick="toggleDarkMode()"></a>
+<a id="darkModeToggle" uk-icon="desktop" class="icon" title="GANTI MODE GELAP/TERANG" onclick="toggleDarkMode()" style="opacity:0.5; pointer-events:none; cursor:default;"></a>
 
                         </div>
                     </div>
@@ -474,6 +457,14 @@
                             <button type="button" id="stopSCAN" class="uk-button uk-button-danger uk-button-small">STOP</button>
                         </div>
                     </form>
+
+
+                    <div id="progress-container" style="width: 100%; background-color: #f3f3f3; border-radius: 10px; margin-top: 10px;">
+                        <div id="progress-bar" style="height: 14px; width: 0%; background-color: #4caf50; border-radius: 5px;">
+                            <span id="progress-text" style="color: rgb(7, 102, 8); font-size: 11px; text-align: center; line-height: 10px; display: block; font-weight: bold;">0%</span>
+                        </div>
+                    </div>
+                    <div id="progress" style="font-size: 14px; font-weight: bold; margin-top: 5px;"></div>
                 </div>
 
             </div>
@@ -671,12 +662,6 @@
             </div>
         </div>
 
-        <div id="progress-container" style="width: 100%; background-color: #f3f3f3; border-radius: 10px; margin-top: 10px;">
-            <div id="progress-bar" style="height: 14px; width: 0%; background-color: #4caf50; border-radius: 5px;">
-                <span id="progress-text" style="color: white; font-size: 12px; text-align: center; line-height: 10px; display: block; font-weight: bold;">0%</span>
-            </div>
-        </div>
-        <div id="progress" style="font-size: 14px; font-weight: bold; margin-top: 5px;"></div>
         
         <div class="uk-overflow-auto uk-margin-small-top">
             <table class="uk-table uk-table-hover uk-table-small uk-table-striped">
@@ -1780,15 +1765,6 @@ $(document).ready(function() {
                         }
                         else {
 
-                            // Auto Scroll jika checkbox aktif
-                            if ($('#autoScrollCheckbox').is(':checked')) {
-                                let rowId = `${token.cex}_${token.symbol_in.toUpperCase()}_${token.symbol_out.toUpperCase()}_${(DTChain.Nama_Chain).toUpperCase()}`;
-                                let targetRow = document.getElementById(rowId);
-                                if (targetRow) {
-                                    targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                            }
-
                             const buyVolToken = (DataCEX.volumes_buyToken.length > 0) 
                                 ? DataCEX.volumes_buyToken.reduce((min, item) => item.price < min.price ? item : min).volume 
                                 : 1;
@@ -1830,7 +1806,7 @@ $(document).ready(function() {
                                                     var amount_in = BigInt(Math.round(Math.pow(10, des_input) * amount_in_token));
                                                     getPriceSWOOP(sc_input, des_input, sc_output, des_output, amount_in, priceBuyPairCEX, dextype, NameToken, NamePair, cex,'TokentoPair', function (altError, altDataDEX){  
                                                         if (!altError) {
-                                                            $(`#${IdTokentoPair}`).css('background-color', '#ded5d5');
+                                                           // $(`#${IdTokentoPair}`).css('background-color', '#ded5d5');
                                                             $(`span#LEFT_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
                                                             $(`span#RIGHT_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
                                                                 ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,'TokentoPair',buyVolToken,altDataDEX);
@@ -1870,7 +1846,7 @@ $(document).ready(function() {
                                                         var amount_in = Math.pow(10, des_output) * amount_in_pair;
                                                         getPriceSWOOP( sc_output, des_output,sc_input, des_input, amount_in, priceBuyPairCEX, dextype, NamePair, NameToken, cex,'PairtoToken', function (altError, altDataDEX){                                                                
                                                             if (!altError) {
-                                                                $(`#${IdPairtoToken}`).css('background-color', '#ded5d5');
+                                                               // $(`#${IdPairtoToken}`).css('background-color', '#ded5d5');
                                                                 $(`span#LEFT_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
                                                                 $(`span#RIGHT_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
 
@@ -1925,10 +1901,18 @@ $(document).ready(function() {
 
             for (let groupIndex = 0; groupIndex < tokenGroups.length; groupIndex++) {
                 let groupTokens = tokenGroups[groupIndex];
-                console.log(`Memproses grup ${groupIndex + 1} dari ${tokenGroups.length}`);
-                //if ((selectedChain?.Nama_Chain || "").toLowerCase() !== "solana") {
-                    feeGasGwei();
-               // }
+                 console.log(`Memproses grup ${groupIndex + 1} dari ${tokenGroups.length}`);
+
+                // 🔹 Auto Scroll sekali di awal grup
+                if ($('#autoScrollCheckbox').is(':checked')) {
+                    let firstToken = groupTokens[0];
+                    let rowId = `${firstToken.cex}_${firstToken.symbol_in.toUpperCase()}_${firstToken.symbol_out.toUpperCase()}_${(DTChain.Nama_Chain).toUpperCase()}`;
+                    let targetRow = document.getElementById(rowId);
+                    if (targetRow) {
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+                feeGasGwei();
                 getRateUSDT(); // panggil di awal aplikasi atau sebelum getPriceCEX
 
                 for (let tokenIndex = 0; tokenIndex < groupTokens.length; tokenIndex++) {
@@ -2807,143 +2791,7 @@ $(document).ready(function() {
             });
     }
 
-    // fungsi dapatkan harga token dari Exchanger
-    function getPriceCEXBACKUP(coins, NameToken, NamePair, cex, callback) {
-        const config = exchangeConfig[cex];
-        if (!config) {
-            callback(`Exchange ${cex} tidak ditemukan dalam konfigurasi.`, null);
-            return;
-        }
-
-        const feeList = getFromLocalStorage("TOKEN_SCANNER", []);
-        if (!Array.isArray(feeList) || feeList.length === 0) {
-            toastr.error("PERIKSA ULANG FEE WD dari EXCHANGER !!");
-            callback("Token scanner belum diatur.", null);
-            return;
-        }
-
-        const tokenData = feeList.find(item =>
-            item.symbol_in === NameToken && item.symbol_out === NamePair && item.cex === cex
-        );
-
-        const isStablecoin = (token) => stablecoins.includes(token);
-        let results = {};
-
-        const urls = [
-            isStablecoin(NameToken) ? null : config.url({ symbol: NameToken }),
-            isStablecoin(NamePair) ? null : config.url({ symbol: NamePair })
-        ];
-
-        const processFinalResult = () => {
-            if (Object.keys(results).length === 2) {
-                const priceBuyToken = results[NameToken]?.price_buy || 0;
-                const priceBuyPair = results[NamePair]?.price_buy || 0;
-
-                const feeWDToken = parseFloat(tokenData?.feeWDToken || 0) * priceBuyToken;
-                const feeWDPair = parseFloat(tokenData?.feeWDPair || 0) * priceBuyPair;
-
-                if (isNaN(feeWDToken) || feeWDToken < 0) {
-                    callback(`FeeWD untuk ${NameToken} di ${cex} tidak valid: ${feeWDToken}`, null);
-                    return;
-                }
-                if (isNaN(feeWDPair) || feeWDPair < 0) {
-                    callback(`FeeWD untuk ${NamePair} di ${cex} tidak valid: ${feeWDPair}`, null);
-                    return;
-                }
-
-                const finalResult = {
-                    token: NameToken.toUpperCase(),
-                    sc_input: coins.sc_in,
-                    sc_output: coins.sc_out,
-                    pair: NamePair.toUpperCase(),
-                    cex: cex.toUpperCase(),
-                    price_sellToken: results[NameToken]?.price_sell || 0,
-                    price_buyToken: priceBuyToken,
-                    price_sellPair: results[NamePair]?.price_sell || 0,
-                    price_buyPair: priceBuyPair,
-                    volumes_sellToken: results[NameToken]?.volumes_sell || [],
-                    volumes_buyToken: results[NameToken]?.volumes_buy || [],
-                    volumes_sellPair: results[NamePair]?.volumes_sell || [],
-                    volumes_buyPair: results[NamePair]?.volumes_buy || [],
-                    feeWDToken: feeWDToken,
-                    feeWDPair: feeWDPair
-                };
-
-                updateTableVolCEX({}, finalResult, cex);
-                callback(null, finalResult);
-            }
-        };
-
-        urls.forEach((url, index) => {
-            const tokenName = index === 0 ? NameToken : NamePair;
-            if (isStablecoin(tokenName)) {
-                results[tokenName] = {
-                    price_sell: 1,
-                    price_buy: 1,
-                    volumes_sell: Array(3).fill({ price: 1, volume: 10000 }),
-                    volumes_buy: Array(3).fill({ price: 1, volume: 10000 })
-                };
-                processFinalResult();
-                return;
-            }
-
-            if (url) {
-                $.ajax({
-                    url: url,
-                    method: 'GET',
-                    success: function (data) {
-                        let processedData;
-                        try {
-                            processedData = config.processData(data);
-                        } catch (error) {
-                            console.error(`Error processing data untuk ${tokenName} di ${cex}:`, error);
-                            callback(`Error processing data untuk ${tokenName} di ${cex}.`, null);
-                            return;
-                        }
-
-                        const isIndodax = cex.toLowerCase() === "indodax";
-                        let priceBuy, priceSell, volumesBuy, volumesSell;
-
-                        if (isIndodax) {
-                            priceBuy = processedData?.priceSell?.[2]?.price || 0;
-                            priceSell = processedData?.priceBuy?.[2]?.price || 0;
-                            volumesBuy = processedData?.priceSell || [];
-                            volumesSell = processedData?.priceBuy || [];
-                        } else {
-
-                            // Urutkan data harga dan volume
-                            volumesBuy = (processedData?.priceBuy || []).sort((a, b) => b.price - a.price);   // beli → tertinggi ke rendah
-                            volumesSell = (processedData?.priceSell || []).sort((a, b) => a.price - b.price); // jual → terendah ke tinggi
-
-                            // Ambil harga berdasarkan urutan yang sudah benar
-                            priceBuy = volumesBuy[2]?.price || 0;
-                            priceSell = volumesSell[2]?.price || 0;
-
-                        }
-
-                        if (priceBuy <= 0 || priceSell <= 0) {
-                            callback(`Harga tidak valid untuk ${tokenName} di ${cex}.`, null);
-                            return;
-                        }
-
-                        results[tokenName] = {
-                            price_sell: priceSell,
-                            price_buy: priceBuy,
-                            volumes_sell: processedData?.priceBuy || [],
-                            volumes_buy: processedData?.priceSell || []
-                        };
-
-                        processFinalResult();
-                    },
-                    error: function (xhr) {
-                        const errorMessage = xhr.responseJSON?.msg || "Unknown ERROR";
-                        callback(`Error koneksi API untuk ${tokenName} di ${cex}: ${errorMessage}`, null);
-                    }
-                });
-            }
-        });
-    }
-
+  
     function updateTableVolCEXBACKUP(processedData, finalResult, cex) {
         const cexName = cex.toUpperCase();
         const TokenPair = finalResult.token + "_" + finalResult.pair;
@@ -3208,7 +3056,83 @@ $(document).ready(function() {
         return apiKeysOKXDEX[randomIndex];
       }
 
-    function DisplayPNL(PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, trx, profitLossPercent, vol) {
+function DisplayPNL(PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, trx, profitLossPercent, vol) {
+    var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
+    var nickname = SavedSettingData.nickname;
+    var totalValue = parseFloat(totalValue);
+    var totalGet = totalValue - parseFloat(modal);
+    var totalModal = parseFloat(totalModal);
+    var totalFee = parseFloat(totalFee);
+    var checkVol = $('#checkVOL').is(':checked');
+
+    const urlsCEXToken = GeturlExchanger(cex.toUpperCase(), Coin_in, Coin_out);
+    var buyLink = urlsCEXToken.tradeToken;
+    var sellLink = urlsCEXToken.tradePair;
+    var IdCELL = `${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(DTChain.Nama_Chain).toUpperCase()}`;
+    var rowCell = $(`#${IdCELL}`);
+    var resultCell = $(`#RESULT_${IdCELL}`);
+    var buyCell = $(`#LEFT_${IdCELL}`);
+    var sellCell = $(`#RIGHT_${IdCELL}`);
+
+    var sinyals = `<a href="#SWAP_${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(DTChain.Nama_Chain).toUpperCase()}" class='link-class'>
+        ${cex.toUpperCase()} VS ${dex.toUpperCase()} : ${NameX} (${PNL.toFixed(2)}$)</a>`;
+
+    const isLolosFilter = (totalValue - totalModal) >= filterPNLValue;
+    const isUntungBersih = PNL > 0;
+    const isVolEnough = parseFloat(vol) >= parseFloat(modal);
+    const lolosHighlight = isLolosFilter && (!checkVol || (checkVol && isVolEnough));
+
+    // --- HTML Fee & PNL selalu dibuat ---
+    let htmlFee = '';
+    if (trx === "TokentoPair") {
+        htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.withdrawUrl, 'WD')}<br/>`;
+    } else if (trx === "PairtoToken") {
+        htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | ${createLink(urlsCEXToken.depositUrl, 'DP')}<br/>`;
+    }
+
+    let htmlResult = `
+        ${htmlFee}
+        <span style="color: #d20000;">All: ${totalFee.toFixed(2)}$</span>
+        <span style="color: #1e87f0;">SW: ${FeeSwap.toFixed(2)}$</span><br/>
+        <span style="color: #444;">GT: ${totalGet.toFixed(2)}$</span>
+        <span style="color: #444;">PNL: ${PNL.toFixed(2)}$</span><br/>
+    `;
+    resultCell.html(htmlResult);
+
+    // --- Highlight & sinyal ---
+    if (lolosHighlight) {
+        toastr.success(sinyals);
+        rowCell.attr("style", "background-color: #daf4c3 !important; font-weight: bolder !important; color: black !important;");
+        InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
+    } else if (isUntungBersih) {
+        // Tetap tampilkan sinyal walau tidak highlight
+        InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
+    }
+
+    // Link buy/sell (pasang jika belum ada)
+    if (!buyCell.parent().is("span")) {
+        buyCell.wrap('<a href="' + buyLink + '" target="_blank"></a>');
+    }
+    if (!sellCell.parent().is("span")) {
+        sellCell.wrap('<a href="' + sellLink + '" target="_blank"></a>');
+    }
+
+    // Highlight kondisi rugi/cuan besar
+    if (PNL < (-0.5 * parseFloat(modal))) {
+        rowCell.attr("style", "background-color: #ffe0e6 !important; font-weight: bold !important; color: black !important;");
+    }
+    if (PNL > (0.5 * parseFloat(modal))) {
+        rowCell.attr("style", "background-color: #ffd9b2 !important; font-weight: bold !important; color: black !important;");
+    }
+
+    // Kirim pesan multi-send kalau PNL besar
+    if (PNL > 1 && parseFloat(vol) >= parseFloat(modal)) {
+        MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
+    }
+}
+
+
+    function DisplayPNLLAMA(PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, trx, profitLossPercent, vol) {
         var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
         var nickname = SavedSettingData.nickname;
         var totalValue = parseFloat(totalValue);
@@ -3316,12 +3240,13 @@ $(document).ready(function() {
             highlightStyle = "background-color:#daf4c2; border-left:1px solid #black";
         }
 
-        var sLink = `<a href="#${idCELL}" class="buy">
-            <span style="color:${warnaCEX}; font-weight:bolder; display:inline-block; ${highlightStyle}">
-                [ ${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
-                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:#ff7d04;">${PNL.toFixed(2)}$</span> ]
+       var sLink = `<a href="#${idCELL}" class="buy">
+            <span style="color:${warnaCEX}; font-weight:bolder; display:inline-block; ${highlightStyle}; margin-right:7px;">
+                [${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
+                <span class="${warnaPNL}"> ~ ${NameToken}->${NamePair}</span>: <span style="color:#ff7d04;">${PNL.toFixed(2)}$</span>]
             </span>
         </a>`;
+
 
         $("#sinyal" + DEXPLUS.toLowerCase()).append(` ${sLink} `);
 
