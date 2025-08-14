@@ -240,9 +240,9 @@
             color: #fff;
             font-weight: bold;
         }
-       .icon {
-            width: 24px;
-            height: 24px;
+       .uk-icon {
+            /* width: 24px;
+            height: 24px; */
             vertical-align: middle;
             stroke-width: 1.2;    
             stroke: black;
@@ -251,7 +251,6 @@
         .icon:hover {
             transform: scale(1.6); /* membesarkan 30% */
         }
-
 
         .header-card {
             padding: 6px 12px !important; /* lebih kecil agar rapat */
@@ -1660,7 +1659,7 @@ $(document).ready(function() {
         // ⬇️ Eksekusi efek langsung juga di tab ini
         $('#startSCAN').prop('disabled', true).text('Running...');
 
-        cekDataAwal();
+        //cekDataAwal();
         sendStatusTELE(SavedSettingData.nickname, 'ONLINE');
         CekIdentitas();
         $('#sinyal-container span[id^="sinyal"]').empty();
@@ -2092,9 +2091,9 @@ $(document).ready(function() {
             cardHeader.innerHTML = `
                 <span class="uk-text-bold uk-text-secondary" style="color:#000; font-size: 13.5px;">
                     ${dex.toUpperCase()} 
-                    <span style="color: white !important; background-color:white;" class="uk-text-bold"> 
+                    [&nbsp;<span style="background-color:white;" class="uk-text-bold"> 
                         <span class="uk-text-success"> KIRI: $${modalLeft} </span> | <span class="uk-text-danger"> KANAN: $${modalRight}  </span>
-                     </span>
+                     </span> &nbsp;]
                 </span>
             `;
 
@@ -2106,7 +2105,7 @@ $(document).ready(function() {
             // Tempat sinyal
             let signalSpan = document.createElement('div');
             signalSpan.setAttribute('id', `sinyal${dex.toLowerCase()}`);
-            signalSpan.style.fontSize = '12.3px';
+            signalSpan.style.fontSize = '13px';
             signalSpan.style.whiteSpace = 'normal';
             signalSpan.style.wordWrap = 'break-word';
             signalSpan.style.overflowWrap = 'break-word';
@@ -2310,7 +2309,7 @@ $(document).ready(function() {
             detailTd.innerHTML = `
                 <input type="checkbox" class="statusCheckbox" data-id="${index}" data-index="${data.no}" ${data.status ? 'checked' : ''}>#${index+1}
                 <span style="color: ${warnaCEX}; font-weight:bolder;">${data.cex} </span>
-                <span id="SelMulti-${index}" data-index="${index}" uk-icon="icon:crosshairs; ratio: 0.8"  class="uk-text-secondary uk-text-bolder"  > </span><br/>
+                <span id="SelMulti-${index}" data-index="${index}" uk-icon="icon:crosshairs; ratio: 0.8" style="cursor: pointer;"  class="uk-text-secondary uk-text-bolder"  > </span><br/>
                 <span class="uk-text-danger uk-text-bolder">${linkToken} VS ${linkPair}</span><br/>
                 <span class="uk-text-primary uk-text-bolder">${withdrawToken}~${depositToken}</span> | 
                 <span class="uk-text-primary uk-text-bolder">${withdrawPair}~${depositPair}</span><br/>
@@ -2558,7 +2557,7 @@ $(document).ready(function() {
         // SIMPAN SETTING
     $('#save-config').on('click', function () {
         let nickname = $('#user').val();
-        let filterPNL = $('#inFilterPNL').val();
+        let filterPNL = parseFloat($('#inFilterPNL').val());
         let jedaTimeGroup = $('#jeda-time-group').val();
         let jedaKoin = $('#jeda-koin').val();
         let walletMeta = $('#walletMeta').val();
@@ -3104,12 +3103,14 @@ $(document).ready(function() {
         resultCell.html(htmlResult);
 
         // --- Highlight & sinyal ---
-        if (lolosHighlight) {
+        // Highlight utama
+        if (lolosHighlight || isUntungBersih) {
             toastr.success(sinyals);
-            rowCell.attr("style", "background-color: #daf4c3 !important; font-weight: bolder !important; color: black !important;");
-            InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
-        } else if (isUntungBersih) {
-            // Tetap tampilkan sinyal walau tidak highlight
+            rowCell.css({
+                "background-color": "#daf4c3",
+                "font-weight": "bolder",
+                "color": "black"
+            });
             InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal, trx);
         }
 
@@ -3131,7 +3132,7 @@ $(document).ready(function() {
 
         // Kirim pesan multi-send kalau PNL besar
         if (PNL > 1 && parseFloat(vol) >= parseFloat(modal)) {
-            MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
+           // MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
         }
     }
 
