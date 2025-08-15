@@ -233,15 +233,15 @@
                     }
                     
 
-                 if (action === "TokentoPair") {
+             //    if (action === "TokentoPair") {
                     apiUrl = "https://aggregator-api.kyberswap.com/" + NetChain.toLowerCase() + "/api/v1/routes?tokenIn=" + sc_input + "&tokenOut=" + sc_output + "&amountIn=" + amount_in+ "&gasInclude=true";
-                 } else if (action === "PairtoToken") {
-                    if(DTChain.Kode_Chain==1){
-                        apiUrl = `https://api.zeroswap.io/quote/kyberswap?fromChain=${DTChain.Kode_Chain}&fromTokenAddress=${sc_input}&toTokenAddress=${sc_output}&fromTokenDecimals=${des_input}&toTokenDecimals=${des_output}&sellAmount=${amount_in}&slippage=0.3`;
-                    }else{
-                        apiUrl = "https://aggregator-api.kyberswap.com/" + NetChain.toLowerCase() + "/api/v1/routes?tokenIn=" + sc_input + "&tokenOut=" + sc_output + "&amountIn=" + amount_in+ "&gasInclude=true";
-                    }
-                }    
+                //  } else if (action === "PairtoToken") {
+                //     if(DTChain.Kode_Chain==1){
+                //         apiUrl = `https://api.zeroswap.io/quote/kyberswap?fromChain=${DTChain.Kode_Chain}&fromTokenAddress=${sc_input}&toTokenAddress=${sc_output}&fromTokenDecimals=${des_input}&toTokenDecimals=${des_output}&sellAmount=${amount_in}&slippage=0.3`;
+                //     }else{
+                //         apiUrl = "https://aggregator-api.kyberswap.com/" + NetChain.toLowerCase() + "/api/v1/routes?tokenIn=" + sc_input + "&tokenOut=" + sc_output + "&amountIn=" + amount_in+ "&gasInclude=true";
+                //     }
+                // }    
                 break;
             
             case '1inch':
@@ -471,30 +471,30 @@
                         switch (dexType) {
                             case 'kyberswap':
                                 dexTitle="KYBESWAP";
-                                if (action === "TokentoPair") {
+                              //  if (action === "TokentoPair") {
                                     amount_out = response.data.routeSummary.amountOut / Math.pow(10, des_output);
                                     FeeSwap =  parseFloat(response.data.routeSummary.gasUsd);
-                                }  else if (action === "PairtoToken") {
-                                    if(DTChain.Kode_Chain==1){
-                                        const estimation = response.quote.estimation;
-                                        // Hitung amount_out dari buyAmount, sesuaikan dengan desimal token output
-                                        amount_out = parseFloat(estimation.buyAmount) / Math.pow(10, des_output);
+                                // }  else if (action === "PairtoToken") {
+                                //     if(DTChain.Kode_Chain==1){
+                                //         const estimation = response.quote.estimation;
+                                //         // Hitung amount_out dari buyAmount, sesuaikan dengan desimal token output
+                                //         amount_out = parseFloat(estimation.buyAmount) / Math.pow(10, des_output);
 
-                                        // Estimasi fee swap, misalnya dari gasPrice dan estimatedGas
-                                        const gasPriceGwei = parseFloat(response.quote.tx.gasPrice); // dalam wei
-                                        const estimatedGas = parseFloat(response.quote.tx.estimatedGas);
+                                //         // Estimasi fee swap, misalnya dari gasPrice dan estimatedGas
+                                //         const gasPriceGwei = parseFloat(response.quote.tx.gasPrice); // dalam wei
+                                //         const estimatedGas = parseFloat(response.quote.tx.estimatedGas);
 
-                                        // Konversi gas fee ke USD jika ada estimasi (anggap kamu punya harga ETH to USD jika perlu)
-                                        // Tapi jika pakai langsung dari API Zero, bisa pakai nilai `gasUsd` jika ada, atau manual:
-                                        FeeSwap = (gasPriceGwei * estimatedGas) / 1e18; // ETH
-                                        // Kalau kamu punya ethPriceUsd:
-                                        // FeeSwap = (gasPriceGwei * estimatedGas / 1e18) * ethPriceUsd;
-                                    }else{
-                                         amount_out = response.data.routeSummary.amountOut / Math.pow(10, des_output);
-                                         FeeSwap =  parseFloat(response.data.routeSummary.gasUsd);
-                                    }
+                                //         // Konversi gas fee ke USD jika ada estimasi (anggap kamu punya harga ETH to USD jika perlu)
+                                //         // Tapi jika pakai langsung dari API Zero, bisa pakai nilai `gasUsd` jika ada, atau manual:
+                                //         FeeSwap = (gasPriceGwei * estimatedGas) / 1e18; // ETH
+                                //         // Kalau kamu punya ethPriceUsd:
+                                //         // FeeSwap = (gasPriceGwei * estimatedGas / 1e18) * ethPriceUsd;
+                                //     }else{
+                                //          amount_out = response.data.routeSummary.amountOut / Math.pow(10, des_output);
+                                //          FeeSwap =  parseFloat(response.data.routeSummary.gasUsd);
+                                //     }
                                     
-                                }
+                                // }
 
                                 break;
                             
