@@ -619,7 +619,7 @@
         <!-- Tombol Action -->
         <div class="uk-flex uk-flex-right uk-margin-top uk-grid-small" uk-grid>
             <div><button class="uk-button uk-button-danger" type="button" id="HapusEditkoin">Hapus</button></div>
-            <div><button class="uk-button uk-button-default uk-modal-close" type="button" id="BatalEditkoin">Batal</button></div>
+            <div><button class="uk-button uk-button-secondary uk-modal-close" type="button" id="BatalEditkoin">Batal</button></div>
             <div><button class="uk-button uk-button-primary" type="submit" id="SaveEditkoin">Simpan</button></div>
         </div>
         </form>
@@ -1338,7 +1338,7 @@
             const rightId = `dex-${safeId}-right`;
 
             const html = `
-                <div class="uk-flex uk-flex-middle uk-margin-xsmall">
+                <div class="uk-flex uk-flex-middle uk-margin-small">
                     <label class="uk-margin-small-right">
                         <input type="checkbox" class="uk-checkbox dex-edit-checkbox" id="${chkId}" value="${dexName}" ${isChecked ? 'checked' : ''}>
                         <b>${dexName.toUpperCase()}</b>
@@ -3842,80 +3842,7 @@
                 alert("✅ SETTING SCANNER BERHASIL");
                 location.reload();
         });
-
-        $(document).on('click', '[id^="EditMulti-"]', function (e) {
-        const tokenId = String($(this).data('id'));
-        if (!tokenId) { toastr.error('ID kosong'); return; }
-
-        // Ambil data terbaru dari localStorage
-        const all = JSON.parse(localStorage.getItem('TOKEN_SCANNER') || '[]');
-        const item = (all || []).find(t => String(t.id) === tokenId);
-        if (!item) { toastr.error('Data token tidak ditemukan di localStorage'); return; }
-
-        // Simpan ID (untuk proses simpan)
-        $('#multiTokenIndex').val(tokenId);
-
-        // ---- Isi input dasar
-        $('#inputSymbolToken').val(item.symbol_in || '');
-        $('#inputSCToken').val(item.sc_in || '');
-        $('#inputDesToken').val(item.des_in ?? '');
-        $('#inputSymbolPair').val(item.symbol_out || '');
-        $('#inputSCPair').val(item.sc_out || '');
-        $('#inputDesPair').val(item.des_out ?? '');
-
-        // ---- CEX: list & centang dari localStorage
-        const dataCexsKeys = Object.keys(item.dataCexs || {});
-        const cexCheckedSet = new Set(
-            (item.selectedCexs && item.selectedCexs.length ? item.selectedCexs : dataCexsKeys)
-            .map(String)
-        );
-
-        const cexHtml = dataCexsKeys.map(cex => `
-            <div class="uk-flex uk-flex-middle uk-margin-small-bottom">
-            <input type="checkbox" class="cex-checkbox" value="${cex}" ${cexCheckedSet.has(cex) ? 'checked' : ''} style="margin-right:6px;">
-            <span style="min-width:70px;display:inline-block;">${cex}</span>
-            </div>
-        `).join('');
-        $('#cex-checkbox-koin').html(cexHtml);
-
-        // ---- DEX: list & centang + isi modal dari localStorage
-        const dataDexs = item.dataDexs || {};
-        const dexKeys = Object.keys(dataDexs);
-        const dexCheckedLower = new Set(
-            (item.selectedDexs && item.selectedDexs.length ? item.selectedDexs : dexKeys)
-            .map(d => String(d).toLowerCase())
-        );
-
-        const dexHtml = dexKeys.map(dexName => {
-            const kLower = String(dexName).toLowerCase();
-            const isChecked = dexCheckedLower.has(kLower);
-            const leftVal  = Number((dataDexs[dexName]?.left  ?? dataDexs[kLower]?.left  ?? 100));
-            const rightVal = Number((dataDexs[dexName]?.right ?? dataDexs[kLower]?.right ?? 100));
-            const disAttr  = isChecked ? '' : 'disabled';
-
-            return `
-            <div class="uk-flex uk-flex-middle uk-margin-small-bottom" style="gap:8px;">
-                <input type="checkbox" class="dex-checkbox" value="${dexName}" ${isChecked ? 'checked' : ''}>
-                <span style="min-width:70px;display:inline-block;">${String(dexName).toUpperCase()}</span>
-                <input type="number" class="uk-input uk-form-small dex-modal-left"
-                    data-dex="${dexName}" value="${leftVal}" style="width:80px;" min="0" ${disAttr} placeholder="Modal Kiri">
-                <input type="number" class="uk-input uk-form-small dex-modal-right"
-                    data-dex="${dexName}" value="${rightVal}" style="width:80px;" min="0" ${disAttr} placeholder="Modal Kanan">
-            </div>`;
-        }).join('');
-        $('#dex-checkbox-koin').html(dexHtml);
-
-        // Toggle enable/disable input modal saat centang DEX berubah
-        $(document).off('change.dexToggle').on('change.dexToggle', '.dex-checkbox', function(){
-            const dex = String($(this).val());
-            const enabled = $(this).is(':checked');
-            $(`.dex-modal-left[data-dex="${dex}"], .dex-modal-right[data-dex="${dex}"]`).prop('disabled', !enabled);
-        });
-
-        UIkit.modal('#FormEditKoinModal').show();
-        });
-
-                    
+       
         UIkit.util.on('#modal-setting', 'show', function () {
             form_on();
         });
