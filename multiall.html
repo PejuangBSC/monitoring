@@ -430,8 +430,8 @@
            
             <!-- Pencarian -->
             <div class="uk-width-auto uk-flex uk-flex-middle"> 
-                 <input class="form-check-input me-1" type="checkbox" id="autoScrollCheckbox">
-                <label class="form-check-label uk-text-warning" for="autoScrollCheckbox">Auto Scroll</label>
+                 <!-- <input class="form-check-input me-1" type="checkbox" id="autoScrollCheckbox">
+                <label class="form-check-label uk-text-warning" for="autoScrollCheckbox">Auto Scroll</label> -->
 
                 &nbsp;&nbsp;&nbsp;
                 <input type="text" id="searchInput" class="uk-input uk-form-small uk-form-primary uk-form-width-small" placeholder="Cari Koin...">
@@ -546,7 +546,7 @@
 </div>
 <!-- Modal UIKIT EDIT KOIN -->
  <div id="FormEditKoinModal" uk-modal>
-    <div class="uk-modal-dialog uk-modal-body uk-border-rounded uk-padding-small">
+    <div class="uk-modal-dialog uk-modal-body uk-padding-small">
 
         <!-- Header -->
         <div class="uk-flex uk-flex-middle uk-margin-small" id="judulmodal">
@@ -1002,37 +1002,45 @@
         }, 500);
     }
 
-    function refreshTokensTable() {
-        // Ambil daftar chain yang diizinkan dari setting
-        const settingScanner = getFromLocalStorage('SETTING_SCANNER', {});
-        const allowedChains = (settingScanner.AllChains || []).map(c => c.toLowerCase());
+function refreshTokensTable() {
+    // Ambil daftar chain yang diizinkan dari setting
+    const settingScanner = getFromLocalStorage('SETTING_SCANNER', {});
+    const allowedChains = (settingScanner.AllChains || []).map(c => c.toLowerCase());
 
-        // Ambil data mentah dari localStorage
-        const allTokens = getFromLocalStorage("TOKEN_SCANNER", []);
+    // Ambil data mentah dari localStorage
+    const allTokens = getFromLocalStorage("TOKEN_SCANNER", []);
 
-        // Flatten data agar struktur konsisten
-        const flatTokens = flattenDataKoin(allTokens);
+    // Flatten data agar struktur konsisten
+    const flatTokens = flattenDataKoin(allTokens);
 
-        // Filter sesuai AllChains
-        const filteredByChain = flatTokens.filter(token =>
+    // Filter sesuai AllChains dan sorting A-Z berdasarkan symbol_in (SAMA SEPERTI cekDataAwal)
+    const filteredByChain = flatTokens
+        .filter(token =>
             allowedChains.includes((token.chain || '').toLowerCase())
-        );
+        )
+        .sort((a, b) => {
+            const A = (a.symbol_in || '').toUpperCase();
+            const B = (b.symbol_in || '').toUpperCase();
+            if (A < B) return -1; // A-Z
+            if (A > B) return  1; // A-Z
+            return 0;
+        });
 
-        filteredTokens = [...filteredByChain];
-        originalTokens = [...filteredByChain];
+    filteredTokens = [...filteredByChain];
+    originalTokens = [...filteredByChain];
 
-        updateTokenCount();
-        loadKointoTable(filteredTokens);
+    updateTokenCount();
+    loadKointoTable(filteredTokens);
+    
+    const uniqueKeys = new Set();
+    filteredTokens.forEach(item => {
+        // buat key unik (cex|chain|symbol_in|symbol_out)
+        const key = `${item.cex}|${item.chain}|${item.symbol_in}|${item.symbol_out}`;
+        uniqueKeys.add(key);
+    });
 
-        const uniqueKeys = new Set();
-                filteredTokens.forEach(item => {
-                    // buat key unik (cex|chain|symbol_in|symbol_out)
-                    const key = `${item.cex}|${item.chain}|${item.symbol_in}|${item.symbol_out}`;
-                    uniqueKeys.add(key);
-                });
-
-        $('#tokenCountALL').text(`TOTAL SEMUA: ${uniqueKeys.size} PAIR-TOKEN`);
-    }
+    $('#tokenCountALL').text(`TOTAL SEMUA: ${uniqueKeys.size} PAIR-TOKEN`);
+}
 
 function loadKointoTable(filteredData) {
         loadSignalData();
@@ -1048,7 +1056,6 @@ function loadKointoTable(filteredData) {
         const maxSlots = 4;
        
         filteredData.forEach((data, index) => {
-             console.log("DATA KOIN",data);
             const row = document.createElement('tr');
 
             /** ========== ORDERBOOK kiri (CEX) ========== **/
@@ -1138,6 +1145,17 @@ function loadKointoTable(filteredData) {
             const linkSCtoken = createHoverLink(urlScIn, '[SC]', 'uk-text-primary');
             const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
+            const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=501&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-secondary');
+            const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=Nama_Chain&from=${data.sc_in}&to=${data.sc_out}`, '#UND', 'uk-text-success');
+           // const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${chainConfig.Nama_Chain}&toBlockchain=${chainConfig.Nama_Chain}&fromToken=${data.symbol_in}--${data.sc_in}&toToken=${data.symbol_out}--${data.sc_out}`, '#RGX', 'uk-text-success');
+          //  const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${chainName}&toChain=${chainName}&from=${data.sc_in}&to=${data.sc_out}`, '#RBCX', 'uk-text-warning');
+            const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=Nama_Chain&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-primary');
+          //  const OPEN = createHoverLink(` https://app.openocean.finance/swap/Nama_Chain/${data.symbol_in}/${data.symbol_out}`, '#OPEN', 'uk-text-danger');
+          //  const FINCH = createHoverLink(`https://app.1inch.io/swap?src=${chainConfig.Kode_Chain}:${data.symbol_in}&dst=${chainConfig.Kode_Chain}:${data.symbol_out}`, '#1INCH', 'uk-text-warning');
+          //  const linkRelay = createHoverLink(`https://relay.link/bridge/${chainName2}?fromChainId=${chainConfig.Kode_Chain}&fromCurrency=${data.sc_in}&toCurrency=${data.sc_out}`, '#RX', 'uk-text-warning');
+            const linkLiFi = createHoverLink(`https://jumper.exchange/?fromChain=${chainConfig.Kode_Chain}&fromToken=${data.sc_in}&toChain=${chainConfig.Kode_Chain}&toToken==${data.sc_out}`, '#LFX', 'uk-text-warning');
+          //  const Link1INCH = createHoverLink(`https://app.1inch.io/advanced/swap?network=${chainConfig.Kode_Chain}&src=${data.sc_in}&dst=${data.sc_out}`, '#1NC', 'uk-text-danger');
+
             const tdDetail = document.createElement('td');
             tdDetail.className = 'uk-text-center uk-background uk-text-nowrap';
             tdDetail.style.textAlign = 'center';
@@ -1157,8 +1175,9 @@ function loadKointoTable(filteredData) {
                     style="cursor:pointer"></span> </br>
                 <span class="uk-text-primary uk-text-bolder">${withdrawToken} ~ ${depositToken}</span> | 
                 <span class="uk-text-primary uk-text-bolder">${withdrawPair} ~ ${depositPair}</span><br/>
-                <span class="uk-text-primary uk-text-bolder">${data.symbol_in}</span> ${linkSCtoken} : ${linkStokToken} <br/>
-                <span class="uk-text-primary uk-text-bolder">${data.symbol_out}</span> ${linkSCpair} : ${linkStokPair}<br/>
+                <span class="uk-text-primary uk-text-bolder">${data.symbol_in} [${data.feeWDToken}]</span> ${linkSCtoken} : ${linkStokToken} <br/>
+                <span class="uk-text-primary uk-text-bolder">${data.symbol_out} [${data.feeWDPair}]</span> ${linkSCpair} : ${linkStokPair}<br/>
+                 ${linkUNIDEX} ${linkOKDEX} ${linkDEFIL} ${linkLiFi}
             `;
             row.appendChild(tdDetail);
 
@@ -1415,7 +1434,7 @@ function loadKointoTable(filteredData) {
 
         saveToLocalStorage('TOKEN_SCANNER', tokens);
         refreshTokensTable();
-
+        setLastAction("UBAH DATA KOIN");
         toastr.success('Perubahan token berhasil disimpan');
         if (window.UIkit && UIkit.modal) UIkit.modal('#FormEditKoinModal').hide();
     });
@@ -1495,8 +1514,9 @@ function loadKointoTable(filteredData) {
 
         if (confirm(msg)) {
             deleteTokenById(id);
-            toastr.success(`Token ${token.toUpperCase() || ''} ${token && pair ? 'VS ' : ''}${pair.toUpperCase() || ''} berhasil dihapus`);
+            toastr.success(`KOIN ${token.toUpperCase() || ''} ${token && pair ? 'VS ' : ''}${pair.toUpperCase() || ''} TERHAPUS`);
             if (window.UIkit && UIkit.modal) UIkit.modal('#FormEditKoinModal').hide();
+            
         }
     });
 
@@ -1506,6 +1526,7 @@ function loadKointoTable(filteredData) {
         const updated = tokens.filter(t => String(t.id) !== String(tokenId));
         saveToLocalStorage('TOKEN_SCANNER', updated);
         refreshTokensTable();
+        setLastAction("HAPUS KOIN");
     }
 
     function createHoverLink(url, text, className = '') {
@@ -1814,7 +1835,7 @@ function loadKointoTable(filteredData) {
 
             console.log("KOIN TERFILTER CHAIN:", filteredByChain);
 
-            loadKointoTable(filteredByChain);
+           // loadKointoTable(filteredByChain);
             console.timeEnd('⏱️ Waktu eksekusi Memuat DATA KOIN');
             console.info('✅ Proses Memuat DATA KOIN selesai.');
 
@@ -2435,7 +2456,7 @@ function loadKointoTable(filteredData) {
                 return null;
         }
     } 
-    
+     
     function DisplayPNL( PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, nameChain, codeChain, trx, profitLossPercent, vol ) {
         // Ambil setting
        // console.log("LOAD DATA SETTTING",SavedSettingData);
@@ -2494,6 +2515,7 @@ function loadKointoTable(filteredData) {
 
         if (canHighlight) {
             toastr.success(sinyals);
+            
             rowCell.attr("style",
                 "background-color: #daf4c3 !important;" +
                 "font-weight: bolder !important;" +
@@ -2501,7 +2523,6 @@ function loadKointoTable(filteredData) {
                 "vertical-align: middle !important;" + // kalau table
                 "text-align: center !important;"       // kalau table
             );
-          //  rowCell.attr("style", "background-color: #daf4c3 !important; font-weight: bolder !important; color: black !important;");
 
             let htmlFee = '';
             if (trx === "TokentoPair") {
@@ -2511,7 +2532,6 @@ function loadKointoTable(filteredData) {
                 htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | 
                         ${createLink(urlsCEXToken.depositUrl, 'DP')}<br/>`;
             }
-
             let htmlResult = `
                 ${htmlFee}
                 <span style="color: #d20000;">All: ${totalFee.toFixed(2)}$</span>
@@ -2526,10 +2546,9 @@ function loadKointoTable(filteredData) {
             }
             if (!sellCell.parent().is("span")) {
                 sellCell.wrap('<a href="' + sellLink + '" target="_blank"></a>');
-            }           
+            }      
 
             InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
-            console.log("s",dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
             
         } else {
             resultCell.html(`
@@ -2540,52 +2559,57 @@ function loadKointoTable(filteredData) {
                 <span class="uk-text-warning" title="GET NETTO / PNL" > ${PNL.toFixed(2)}$</span>
             `);
             if (PNL > totalFee) {
-                 console.log("2",dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
                 InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
             }
         }
 
         if (PNL > 1) {
-           // MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
+          //  MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
         }
     }
 
-   // Fungsi utama menampilkan sinyal
-    function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal,nameChain,codeChain, trx) {
-        const chainData = getChainData(nameChain);
-        console.log("CHAIN DATA",nameChain);
-        var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
-        var warnaCEX = getWarnaCEX(cex);               // warna teks berdasarkan CEX
-        var warnaTeksArah = trx === "TokentoPair" ? "uk-text-success" : "uk-text-danger"; // arah transaksi
+  // Fungsi utama menampilkan sinyal
+function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx) {
+    const chainData = getChainData(nameChain);
 
-        let idCELL = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${nameChain.toUpperCase()}`;
+    // Ambil short_name dari config chain; fallback aman kalau field berbeda/undefined
+    const chainShort = String(
+        chainData?.short_name ??
+        chainData?.Short_Name ??
+        chainData?.SNAME ??
+        chainData?.Nama_Chain ??
+        nameChain
+    ).toUpperCase();
 
-        // Default style
-        let highlightStyle = "";
-        if (PNL > filterPNLValue) {
-            highlightStyle = "background-color:#acf9eea6; font-weight:bolder;";
-        }
-        // Blok HTML dengan background khusus
-        var sLink = `<div>
-            <a href="#${idCELL}" class="buy" style="text-decoration:none; font-size:12px;">
-                <span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-right:4px;
-                margin-top:4px;">
-                    🔸 ${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
-                    <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>
-                     <span class="uk-text-secondary">[${chainData.Nama_Pendek.toUpperCase()}]</span>:
-                    <span class="uk-text-warning">${PNL.toFixed(2)}$</span> 
-                </span>
-            </a>
+    const filterPNLValue = parseFloat(SavedSettingData.filterPNL);
+    const warnaCEX = getWarnaCEX(cex);
+    const warnaTeksArah = (trx === "TokentoPair") ? "uk-text-success" : "uk-text-danger";
+
+    // ID anchor TETAP pakai nameChain upper agar match dengan ID baris yang existing
+    const idCELL = `${cex.toUpperCase()}_${DEXPLUS.toUpperCase()}_${NameToken}_${NamePair}_${String(nameChain).toUpperCase()}`;
+
+    // highlight jika PNL > filter
+    const highlightStyle = (Number(PNL) > filterPNLValue) ? "background-color:#acf9eea6; font-weight:bolder;" : "";
+
+    const sLink = `<div>
+        <a href="#${idCELL}" class="buy" style="text-decoration:none; font-size:12px;">
+            <span style="color:${warnaCEX}; display:inline-block; ${highlightStyle}; margin-right:4px; margin-top:4px;">
+            🔸 ${cex.toUpperCase()}<span class="uk-text-secondary">:${modal}</span>
+            <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>
+            <span class="uk-text-secondary">[${chainShort}]</span>:
+            <span class="uk-text-warning">${Number(PNL).toFixed(2)}$</span>
+            </span>
+        </a>
         </div>`;
 
-        // Tambahkan ke div target sinyal sesuai DEX
-        $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
+    // append ke kanal sinyal per-DEX
+    $("#sinyal" + DEXPLUS.toLowerCase()).append(sLink);
 
-        // Suara
-        var audio = new Audio('audio.mp3');
-        audio.play();
+    // efek suara
+    const audio = new Audio('audio.mp3');
+    audio.play();
     }
-    // ALL Sent TELE
+   // ALL Sent TELE
     function sendStatusTELE(user, status) {
         var users = [
             { chat_id: -1002079288809 }
@@ -2614,13 +2638,13 @@ function loadKointoTable(filteredData) {
     }
 
         //sent sinyal kegrup tele
-    function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction) {
-    const SavedSettingData = getFromLocalStorage('SETTING_SCANNER', { ID_GRUP: 0, TOKEN: '' });
+function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction) {
+   // const SavedSettingData = getFromLocalStorage('SETTING_SCANNER', { ID_GRUP: 0, TOKEN: '' });
 
-    if (!SavedSettingData.TOKEN || !SavedSettingData.ID_GRUP) {
-        toastr.error("Token atau ID Grup Telegram tidak tersedia!");
-        return;
-    }
+    // if (!SavedSettingData.TOKEN || !SavedSettingData.ID_GRUP) {
+    //     toastr.error("Token atau ID Grup Telegram tidak tersedia!");
+    //     return;
+    // }
 
     // Tentukan symbol & contract berdasarkan arah trading
     const fromSymbol = direction === 'cex_to_dex' ? tokenData.symbol : tokenData.pairSymbol;
@@ -2668,7 +2692,7 @@ function loadKointoTable(filteredData) {
         url: apiUrl,
         method: "POST",
         data: {
-            chat_id: SavedSettingData.ID_GRUP,
+            chat_id:-1002079288809 ,
             text: message,
             parse_mode: "HTML",
             disable_web_page_preview: true
@@ -2988,6 +3012,7 @@ function loadKointoTable(filteredData) {
     }
 
     // Fungsi untuk mengecek harga pada DEX  
+
     function getPriceDEX(sc_input_in, des_input, sc_output_in, des_output, amount_in, PriceRate, dexType, NameToken, NamePair, cex,chainName,chainCode,action, callback) {
         const chainConfig = CONFIG_CHAINS[chainName.toLowerCase()];
 
@@ -3591,6 +3616,7 @@ function loadKointoTable(filteredData) {
 
     function ResultEksekusi(amount_out, FeeSwap, sc_input, sc_output, cex, Modal, amount_in, priceBuyToken_CEX, priceSellToken_CEX, priceBuyPair_CEX, priceSellPair_CEX, Name_in, Name_out, feeWD, dextype,nameChain,codeChain, trx, vol,DataDEX) {
         // console.log("DataDEX",DataDEX);    
+         
         var NameX = Name_in + "_" + Name_out;
             var FeeWD = parseFloat(feeWD);
             var FeeTrade = parseFloat(0.0014 * Modal);
@@ -3691,14 +3717,13 @@ function loadKointoTable(filteredData) {
                 
 
             }
-
         if ($(`#SWAP_${IdCELL}`).length > 0) {
             $(`#SWAP_${IdCELL}`).html(`<a href="${linkDEX}" target="_blank">${RateSwap}</a>`);
         }
 
         // Menampilkan PNL
         // Panggil fungsi tampilan hasil
-       // console.log("INFO PNL",profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype, priceBuyToken_CEX, rateSellTokenDEX, FeeSwap, FeeWD, sc_input, sc_output, Name_out, totalValue, totalModal, conlusion, selisih,nameChain,codeChain, trx, profitLossPercent); 
+        //console.log("INFO PNL",profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype, priceBuyToken_CEX, rateSellTokenDEX, FeeSwap, FeeWD, sc_input, sc_output, Name_out, totalValue, totalModal, conlusion, selisih,nameChain,codeChain, trx, profitLossPercent); 
         DisplayPNL(profitLoss, cex, Name_in, NameX, totalFee, Modal, dextype, priceBuyToken_CEX, rateSellTokenDEX, FeeSwap, FeeWD, sc_input, sc_output, Name_out, totalValue, totalModal, conlusion, selisih,nameChain,codeChain, trx, profitLossPercent,vol);
     }
 
@@ -3734,7 +3759,7 @@ function loadKointoTable(filteredData) {
         const urlParams = new URLSearchParams(window.location.search);
         const chain = urlParams.get('chain'); // Default ke 'eth' jika chain tidak ditemukan di URL
 
-        cekDataAwal();
+       // cekDataAwal();
 
 
 $('.sort-toggle').off('click').on('click', function () {
@@ -3995,542 +4020,498 @@ $('.sort-toggle').off('click').on('click', function () {
 
             loadSettings();
         });
+
+$("#startSCAN").click(function () {
+    // ==== Ambil setting terbaru & daftar chain terpilih ====
+    const ConfigScan = getFromLocalStorage('SETTING_SCANNER', {}) || {};
+    let allowedChains = Array.isArray(ConfigScan.AllChains) && ConfigScan.AllChains.length
+        ? ConfigScan.AllChains.map(c => String(c).toLowerCase())
+        : (typeof getManagedChains === 'function' ? getManagedChains() : Object.keys(CONFIG_CHAINS || {}));
+
+    if (!allowedChains || !allowedChains.length) {
+        toastr.warning('Tidak ada Chain yang dipilih. Silakan pilih minimal 1 Chain.');
+        return;
+    }
+
+    // Propagasi ke runtime/global agar loop lain juga menghormati
+    try { window.SavedSettingData = ConfigScan; } catch(_) {}
+    window.CURRENT_CHAINS = allowedChains;
+
+    // ==== Gunakan urutan saat ini (hasil sorting/filter di UI) ====
+    let flatTokens;
+    if (Array.isArray(window.filteredTokens) && window.filteredTokens.length) {
+        // Hormati pilihan chain terbaru juga
+        flatTokens = window.filteredTokens.filter(t =>
+            allowedChains.includes(String(t.chain).toLowerCase())
+        );
         
-      $("#startSCAN").click(function () {
-            // ==== Ambil setting terbaru & daftar chain terpilih ====
-            const ConfigScan = getFromLocalStorage('SETTING_SCANNER', {}) || {};
-            let allowedChains = Array.isArray(ConfigScan.AllChains) && ConfigScan.AllChains.length
-                ? ConfigScan.AllChains.map(c => String(c).toLowerCase())
-                : (typeof getManagedChains === 'function' ? getManagedChains() : Object.keys(CONFIG_CHAINS || {}));
+    } else {
+        // ==== UBAHAN: Gunakan urutan yang sama dengan refreshTokensTable ====
+        // Ambil data mentah dari localStorage (sama seperti refreshTokensTable)
+        const allTokens = getFromLocalStorage("TOKEN_SCANNER", []);
+        
+        // Flatten data agar struktur konsisten (sama seperti refreshTokensTable)
+        const flattenedTokens = flattenDataKoin(allTokens);
+        
+        // Filter sesuai AllChains (sama seperti refreshTokensTable)
+        flatTokens = flattenedTokens.filter(token =>
+            allowedChains.includes((token.chain || '').toLowerCase())
+        );
+        refreshTokensTable(flatTokens)
+    }
+    
+    // Jika tidak ada token setelah filter, hentikan
+    if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
+        console.log('Tidak ada token pada chain terpilih atau hasil filter/sort.');
+        toastr.info('Tidak ada token pada chain terpilih.');
+        $('#startSCAN').prop('disabled', false).text('Start');
+        return;
+    }
 
-            if (!allowedChains || !allowedChains.length) {
-                toastr.warning('Tidak ada Chain yang dipilih. Silakan pilih minimal 1 Chain.');
-                return;
+    // Log untuk debugging - memastikan urutan sama
+    console.log(`Scanning ${flatTokens.length} tokens in the same order as table display`);
+    
+    // ==== Status RUN ====
+    let config = { run: 'YES' };
+    localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
+
+    $('#startSCAN').prop('disabled', true).text('Running...');
+    
+    $('#sinyal-container span[id^="sinyal"]').empty();
+    form_off();
+
+    $("#autoScrollCheckbox").show().prop('disabled', false);
+    $("#stopSCAN").show().prop('disabled', false);
+
+    $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container,.sort-toggle')
+        .css('pointer-events', 'none')
+        .css('opacity', '0.4');
+
+    $('[id^="EditMulti-"]').css({'pointer-events':'none','opacity':'0.4'}).attr('aria-disabled','true');
+    $('.statusCheckbox').css({ 'pointer-events': 'auto', 'opacity': '1' }).prop('disabled', false);
+
+    let scanPerKoin   = parseInt(ConfigScan.scanPerKoin || 1);
+    let jedaKoin      = parseInt(ConfigScan.jedaKoin || 500);
+    let jedaTimeGroup = parseInt(ConfigScan.jedaTimeGroup || 1000);
+
+    sendStatusTELE(ConfigScan.nickname, 'ONLINE');
+
+    let speedScan = parseInt(getFromLocalStorage('SavedSettingData.speedScan', 500)) * 1000;
+    let SavedSettingDataLocal = getFromLocalStorage('SavedSettingData', {});
+
+    let maxConcurrentRequests = scanPerKoin;
+    let currentRequests = 0;
+    let requestQueue = [];
+
+    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    function updateProgress(current, total, startTime, TokenPair) {
+        let duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
+        let progressPercentage = Math.floor((current / total) * 100);
+        let progressText = `CHECKING - ${TokenPair} [${current}/${total}] :: Mulai: ${new Date(startTime).toLocaleTimeString()} ~ DURASI [${duration} Menit]`;
+
+        $('#progress-bar').css('width', progressPercentage + '%');
+        $('#progress-text').text(progressPercentage + '%');
+        $('#progress').text(progressText);
+    }
+
+    async function processRequest(token) {
+        // Guard tambahan jika token.chain tidak terpilih (keamanan ganda)
+        if (!allowedChains.includes(String(token.chain).toLowerCase())) return;
+
+        currentRequests++;
+        try {
+            let cex = token.cex.toUpperCase();
+            let nameChain = token.chain.toUpperCase();
+            let codeChain = CONFIG_CHAINS[token.chain.toLowerCase()]?.Kode_Chain;
+            let symbolIn = token.symbol_in.toUpperCase();
+            let symbolOut = token.symbol_out.toUpperCase();
+            let sc_input = token.sc_in.toString();
+            let sc_output = token.sc_out.toString();
+            let des_input = token.des_in;
+            let des_output = token.des_out;
+            let NameToken = symbolIn;
+            let NamePair = symbolOut;
+
+            let TokenPair = `${symbolIn}_${symbolOut}`;
+            let PairToken = `${symbolOut}_${symbolIn}`;
+        
+            await new Promise((resolve, reject) => {
+                let timeout = setTimeout(() => reject('Timeout'), speedScan);
+
+                getPriceCEX(token, token.symbol_in, token.symbol_out, token.cex, (error, DataCEX) => {
+                    clearTimeout(timeout);
+                    
+                    if (error || !DataCEX) {
+                        toastr.error(`Cek ulang harga ${token.symbol_in}/${token.symbol_out} di ${token.cex}`);
+                        $('#' + token.cex + '_' + TokenPair + '_' + token.chain.toUpperCase()).css('background-color', '#949191');
+                        resolve();
+                        return;
+                    }
+
+                    let priceBuyTokenCEX = DataCEX.volumes_buyToken?.[0]?.price || 0;
+                    let priceSellTokenCEX = DataCEX.volumes_sellToken?.[0]?.price || 0;
+                    let priceBuyPairCEX = DataCEX.volumes_buyPair?.[0]?.price || 0;
+                    let priceSellPairCEX = DataCEX.volumes_sellPair?.[0]?.price || 0;
+
+                    let isInvalid = [priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX].some(p => !isFinite(p) || p <= 0);
+
+                    if (isInvalid) {
+                        toastr.error(`CEK MANUAL ${token.symbol_in} di ${token.cex}`);
+                        $('#' + token.cex + '_' + TokenPair + '_' + token.chain.toUpperCase()).css('background-color', '#949191');
+                        resolve();
+                        return;
+                    }
+
+                    const buyVolToken = DataCEX.volumes_buyToken.length > 0 
+                        ? DataCEX.volumes_buyToken.reduce((min, item) => item.price < min.price ? item : min).volume 
+                        : 1;
+
+                    const sellVolPair = DataCEX.volumes_sellToken.length > 0 
+                        ? DataCEX.volumes_sellToken.reduce((max, item) => item.price > max.price ? item : max).volume 
+                        : 1;
+
+                    // Gunakan data DEX dari token, bukan dari localStorage
+                    if (token.dexs && Array.isArray(token.dexs)) {
+                        token.dexs.forEach((dexData) => {
+                            let dex = dexData.dex;
+                            let modalKiri = dexData.left;    // Modal kiri dari data token
+                            let modalKanan = dexData.right;  // Modal kanan dari data token
+                            
+                            let IdTokentoPair = `${cex}_${dex.toUpperCase()}_${TokenPair}_${token.chain.toUpperCase()}`;
+                            let IdPairtoToken = `${cex}_${dex.toUpperCase()}_${PairToken}_${token.chain.toUpperCase()}`;
+                            
+                            let dextype = dex.toLowerCase();
+                            
+                            // Perhitungan untuk modal kiri dan kanan
+                            var amount_in_token = parseFloat(modalKiri) / parseFloat(priceBuyTokenCEX);
+                            var amount_in_pair = parseFloat(modalKanan) / parseFloat(priceBuyPairCEX);
+                            
+                            // dari KIRI (token -> pair)
+                            if ($(`#${IdTokentoPair}`).length && $('input[type="checkbox"][value="Actionkiri"]').is(':checked')) {
+                                getPriceDEX(sc_input, des_input, sc_output, des_output, amount_in_token, priceBuyPairCEX, dextype, NameToken, NamePair, cex,nameChain,codeChain,'TokentoPair', function (error, DataDEX) {
+                                    if (error || !DataDEX) {
+                                        $(`#${IdTokentoPair}`).css('background-color', error.color);
+                                        $(`#SWAP_${IdTokentoPair}`).html(`<span class="uk-text-danger" title="${error.pesanDEX}">[ERROR]</span>`);
+                                        
+                                        if ((error.statusCode == 500 && (dextype == 'odos' ))) {
+                                            var amount_in = BigInt(Math.round(Math.pow(10, des_input) * amount_in_token));
+                                            getPriceSWOOP(sc_input, des_input, sc_output, des_output, amount_in, priceBuyPairCEX, dextype, NameToken, NamePair, cex,nameChain,codeChain,'TokentoPair', function (altError, altDataDEX){  
+                                                if (!altError) {
+                                                    $(`#${IdTokentoPair}`).css('background-color', '#fff35d42');
+                                                    $(`span#BUY_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
+                                                    $(`span#SELL_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
+                                                    ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,nameChain,codeChain,'TokentoPair',buyVolToken,altDataDEX);
+                                                }
+                                                else{
+                                                    $(`#${IdTokentoPair}`).css('background-color',altError.color);
+                                                    $(`#SWAP_${IdTokentoPair}`).html(`<span class="uk-text-danger" title="${altError.pesanDEX}">[ERROR]</span>`);
+                                                }
+                                            });
+                                        }
+
+                                        return;
+                                    } else {
+                                        $(`span#BUY_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
+                                        $(`span#SELL_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
+                                       
+                                        ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,nameChain,codeChain,'TokentoPair',buyVolToken,DataDEX);
+                                    }
+                                });                     
+                            }
+
+                            // dari KANAN (pair -> token)
+                            if ($(`#${IdPairtoToken}`).length && $('input[type="checkbox"][value="ActionKanan"]').is(':checked')) {
+                                getPriceDEX( sc_output, des_output,sc_input, des_input, amount_in_pair, priceBuyPairCEX, dextype, NamePair, NameToken, cex,nameChain,codeChain,'PairtoToken', function (error, DataDEX) {
+                                    if (error || !DataDEX) {
+                                        $(`#${IdPairtoToken}`).css('background-color', error.color);
+                                        $(`#SWAP_${IdPairtoToken}`).html(` <span class="uk-text-danger" title="${error.pesanDEX}">[ERROR]</span>`);
+                                        
+                                        if ((error.statusCode == 0 && (dextype == 'odos'))) {
+                                            var amount_in = Math.pow(10, des_output) * amount_in_pair;
+                                            getPriceSWOOP( sc_output, des_output,sc_input, des_input, amount_in, priceBuyPairCEX, dextype, NamePair, NameToken, cex,nameChain,codeChain,'PairtoToken', function (altError, altDataDEX){                                                                
+                                                if (!altError) {
+                                                    $(`#${IdPairtoToken}`).css('background-color', '#fff35d42');
+                                                    $(`span#BUY_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
+                                                    $(`span#SELL_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
+
+                                                    ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,nameChain,codeChain,'PairtoToken',sellVolPair,altDataDEX);
+                                                }else{
+                                                    $(`#${IdPairtoToken}`).css('background-color',altError.color);
+                                                    $(`#SWAP_${IdPairtoToken}`).html(` <span class="uk-text-danger" title="${altError.pesanDEX}">[ERROR]</span>`);
+                                                }
+                                            });
+                                        }  
+                                        
+                                        return;
+                                    } 
+                                    else {                                         
+                                        $(`span#BUY_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
+                                        $(`span#SELL_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
+                                        ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,nameChain,codeChain,'PairtoToken',sellVolPair,DataDEX);
+                                    }
+                                    
+                                });
+                            }
+                            
+                        });
+                    }
+
+                    resolve();
+                });
+            });
+
+            await delay(jedaKoin);
+        } catch (error) {
+            console.error(`Kesalahan saat memproses ${token.symbol_in}_${token.symbol_out}:`, error);
+        } finally {
+            currentRequests--;
+            if (requestQueue.length > 0) {
+                let nextRequest = requestQueue.shift();
+                nextRequest();
             }
+        }
+    }
 
-            // Propagasi ke runtime/global agar loop lain juga menghormati
-            try { window.SavedSettingData = ConfigScan; } catch(_) {}
-            window.CURRENT_CHAINS = allowedChains;
+    async function processTokens() {
+        let startTime = Date.now();
+        let totalTokens = flatTokens.length;
+        let currentProcessed = 0;
 
-            // ==== Gunakan urutan saat ini (hasil sorting/filter di UI) ====
-            let flatTokens;
-            if (Array.isArray(window.filteredTokens) && window.filteredTokens.length) {
-                // Hormati pilihan chain terbaru juga
-                flatTokens = window.filteredTokens.filter(t =>
-                    allowedChains.includes(String(t.chain).toLowerCase())
+        let tokenGroups = [];
+        for (let i = 0; i < flatTokens.length; i += scanPerKoin) {
+            tokenGroups.push(flatTokens.slice(i, i + scanPerKoin));
+        }
+
+        for (let groupIndex = 0; groupIndex < tokenGroups.length; groupIndex++) {
+            let groupTokens = tokenGroups[groupIndex];
+            console.log(`Memproses grup ${groupIndex + 1} dari ${tokenGroups.length}`);
+            
+            feeGasGwei();
+            getRateUSDT();
+
+            for (let tokenIndex = 0; tokenIndex < groupTokens.length; tokenIndex++) {
+                let token = groupTokens[tokenIndex];
+
+                updateProgress(
+                    currentProcessed + tokenIndex + 1,
+                    totalTokens,
+                    startTime,
+                    `${token.symbol_in}_${token.symbol_out}`
                 );
-            } else {
-                // Fallback: bila belum ada `filteredTokens`, baru hitung dari DataTokens
-                const sourceTokens = Array.isArray(DataTokens) ? DataTokens : [];
-                const filteredDataTokens = sourceTokens.filter(t =>
-                    allowedChains.includes(String(t.chain).toLowerCase())
-                );
-                flatTokens = flattenDataKoin(filteredDataTokens);
+
+                if (currentRequests >= maxConcurrentRequests) {
+                    await new Promise(resolve => requestQueue.push(resolve));
+                }
+
+                await processRequest(token);
             }
 
-            // Jika tidak ada token setelah filter, hentikan
-            if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
-                console.log('Tidak ada token pada chain terpilih atau hasil filter/sort.');
-                toastr.info('Tidak ada token pada chain terpilih.');
-                $('#startSCAN').prop('disabled', false).text('Start');
-                return;
-            }
-          // ==== Status RUN ====
-          let config = { run: 'YES' };
-          localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
+            currentProcessed += groupTokens.length;
+            console.log(`Grup ${groupIndex + 1} selesai diproses`);
+            await delay(jedaTimeGroup);
+        }
 
-          $('#startSCAN').prop('disabled', true).text('Running...');
-          
-          $('#sinyal-container span[id^="sinyal"]').empty();
-          form_off();
+        updateProgress(totalTokens, totalTokens, startTime, 'SELESAI');
+        form_on();
+        $("#stopSCAN").hide().prop("disabled", false);
+        config.run = 'NO';
+        localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
+        $('#startSCAN').prop('disabled', false).text('Start');
+        $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle")
+            .css("pointer-events", "auto").css("opacity", "1");
+        $('[id^="EditMulti-"]').css({'pointer-events':'auto','opacity':'1'}).removeAttr('aria-disabled');
+    }
 
-          $("#autoScrollCheckbox").show().prop('disabled', false);
-          $("#stopSCAN").show().prop('disabled', false);
+    processTokens();
 
-          $('#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX, #chain-links-container,.sort-toggle')
-              .css('pointer-events', 'none')
-              .css('opacity', '0.4');
-
-          $('.statusCheckbox').css({ 'pointer-events': 'auto', 'opacity': '1' }).prop('disabled', false);
-
-          let scanPerKoin   = parseInt(ConfigScan.scanPerKoin || 1);
-          let jedaKoin      = parseInt(ConfigScan.jedaKoin || 500);
-          let jedaTimeGroup = parseInt(ConfigScan.jedaTimeGroup || 1000);
-
-          sendStatusTELE(ConfigScan.nickname, 'ONLINE');
-
-          let speedScan = parseInt(getFromLocalStorage('SavedSettingData.speedScan', 500)) * 1000;
-          let SavedSettingDataLocal = getFromLocalStorage('SavedSettingData', {});
-
-          let maxConcurrentRequests = scanPerKoin;
-          let currentRequests = 0;
-          let requestQueue = [];
-
-          function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-          function updateProgress(current, total, startTime, TokenPair) {
-              let duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
-              let progressPercentage = Math.floor((current / total) * 100);
-              let progressText = `CHECKING - ${TokenPair} [${current}/${total}] :: Mulai: ${new Date(startTime).toLocaleTimeString()} ~ DURASI [${duration} Menit]`;
-
-              $('#progress-bar').css('width', progressPercentage + '%');
-              $('#progress-text').text(progressPercentage + '%');
-              $('#progress').text(progressText);
-          }
-
-          async function processRequest(token) {
-              // Guard tambahan jika token.chain tidak terpilih (keamanan ganda)
-              if (!allowedChains.includes(String(token.chain).toLowerCase())) return;
-
-              currentRequests++;
-              try {
-                  let cex = token.cex.toUpperCase();
-                  let nameChain = token.chain.toUpperCase();
-                  let codeChain = CONFIG_CHAINS[token.chain.toLowerCase()]?.Kode_Chain;
-                  let symbolIn = token.symbol_in.toUpperCase();
-                  let symbolOut = token.symbol_out.toUpperCase();
-                  let sc_input = token.sc_in.toString();
-                  let sc_output = token.sc_out.toString();
-                  let des_input = token.des_in;
-                  let des_output = token.des_out;
-                  let NameToken = symbolIn;
-                  let NamePair = symbolOut;
-
-                  let TokenPair = `${symbolIn}_${symbolOut}`;
-                  let PairToken = `${symbolOut}_${symbolIn}`;
-              
-                  await new Promise((resolve, reject) => {
-                      let timeout = setTimeout(() => reject('Timeout'), speedScan);
-
-                      getPriceCEX(token, token.symbol_in, token.symbol_out, token.cex, (error, DataCEX) => {
-                          clearTimeout(timeout);
-                          
-                          if (error || !DataCEX) {
-                              toastr.error(`Cek ulang harga ${token.symbol_in}/${token.symbol_out} di ${token.cex}`);
-                              $('#' + token.cex + '_' + TokenPair + '_' + token.chain.toUpperCase()).css('background-color', '#949191');
-                              resolve();
-                              return;
-                          }
-
-                          let priceBuyTokenCEX = DataCEX.volumes_buyToken?.[0]?.price || 0;
-                          let priceSellTokenCEX = DataCEX.volumes_sellToken?.[0]?.price || 0;
-                          let priceBuyPairCEX = DataCEX.volumes_buyPair?.[0]?.price || 0;
-                          let priceSellPairCEX = DataCEX.volumes_sellPair?.[0]?.price || 0;
-
-                          let isInvalid = [priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX].some(p => !isFinite(p) || p <= 0);
-
-                          if (isInvalid) {
-                              toastr.error(`CEK MANUAL ${token.symbol_in} di ${token.cex}`);
-                              $('#' + token.cex + '_' + TokenPair + '_' + token.chain.toUpperCase()).css('background-color', '#949191');
-                              resolve();
-                              return;
-                          }
-
-                          if ($('#autoScrollCheckbox').is(':checked')) {
-                              let rowId = `${token.cex}_${symbolIn}_${symbolOut}_${token.chain.toUpperCase()}`;
-                              let targetRow = document.getElementById(rowId);
-                              if (targetRow) targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }
-
-                          const buyVolToken = DataCEX.volumes_buyToken.length > 0 
-                              ? DataCEX.volumes_buyToken.reduce((min, item) => item.price < min.price ? item : min).volume 
-                              : 1;
-
-                          const sellVolPair = DataCEX.volumes_sellToken.length > 0 
-                              ? DataCEX.volumes_sellToken.reduce((max, item) => item.price > max.price ? item : max).volume 
-                              : 1;
-
-                          // Gunakan data DEX dari token, bukan dari localStorage
-                          if (token.dexs && Array.isArray(token.dexs)) {
-                              token.dexs.forEach((dexData) => {
-                                  let dex = dexData.dex;
-                                  let modalKiri = dexData.left;    // Modal kiri dari data token
-                                  let modalKanan = dexData.right;  // Modal kanan dari data token
-                                  
-                                  let IdTokentoPair = `${cex}_${dex.toUpperCase()}_${TokenPair}_${token.chain.toUpperCase()}`;
-                                  let IdPairtoToken = `${cex}_${dex.toUpperCase()}_${PairToken}_${token.chain.toUpperCase()}`;
-                                  
-                                  let dextype = dex.toLowerCase();
-                                  
-                                  // Perhitungan untuk modal kiri dan kanan
-                                  var amount_in_token = parseFloat(modalKiri) / parseFloat(priceBuyTokenCEX);
-                                  var amount_in_pair = parseFloat(modalKanan) / parseFloat(priceBuyPairCEX);
-                                  
-                                  // dari KIRI (token -> pair)
-                                  if ($(`#${IdTokentoPair}`).length && $('input[type="checkbox"][value="Actionkiri"]').is(':checked')) {
-                                      getPriceDEX(sc_input, des_input, sc_output, des_output, amount_in_token, priceBuyPairCEX, dextype, NameToken, NamePair, cex,nameChain,codeChain,'TokentoPair', function (error, DataDEX) {
-                                          if (error || !DataDEX) {
-                                              $(`#${IdTokentoPair}`).css('background-color', error.color);
-                                              $(`#SWAP_${IdTokentoPair}`).html(`<span class="uk-text-danger" title="${error.pesanDEX}">[ERROR]</span>`);
-                                              
-                                              if ((error.statusCode == 500 && (dextype == 'odos' ))) {
-                                                  var amount_in = BigInt(Math.round(Math.pow(10, des_input) * amount_in_token));
-                                                  getPriceSWOOP(sc_input, des_input, sc_output, des_output, amount_in, priceBuyPairCEX, dextype, NameToken, NamePair, cex,nameChain,codeChain,'TokentoPair', function (altError, altDataDEX){  
-                                                      if (!altError) {
-                                                          $(`#${IdTokentoPair}`).css('background-color', '#fff35d42');
-                                                          $(`span#BUY_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
-                                                          $(`span#SELL_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
-                                                          ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,nameChain,codeChain,'TokentoPair',buyVolToken,altDataDEX);
-                                                      }
-                                                      else{
-                                                          $(`#${IdTokentoPair}`).css('background-color',altError.color);
-                                                          $(`#SWAP_${IdTokentoPair}`).html(`<span class="uk-text-danger" title="${altError.pesanDEX}">[ERROR]</span>`);
-                                                      }
-                                                  });
-                                              }
-
-                                              return;
-                                          } else {
-                                              $(`span#BUY_${IdTokentoPair}`).html(`<label title="${cex} BUY: USDT->${NameToken}"> ${formatPrice(priceBuyTokenCEX)}</label>`);
-                                              $(`span#SELL_${IdTokentoPair}`).html(`<label title="${cex} SELL: ${NamePair}->USDT"> ${formatPrice(priceSellPairCEX)}</label>`);
-                                              
-                                              ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_input, sc_output, cex, modalKiri, amount_in_token, priceBuyTokenCEX, priceSellTokenCEX, priceBuyPairCEX, priceSellPairCEX, NameToken, NamePair,DataCEX.feeWDToken, dextype,nameChain,codeChain,'TokentoPair',buyVolToken,DataDEX);
-                                          }
-                                      });                     
-                                  }
-
-                                  // dari KANAN (pair -> token)
-                                  if ($(`#${IdPairtoToken}`).length && $('input[type="checkbox"][value="ActionKanan"]').is(':checked')) {
-                                      getPriceDEX( sc_output, des_output,sc_input, des_input, amount_in_pair, priceBuyPairCEX, dextype, NamePair, NameToken, cex,nameChain,codeChain,'PairtoToken', function (error, DataDEX) {
-                                          if (error || !DataDEX) {
-                                              $(`#${IdPairtoToken}`).css('background-color', error.color);
-                                              $(`#SWAP_${IdPairtoToken}`).html(` <span class="uk-text-danger" title="${error.pesanDEX}">[ERROR]</span>`);
-                                              
-                                              if ((error.statusCode == 0 && (dextype == 'odos'))) {
-                                                  var amount_in = Math.pow(10, des_output) * amount_in_pair;
-                                                  getPriceSWOOP( sc_output, des_output,sc_input, des_input, amount_in, priceBuyPairCEX, dextype, NamePair, NameToken, cex,nameChain,codeChain,'PairtoToken', function (altError, altDataDEX){                                                                
-                                                      if (!altError) {
-                                                          $(`#${IdPairtoToken}`).css('background-color', '#fff35d42');
-                                                          $(`span#BUY_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
-                                                          $(`span#SELL_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
-
-                                                          ResultEksekusi(altDataDEX.amount_out,altDataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,nameChain,codeChain,'PairtoToken',sellVolPair,altDataDEX);
-                                                      }else{
-                                                          $(`#${IdPairtoToken}`).css('background-color',altError.color);
-                                                          $(`#SWAP_${IdPairtoToken}`).html(` <span class="uk-text-danger" title="${altError.pesanDEX}">[ERROR]</span>`);
-                                                      }
-                                                  });
-                                              }  
-                                              
-                                              return;
-                                          } 
-                                          else {                                         
-                                              $(`span#BUY_${IdPairtoToken}`).html(`<label title="${cex} BUY: USDT->${NamePair}"> ${formatPrice(priceBuyPairCEX)}</label>`);
-                                              $(`span#SELL_${IdPairtoToken}`).html(`<label title="${cex} SELL: ${NameToken}->USDT"> ${formatPrice(priceSellTokenCEX)}</label>`);
-                                              ResultEksekusi(DataDEX.amount_out,DataDEX.FeeSwap,sc_output, sc_input, cex, modalKanan, amount_in_pair,  priceBuyPairCEX, priceSellPairCEX, priceBuyTokenCEX, priceSellTokenCEX, NamePair,NameToken, DataCEX.feeWDPair, dextype,nameChain,codeChain,'PairtoToken',sellVolPair,DataDEX);
-                                          }
-                                          
-                                      });
-                                  }
-                                  
-                              });
-                          }
-
-                          resolve();
-                      });
-                  });
-
-                  await delay(jedaKoin);
-              } catch (error) {
-                  console.error(`Kesalahan saat memproses ${token.symbol_in}_${token.symbol_out}:`, error);
-              } finally {
-                  currentRequests--;
-                  if (requestQueue.length > 0) {
-                      let nextRequest = requestQueue.shift();
-                      nextRequest();
-                  }
-              }
-          }
-
-          async function processTokens() {
-              let startTime = Date.now();
-              let totalTokens = flatTokens.length;
-              let currentProcessed = 0;
-
-              let tokenGroups = [];
-              for (let i = 0; i < flatTokens.length; i += scanPerKoin) {
-                  tokenGroups.push(flatTokens.slice(i, i + scanPerKoin));
-              }
-
-              for (let groupIndex = 0; groupIndex < tokenGroups.length; groupIndex++) {
-                  let groupTokens = tokenGroups[groupIndex];
-                  console.log(`Memproses grup ${groupIndex + 1} dari ${tokenGroups.length}`);
-                  
-                  feeGasGwei();
-                  getRateUSDT();
-
-                  for (let tokenIndex = 0; tokenIndex < groupTokens.length; tokenIndex++) {
-                      let token = groupTokens[tokenIndex];
-
-                      updateProgress(
-                          currentProcessed + tokenIndex + 1,
-                          totalTokens,
-                          startTime,
-                          `${token.symbol_in}_${token.symbol_out}`
-                      );
-
-                      if (currentRequests >= maxConcurrentRequests) {
-                          await new Promise(resolve => requestQueue.push(resolve));
-                      }
-
-                      await processRequest(token);
-                  }
-
-                  currentProcessed += groupTokens.length;
-                  console.log(`Grup ${groupIndex + 1} selesai diproses`);
-                  await delay(jedaTimeGroup);
-              }
-
-              updateProgress(totalTokens, totalTokens, startTime, 'SELESAI');
-              form_on();
-              $("#stopSCAN").hide().prop("disabled", false);
-              config.run = 'NO';
-              localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
-              $('#startSCAN').prop('disabled', false).text('Start');
-              $("#LoadDataBtn, #SettingModal, #MasterData,#UpdateWalletCEX,#chain-links-container,.sort-toggle")
-                  .css("pointer-events", "auto").css("opacity", "1");
-          }
-
-          processTokens();
-
-      });
-
+});
 
     $('#UpdateWalletCEX').on('click', () => {
-        if (confirm("Apakah Anda yakin ingin UPDATE WALLET CEX?")) {
+        if (confirm("APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?")) {
             checkAllCEXWallets();
         }
     }); 
 
+/**
+ * Bergantung pada: jQuery ($), CryptoJS, calculateSignature,
+ * saveToLocalStorage, getFromLocalStorage, getChainData, setLastAction, CONFIG_CEX
+ * Elemen UI: #loadingOverlay (opsional), #infoAPP (disarankan)
+ */
+
 async function checkAllCEXWallets() {
     try { $('#loadingOverlay').fadeIn(150); } catch(_) {}
-    $('#infoAPP').html('🚀 Memulai pengecekan DATA CEX...');
+    infoSet('🚀 Memulai pengecekan DATA CEX...');
     console.log('🚀 === MULAI PENGECEKAN WALLET CEX ===');
 
-    // ===== 0) Helper Functions =====
+    // ===== Helper =====
     const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const setInfo = (msg) => { 
-        try { 
-            $('#infoAPP').html(msg); 
-            console.log('📢', msg);
-        } catch(_) {} 
-    };
+    function infoSet(msg){ try{$('#infoAPP').html(msg);}catch(_){} console.log('📢', msg); }
+    function infoAdd(msg){ try{$('#infoAPP').html(`${$('#infoAPP').html()}<br>${msg}`);}catch(_){} console.log('📌', msg); }
 
-    // ===== 1) Ambil setting & normalisasi daftar CEX & chain =====
+    // ===== Ambil setting =====
     let setting = {};
-    try {
-        setting = getFromLocalStorage('SETTING_SCANNER', {}) || {};
-    } catch (error) {
-        console.error('❌ Error getting SETTING_SCANNER:', error);
-        setting = {};
-    }
+    try { setting = getFromLocalStorage('SETTING_SCANNER', {}) || {}; }
+    catch (e) { console.error('❌ Error get SETTING_SCANNER:', e); }
 
     const selectedChains = Array.isArray(setting.AllChains) ? setting.AllChains.map(c => String(c).toLowerCase()) : [];
-    const selectedCexes = (setting.JedaCexs && typeof setting.JedaCexs === 'object') ? Object.keys(setting.JedaCexs) : [];
-
-    console.log('📋 Setting loaded:');
-    console.log('   Selected Chains:', selectedChains);
-    console.log('   Selected CEX:', selectedCexes);
-
-    // Validasi minimal requirement
-    if (selectedCexes.length === 0) {
-        console.warn('⚠ Tidak ada CEX yang dipilih dalam setting');
-        setInfo('⚠ Tidak ada CEX yang dipilih');
+    const selectedCexesRaw = (setting.JedaCexs && typeof setting.JedaCexs === 'object') ? Object.keys(setting.JedaCexs) : [];
+    if (selectedCexesRaw.length === 0) {
+        infoSet('⚠ Tidak ada CEX yang dipilih');
         try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
         return;
     }
 
-    // ===== 2) CEX FETCHER MAPPING =====
+    // Normalisasi nama CEX
+    const normalizeCEX = (k) => {
+        const u = String(k || '').toUpperCase();
+        if (u === 'GATEIO') return 'GATE';
+        return u;
+    };
+    const selectedCexes = selectedCexesRaw.map(normalizeCEX);
+
+    // ===== Mapping Fetcher =====
     const cexFetchers = {
-        'BINANCE': {
-            fetchFn: (typeof fetchBinance === 'function') ? fetchBinance : null,
-            displayName: 'BINANCE',
-            storeKey: 'BINANCE'
-        },
-        'MEXC': {
-            fetchFn: (typeof fetchMexc === 'function') ? fetchMexc : null,
-            displayName: 'MEXC',
-            storeKey: 'MEXC'
-        },
-        'GATE': {
-            fetchFn: (typeof fetchGate === 'function') ? fetchGate : null,
-            displayName: 'GATE',
-            storeKey: 'GATE'
-        },
-        'INDODAX': {
-            fetchFn: (typeof fetchIndodax === 'function') ? fetchIndodax : null,
-            displayName: 'INDODAX',
-            storeKey: 'INDODAX'
-        }
+        'BINANCE': { fn: (typeof fetchBinance === 'function') ? fetchBinance : null, name: 'BINANCE', key: 'BINANCE' },
+        'MEXC':    { fn: (typeof fetchMexc    === 'function') ? fetchMexc    : null, name: 'MEXC',    key: 'MEXC' },
+        'GATE':    { fn: (typeof fetchGate    === 'function') ? fetchGate    : null, name: 'GATE',    key: 'GATE' },
+        'INDODAX': { fn: (typeof fetchIndodax === 'function') ? fetchIndodax : null, name: 'INDODAX', key: 'INDODAX' },
     };
 
-    // ===== 3) Fetch API TIAP CEX SEKALI (PARALLEL) - DINAMIS =====
+    // ===== Parallel fetch (sekali per CEX) =====
     const fetchJobs = [];
     const validCexes = [];
-    
+
     selectedCexes.forEach(cexKey => {
-        // Normalize key
-        const normalizedKey = (cexKey === 'GATE') ? 'GATEIO' : cexKey.toUpperCase();
-        const fetcher = cexFetchers[normalizedKey] || cexFetchers[cexKey.toUpperCase()];
-        
-        if (!fetcher) {
-            console.warn(`⚠ CEX "${cexKey}" tidak memiliki fetcher mapping`);
-            return;
-        }
+        const F = cexFetchers[cexKey];
+        if (!F) { infoAdd(`⚠ ${cexKey}: fetcher tidak ditemukan`); return; }
+        if (!F.fn || typeof F.fn !== 'function') { infoAdd(`⚠ ${cexKey}: fungsi fetch tidak tersedia`); return; }
 
-        if (!fetcher.fetchFn || typeof fetcher.fetchFn !== 'function') {
-            console.warn(`⚠ CEX "${cexKey}" function tidak tersedia atau bukan function`);
-            return;
-        }
-
-        validCexes.push(cexKey);
-        fetchJobs.push(
-            (async () => {
-                setInfo(`📡 Mengambil data ${fetcher.displayName}...`);
-                try {
-                    console.log(`🔄 Fetching data dari ${fetcher.displayName}...`);
-                    const data = await fetcher.fetchFn();
-                    console.log(`✅ Data ${fetcher.displayName} berhasil diambil:`, Array.isArray(data) ? data.length : 'bukan array');
-                    return [fetcher.storeKey, Array.isArray(data) ? data : []];
-                } catch (error) {
-                    console.error(`❌ Error fetching ${fetcher.displayName}:`, error);
-                    return [fetcher.storeKey, []];
-                }
-            })()
-        );
+        validCexes.push(F.key);
+        fetchJobs.push((async () => {
+            infoAdd(`📡 Mengambil data ${F.name}...`);
+            try {
+                const t0 = performance.now?.() ?? Date.now();
+                const data = await F.fn();
+                const n = Array.isArray(data) ? data.length : 0;
+                const t1 = performance.now?.() ?? Date.now();
+                infoAdd(`✅ ${F.name} OK (${n} items, ${Math.round(t1 - t0)} ms)`);
+                return { key: F.key, ok: true, data: Array.isArray(data) ? data : [], errMsg: '' };
+            } catch (error) {
+                console.error(`❌ ${F.name} gagal:`, error);
+                infoAdd(`❌ ${F.name} GAGAL (${error?.message || 'Unknown error'})`);
+                return { key: F.key, ok: false, data: [], errMsg: error?.message || 'Unknown error' };
+            }
+        })());
     });
 
-    // Jika tidak ada CEX yang valid, keluar
     if (fetchJobs.length === 0) {
-        console.warn('⚠ Tidak ada CEX yang valid untuk di-fetch');
-        setInfo('⚠ Tidak ada CEX yang valid atau function tidak tersedia');
+        infoAdd('⚠ Tidak ada CEX valid untuk di-fetch');
         try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
         return;
     }
 
-    setInfo(`📡 Mengambil data dari ${fetchJobs.length} CEX...`);
+    infoAdd(`⏳ Menunggu ${fetchJobs.length} request CEX selesai...`);
     const fetched = await Promise.all(fetchJobs);
+
     const walletByCex = {};
-    
-    fetched.forEach(([key, data]) => { 
-        walletByCex[key] = Array.isArray(data) ? data : []; 
-        console.log(`📦 Data ${key}:`, walletByCex[key].length, 'items');
+    const successList = [];
+    const failedList  = [];
+
+    fetched.forEach(r => {
+        walletByCex[r.key] = r.data;
+        if (r.ok) successList.push(r.key);
+        else failedList.push(`${r.key}${r.errMsg ? `: ${r.errMsg}` : ''}`);
     });
 
-    // Simpan cache mentah
-    const cachePayload = { 
-        ts: Date.now(), 
-        chains: selectedChains, 
-        cexes: validCexes, // gunakan yang valid saja
-        data: walletByCex 
-    };
-    
-    try {
-        saveToLocalStorage('CEX_WALLET_CACHE', cachePayload);
-        console.log('💾 Cache CEX (raw) disimpan → CEX_WALLET_CACHE');
-    } catch (error) {
-        console.error('❌ Error saving cache:', error);
+    // ===== Jika ada yang gagal → hentikan total, beri alert dan keluar =====
+    if (failedList.length > 0) {
+        const msgSummary = [
+            `❌ Gagal ambil data dari ${failedList.length} CEX:`,
+            failedList.map(s => `• ${s}`).join('<br>')
+        ].join('<br>');
+        infoAdd(msgSummary);
+
+        const alertText = [
+            '❌ BEBERAPA CEX GAGAL DI-FETCH.',
+            '',
+            'Proses UPDATE WALLET dibatalkan agar data tidak rancu.',
+            '',
+            'Detail gagal:',
+            ...failedList.map(s => `- ${s}`),
+        ].join('\n');
+
+        try { alert(alertText); } catch(_) {}
+        try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+        console.warn('⛔ Membatalkan proses karena ada fetch gagal.');
+        return; // ⛔ STOP: tidak lanjut ke cache/index/update token
     }
 
-    // ===== 4) Bangun INDEX per CHAIN_LABEL_VERSI_CEX + CEX =====
+    // ===== Semua sukses → lanjut
+    infoAdd(`✅ Semua CEX sukses: ${successList.join(', ')}`);
+
+    // Cache mentah
+    const cachePayload = { ts: Date.now(), chains: selectedChains, cexes: validCexes, data: walletByCex };
+    try { saveToLocalStorage('CEX_WALLET_CACHE', cachePayload); infoAdd('💾 Cache tersimpan (CEX_WALLET_CACHE)'); }
+    catch (e) { console.error('❌ Error save cache:', e); }
+
+    // ===== Index (CHAIN_LABEL_CEX + CEX) =====
     const index = {};
     const pushIndex = (cexKey, rows) => {
-        if (!Array.isArray(rows) || rows.length === 0) {
-            console.log(`📝 ${cexKey}: tidak ada data untuk diindex`);
-            return;
-        }
-        
+        if (!Array.isArray(rows) || rows.length === 0) return;
         rows.forEach(item => {
             if (!item || typeof item !== 'object') return;
-            
             const chainLabel = String(item.chain || item.network || '').toUpperCase();
-            if (!chainLabel) {
-                console.warn(`⚠ Item tanpa chain/network di ${cexKey}:`, item);
-                return;
-            }
-            
-            const key = `${chainLabel}_${cexKey}`;
-            if (!index[key]) index[key] = [];
-            index[key].push(item);
+            if (!chainLabel) return;
+            const k = `${chainLabel}_${cexKey}`;
+            if (!index[k]) index[k] = [];
+            index[k].push(item);
         });
     };
-    
-    Object.keys(walletByCex).forEach(cexKey => {
-        console.log(`🔨 Indexing ${cexKey}...`);
-        pushIndex(cexKey, walletByCex[cexKey]);
-    });
-
-    // Simpan index untuk debug
-    const indexInfo = { 
-        ts: Date.now(), 
-        indexKeys: Object.keys(index),
-        indexCounts: Object.keys(index).reduce((acc, key) => {
-            acc[key] = index[key].length;
-            return acc;
-        }, {})
-    };
-    
+    Object.keys(walletByCex).forEach(k => pushIndex(k, walletByCex[k]));
     try {
+        const indexInfo = {
+            ts: Date.now(),
+            indexKeys: Object.keys(index),
+            indexCounts: Object.fromEntries(Object.keys(index).map(k => [k, index[k].length])),
+        };
         saveToLocalStorage('CEX_WALLET_INDEX', indexInfo);
-        console.log('💾 Index CEX disimpan:', indexInfo);
-    } catch (error) {
-        console.error('❌ Error saving index:', error);
-    }
+        infoAdd('🗂️ Index CEX disimpan (CEX_WALLET_INDEX)');
+    } catch(e){ console.error('❌ Error save index:', e); }
 
-    // ===== 5) Ambil data token dari TOKEN_SCANNER =====
+    // ===== Ambil & update TOKEN_SCANNER =====
     const tokenKey = 'TOKEN_SCANNER';
     let tokens = [];
-    
-    try {
-        tokens = getFromLocalStorage(tokenKey, []);
-    } catch (error) {
-        console.error('❌ Error getting TOKEN_SCANNER:', error);
-        tokens = [];
-    }
-    
+    try { tokens = getFromLocalStorage(tokenKey, []); }
+    catch (e) { console.error('❌ Error get TOKEN_SCANNER:', e); }
     if (!Array.isArray(tokens) || tokens.length === 0) {
-        console.warn('⚠ Tidak ada data token pada TOKEN_SCANNER');
-        setInfo('⚠ Tidak ada data token untuk di-update.');
+        infoAdd('⚠ Tidak ada data token untuk di-update.');
         try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
         return;
     }
+    infoAdd(`🛠️ Mengupdate ${tokens.length} token...`);
 
-    console.log(`📋 Ditemukan ${tokens.length} token untuk diupdate`);
-
-    // ===== 6) Update dataCexs per token =====
-    const updatedTokens = tokens.map((token, tokenIndex) => {
-        if (!token || typeof token !== 'object') {
-            console.warn(`⚠ Token index ${tokenIndex} tidak valid:`, token);
-            return token;
-        }
+    const updatedTokens = tokens.map((token, idx) => {
+        if (!token || typeof token !== 'object') return token;
 
         const tokenChainKey = String(token.chain || '').toLowerCase();
-        if (!tokenChainKey) {
-            console.warn(`⚠ Token tanpa chain:`, token);
-            return token;
-        }
-        
-        // Gunakan getChainData untuk mendapatkan config chain
+        if (!tokenChainKey) return token;
+
         let chainData = null;
-        try {
-            chainData = getChainData(tokenChainKey);
-        } catch (error) {
-            console.error(`❌ Error getting chain data for ${tokenChainKey}:`, error);
-        }
-        
+        try { chainData = getChainData(tokenChainKey); }
+        catch (e) { console.error(`❌ getChainData(${tokenChainKey})`, e); }
+
         const chainCfg = (chainData && chainData.CEXCHAIN) ? chainData.CEXCHAIN : null;
         const updatedDataCexs = { ...(token.dataCexs || {}) };
 
-        // Daftar CEX yang dipakai pada token
-        const tokenCexList = (Array.isArray(token.selectedCexs) && token.selectedCexs.length > 0)
+        const tokenCexListRaw = (Array.isArray(token.selectedCexs) && token.selectedCexs.length)
             ? token.selectedCexs
-            : validCexes; // gunakan validCexes bukan selectedCexes
-
+            : validCexes;
+        const tokenCexList = tokenCexListRaw.map(normalizeCEX);
         const finalCexList = tokenCexList.filter(ck => validCexes.includes(ck));
 
         const applyUpdate = (walletList, cexKey, symbol, isTokenIn) => {
             if (!symbol || !cexKey) return;
-            
             const symbolClean = clean(symbol);
             const match = (Array.isArray(walletList) ? walletList : []).find(entry => {
                 if (!entry || typeof entry !== 'object') return false;
@@ -4544,96 +4525,74 @@ async function checkAllCEXWallets() {
             if (match) {
                 const fee = String(match.feeWDs ?? match.withdrawFee ?? match.fee ?? '0');
                 const depo = !!(match.depositEnable ?? match.deposit ?? false);
-                const wd = !!(match.withdrawEnable ?? match.withdraw ?? false);
+                const wd   = !!(match.withdrawEnable ?? match.withdraw ?? false);
 
                 if (isTokenIn) {
-                    updatedDataCexs[cexKey].feeWDToken = fee;
-                    updatedDataCexs[cexKey].depositToken = depo;
+                    updatedDataCexs[cexKey].feeWDToken    = fee;
+                    updatedDataCexs[cexKey].depositToken  = depo;
                     updatedDataCexs[cexKey].withdrawToken = wd;
                 } else {
-                    updatedDataCexs[cexKey].feeWDPair = fee;
-                    updatedDataCexs[cexKey].depositPair = depo;
-                    updatedDataCexs[cexKey].withdrawPair = wd;
+                    updatedDataCexs[cexKey].feeWDPair     = fee;
+                    updatedDataCexs[cexKey].depositPair   = depo;
+                    updatedDataCexs[cexKey].withdrawPair  = wd;
                 }
-                
-                console.log(`✅ Match found for ${symbol} on ${cexKey}: fee=${fee}, deposit=${depo}, withdraw=${wd}`);
             } else {
-                // Default values - pertahankan nilai lama jika ada
                 if (isTokenIn) {
-                    updatedDataCexs[cexKey].feeWDToken = updatedDataCexs[cexKey].feeWDToken || '0';
-                    updatedDataCexs[cexKey].depositToken = (updatedDataCexs[cexKey].depositToken ?? false);
+                    updatedDataCexs[cexKey].feeWDToken    = updatedDataCexs[cexKey].feeWDToken || '0';
+                    updatedDataCexs[cexKey].depositToken  = (updatedDataCexs[cexKey].depositToken ?? false);
                     updatedDataCexs[cexKey].withdrawToken = (updatedDataCexs[cexKey].withdrawToken ?? false);
                 } else {
-                    updatedDataCexs[cexKey].feeWDPair = updatedDataCexs[cexKey].feeWDPair || '0';
-                    updatedDataCexs[cexKey].depositPair = (updatedDataCexs[cexKey].depositPair ?? false);
-                    updatedDataCexs[cexKey].withdrawPair = (updatedDataCexs[cexKey].withdrawPair ?? false);
+                    updatedDataCexs[cexKey].feeWDPair     = updatedDataCexs[cexKey].feeWDPair || '0';
+                    updatedDataCexs[cexKey].depositPair   = (updatedDataCexs[cexKey].depositPair ?? false);
+                    updatedDataCexs[cexKey].withdrawPair  = (updatedDataCexs[cexKey].withdrawPair ?? false);
                 }
-                
-                console.log(`⚠ No match for ${symbol} on ${cexKey}`);
             }
         };
 
         finalCexList.forEach(cexKey => {
-            // Ambil label chain versi CEX dari CONFIG_CHAINS
             let chainLabelForCEX = String(token.chain || '').toUpperCase();
-            
             if (chainCfg && chainCfg[cexKey] && chainCfg[cexKey].chainCEX) {
                 chainLabelForCEX = String(chainCfg[cexKey].chainCEX).toUpperCase();
             }
-
-            const storageKey = `${chainLabelForCEX}_${cexKey}`;
+            const storageKey = `${chainLabelForCEX}_${cexKey}`;   // contoh: BSC_BINANCE
             const walletList = index[storageKey] || [];
-            
-            console.log(`🔍 Processing ${token.symbol_in}/${token.symbol_out} on ${cexKey} (${storageKey}) - ${walletList.length} wallets available`);
 
-            // Update untuk token in dan out
-            if (token.symbol_in) {
-                applyUpdate(walletList, cexKey, token.symbol_in, true);
-            }
-            if (token.symbol_out) {
-                applyUpdate(walletList, cexKey, token.symbol_out, false);
-            }
+            if (token.symbol_in)  applyUpdate(walletList, cexKey, token.symbol_in,  true);
+            if (token.symbol_out) applyUpdate(walletList, cexKey, token.symbol_out, false);
         });
 
+        if ((idx+1) % 20 === 0) infoAdd(`… progress update token: ${idx+1}/${tokens.length}`);
         return { ...token, dataCexs: updatedDataCexs };
     });
 
-    // ===== 7) Simpan balik token ke localStorage =====
-    try {
-        saveToLocalStorage(tokenKey, updatedTokens);
-        console.log(`💾 ${updatedTokens.length} token berhasil diupdate → ${tokenKey}`);
-    } catch (error) {
-        console.error('❌ Error saving updated tokens:', error);
-    }
+    try { saveToLocalStorage(tokenKey, updatedTokens); infoAdd(`💾 ${updatedTokens.length} token berhasil diupdate → ${tokenKey}`); }
+    catch (e) { console.error('❌ Error save updated tokens:', e); }
 
-    setInfo('✅ SELESAI CEX WALLET EXCHANGER');
+    infoAdd('✅ SELESAI CEX WALLET EXCHANGER');
+    try { setLastAction("UPDATE WALLET EXCHANGER"); } catch(_) {}
     console.log('🎉 === SELESAI PENGECEKAN WALLET CEX ===');
-    
+
+    try { alert('✅ BERHASIL\nSemua CEX sukses di-fetch.\nData wallet & fee telah diperbarui.'); } catch(_) {}
     try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+    try { location.reload(); } catch(_) {}
 }
+
+/* ================================
+ *          FETCHERS
+ * ================================ */
 
 async function fetchBinance() {
     const { ApiKey, ApiSecret } = CONFIG_CEX.BINANCE;
     const timestamp = Date.now().toString();
     const queryString = `timestamp=${timestamp}`;
     const signature = calculateSignature("BINANCE", ApiSecret, queryString, "HmacSHA256");
-    // bisa dibrowser
     const url = `https://proxykanan.awokawok.workers.dev/?https://api-gcp.binance.com/sapi/v1/capital/config/getall?${queryString}&signature=${signature}`;
-    
-   // const originalUrl = `https://api3.binance.com/sapi/v1/capital/config/getall?${queryString}&signature=${signature}`;
-   // const url = withProxy(originalUrl); // 💡 gunakan proxy Vercel Anda
 
-    const response = await $.ajax({
-        url,
-        headers: { "X-MBX-ApiKey": ApiKey },
-        method: "GET"
-    });
+    const response = await $.ajax({ url, headers: { "X-MBX-ApiKey": ApiKey }, method: "GET" });
 
     const result = [];
-
     for (const item of response) {
         if (!item.trading || !Array.isArray(item.networkList)) continue;
-
         for (const net of item.networkList) {
             result.push({
                 cex: "BINANCE",
@@ -4645,8 +4604,6 @@ async function fetchBinance() {
             });
         }
     }
-
-    console.log("✅ fetchBinance():", result.length, "items");
     return result;
 }
 
@@ -4655,19 +4612,13 @@ async function fetchMexc() {
     const timestamp = Date.now();
     const queryString = `recvWindow=5000&timestamp=${timestamp}`;
     const signature = calculateSignature("MEXC", ApiSecret, queryString);
-
     const url = `https://proxykiri.awokawok.workers.dev/?https://api.mexc.com/api/v3/capital/config/getall?${queryString}&signature=${signature}`;
-    const response = await $.ajax({
-        url,
-        headers: { "X-MEXC-APIKEY": ApiKey },
-        method: "GET"
-    });
+
+    const response = await $.ajax({ url, headers: { "X-MEXC-APIKEY": ApiKey }, method: "GET" });
 
     const result = [];
-
     for (const item of response) {
         if (!Array.isArray(item.networkList)) continue;
-
         for (const net of item.networkList) {
             result.push({
                 cex: "MEXC",
@@ -4679,14 +4630,12 @@ async function fetchMexc() {
             });
         }
     }
-
-    console.log("✅ fetchMexc():", result.length, "items");
     return result;
 }
 
 async function fetchGate() {
     const { ApiKey, ApiSecret } = CONFIG_CEX.GATE;
-    const host = "https://proxykiri.awokawok.workers.dev/?https://api.gateio.ws";
+    const host = "https://cors-anywhere.herokuapp.com/https://api.gateio.ws";
     const timestamp = Math.floor(Date.now() / 1000);
     const method = "GET";
     const prefix = "/api/v4";
@@ -4697,38 +4646,22 @@ async function fetchGate() {
         return CryptoJS.HmacSHA512(signString, ApiSecret).toString(CryptoJS.enc.Hex);
     };
 
-    const headers = {
-        KEY: ApiKey,
-        SIGN: buildSignature("/wallet/withdraw_status", ""),
-        Timestamp: timestamp
-    };
+    const headers = { KEY: ApiKey, SIGN: buildSignature("/wallet/withdraw_status", ""), Timestamp: timestamp };
 
-    const wdData = await $.ajax({
-        url: `${host}${prefix}/wallet/withdraw_status`,
-        method,
-        headers
-    });
-
-    const statusData = await $.ajax({
-        url: `${host}${prefix}/spot/currencies`,
-        method,
-        headers
-    });
+    const wdData = await $.ajax({ url: `${host}${prefix}/wallet/withdraw_status`, method, headers });
+    const statusData = await $.ajax({ url: `${host}${prefix}/spot/currencies`, method, headers });
 
     const result = [];
-
     for (const item of statusData) {
         if (!Array.isArray(item.chains)) continue;
-
         for (const chain of item.chains) {
             const feeItem = wdData.find(f =>
                 f.currency?.toUpperCase() === item.currency?.toUpperCase() &&
                 f.withdraw_fix_on_chains &&
                 f.withdraw_fix_on_chains[chain.name]
             );
-
             result.push({
-                cex: "GATEIO",
+                cex: "GATE",
                 tokenName: item.currency,
                 chain: chain.name,
                 feeWDs: feeItem ? parseFloat(feeItem.withdraw_fix_on_chains[chain.name]) : 0,
@@ -4737,10 +4670,9 @@ async function fetchGate() {
             });
         }
     }
-
-    console.log("✅ fetchGate():", result.length, "items");
     return result;
 }
+
 
 });
 
