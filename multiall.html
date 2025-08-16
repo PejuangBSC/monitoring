@@ -317,7 +317,7 @@
                     <div class="uk-flex uk-flex-middle uk-flex-wrap">
                         <h3 id="judul" class="uk-margin-remove" 
                             style="font-size: 18px; line-height: 1.2; color: #000; font-weight: bold;">
-                            MONITORING [SNIPER] :: <label id="namachain"></label> 
+                            MONITORING [SNIPER]
                             <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" />
                         </h3>
                         <span class="uk-margin-small-left">[&nbsp;<b> 
@@ -332,7 +332,7 @@
                         
                         <img class="icon" id="SettingConfig" title="CONFIG SCANNER" width="24px" src="https://cdn-icons-png.flaticon.com/512/1170/1170635.png" />
                         <img class="icon" id="UpdateWalletCEX" title="UPDATE WALLET CEX" width="24px"
-                            src="https://images.freeimages.com/fic/images/icons/2770/ios_7_icons/512/wallet.png"  style="opacity:0.5; pointer-events:none; cursor:default;"  />
+                            src="https://images.freeimages.com/fic/images/icons/2770/ios_7_icons/512/wallet.png"  />
                         <a href="modal.html" target="_blank"><img class="icon" title="MANAJEMEN ASSET" width="24px"
                             src="https://cdn-icons-png.flaticon.com/512/1194/1194711.png" /></a>
                         <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank"><img class="icon" title="BUKA AKSES" width="24px"
@@ -378,10 +378,7 @@
                         <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
                         <span class="uk-text-success uk-form-label">KANAN</span>
                     </label>
-                    <label>
-                        <input class="uk-checkbox" id="strictFilter" type="checkbox" checked>
-                        <span class="uk-text-primary uk-form-label">WALLET CEX</span>
-                    </label>
+                   
                     <label>
                         <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
                         <span class="uk-text-danger uk-form-label">VOL CHECK</span>
@@ -1037,7 +1034,7 @@
         $('#tokenCountALL').text(`TOTAL SEMUA: ${uniqueKeys.size} PAIR-TOKEN`);
     }
 
-    function loadKointoTable(filteredData) {
+function loadKointoTable(filteredData) {
         loadSignalData();
         const $tableBody = $('#dataTableBody');
         $tableBody.empty();
@@ -1049,8 +1046,9 @@
 
         const fragment = document.createDocumentFragment();
         const maxSlots = 4;
-
+       
         filteredData.forEach((data, index) => {
+             console.log("DATA KOIN",data);
             const row = document.createElement('tr');
 
             /** ========== ORDERBOOK kiri (CEX) ========== **/
@@ -1094,7 +1092,6 @@
                 row.appendChild(td);
             }
 
-
             /** ========== DETAIL INFO ========== **/
             const chainLower = data.chain?.toLowerCase();
             const chainConfig = CONFIG_CHAINS[chainLower] || { URL_Chain: '', WARNA: '#000', Kode_Chain: '', Nama_Chain: '' };
@@ -1106,18 +1103,24 @@
             const urlScOut = chainConfig.URL_Chain ? `${chainConfig.URL_Chain}/token/${data.sc_out}` : '#';
             const urlsCEX = GeturlExchanger(data.cex, data.symbol_in, data.symbol_out);
 
-            const withdrawToken = urlsCEX.withdrawTokenUrl
-                ? createHoverLink(urlsCEX.withdrawTokenUrl, 'WD')
-                : `<b style="color:red; font-weight:bold;">WX</b>`;
-            const depositToken = urlsCEX.depositTokenUrl
-                ? createHoverLink(urlsCEX.depositTokenUrl, 'DP')
-                : `<b style="color:red; font-weight:bold;">DX</b>`;
-            const withdrawPair = urlsCEX.withdrawPairUrl
-                ? createHoverLink(urlsCEX.withdrawPairUrl, 'WD')
-                : `<b style="color:red; font-weight:bold;">WX</b>`;
-            const depositPair = urlsCEX.depositPairUrl
-                ? createHoverLink(urlsCEX.depositPairUrl, 'DP')
-                : `<b style="color:red; font-weight:bold;">DX</b>`;
+            // ✅ Helper status warna DP/WD
+            function getStatusLabel(flag, type) {
+                if (flag === true) {
+                    return `<b style="color:green; font-weight:bold;">${type}</b>`; // DP/WD hijau
+                } else if (flag === false) {
+                    return `<b style="color:red; font-weight:bold;">${type.replace("P","X")}</b>`; // DX/WX merah
+                } else {
+                    return `<b style="color:black; font-weight:bold;">${type.replace("P","-")}</b>`; // D-/W- hitam
+                }
+            }
+
+            // 🔹 Token
+            const depositToken = getStatusLabel(data.depositToken, 'DP');
+            const withdrawToken = getStatusLabel(data.withdrawToken, 'WD');
+
+            // 🔹 Pair
+            const depositPair = getStatusLabel(data.depositPair, 'DP');
+            const withdrawPair = getStatusLabel(data.withdrawPair, 'WD');
 
             const chainData = getChainData(data.chain);
             const walletObj = chainData?.CEXCHAIN?.[data.cex] || {};
@@ -1135,35 +1138,15 @@
             const linkSCtoken = createHoverLink(urlScIn, '[SC]', 'uk-text-primary');
             const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
-            const linkOKDEX = createHoverLink(
-                `https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`,
-                '#OKX',
-                'uk-text-secondary'
-            );
-            const linkUNIDEX = createHoverLink(
-                `https://app.unidex.exchange/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`,
-                '#UND',
-                'uk-text-secondary'
-            );
-            const linkDEFIL = createHoverLink(
-                `https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`,
-                '#DFL',
-                'uk-text-primary'
-            );
-            const linkLiFi = createHoverLink(
-                `https://jumper.exchange/?fromChain=${chainConfig.Kode_Chain}&fromToken=${data.sc_in}&toChain=${chainConfig.Kode_Chain}&toToken=${data.sc_out}`,
-                '#LFX',
-                'uk-text-warning'
-            );
-
             const tdDetail = document.createElement('td');
             tdDetail.className = 'uk-text-center uk-background uk-text-nowrap';
             tdDetail.style.textAlign = 'center';
             tdDetail.style.border='1px solid black';
             const chainShort = (data.chain || '').substring(0,3).toUpperCase();
             tdDetail.innerHTML = `
-                [${index + 1}] <span style="color: ${warnaCex}; font-weight:bolder;">${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span><br/>
-                <span class="uk-text-danger uk-text-bolder">${linkToken} VS ${linkPair}</span>
+                [${index + 1}] <span style="color: ${warnaCex}; font-weight:bolder;">${data.cex} </span> 
+                on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span><br/>
+                <span class="uk-text-secondary uk-text-bolder">${linkToken} VS ${linkPair}</span>
                 <span id="EditMulti-${data.id}"  
                     data-id="${data.id}" 
                     data-cex="${data.cex}" 
@@ -1176,9 +1159,9 @@
                 <span class="uk-text-primary uk-text-bolder">${withdrawPair} ~ ${depositPair}</span><br/>
                 <span class="uk-text-primary uk-text-bolder">${data.symbol_in}</span> ${linkSCtoken} : ${linkStokToken} <br/>
                 <span class="uk-text-primary uk-text-bolder">${data.symbol_out}</span> ${linkSCpair} : ${linkStokPair}<br/>
-                ${linkUNIDEX} ${linkOKDEX} ${linkDEFIL} ${linkLiFi}
             `;
             row.appendChild(tdDetail);
+
 
         /** ========== DEX → CEX (Kanan) ========== **/
             for (let i = 0; i < maxSlots; i++) {
@@ -1775,7 +1758,6 @@
             .css("pointer-events", "");
         $form.removeClass("uk-disabled");
     }
-
     
     function cekDataAwal() {
         let info = true;
@@ -1812,20 +1794,25 @@
             const flatTokens = flattenDataKoin(DataTokens);
 
             // Debug sebelum filter
-            console.log("DEBUG | Allowed Chains:", allowedChains);
-            console.log("DEBUG | Flat Tokens:", flatTokens);
+           // console.log("DEBUG | Allowed Chains:", allowedChains);
+           // console.log("DEBUG | Flat Tokens:", flatTokens);
 
             // Filter dengan case-insensitive
-            const filteredByChain = flatTokens.filter(token => {
-                const tokenChain = String(token.chain || '').toLowerCase();
-                const isAllowed = allowedChains.includes(tokenChain);
-                if (!isAllowed) {
-                    console.warn(`Token ${token.symbol_in}/${token.symbol_out} di chain ${token.chain} tidak match dengan allowedChains`);
-                }
-                return isAllowed;
-            });
+            const filteredByChain = flatTokens
+                .filter(token => {
+                    const tokenChain = String(token.chain || '').toLowerCase();
+                    return allowedChains.includes(tokenChain);
+                })
+                .sort((a, b) => {
+                    const A = (a.symbol_in || '').toUpperCase();
+                    const B = (b.symbol_in || '').toUpperCase();
+                    if (A < B) return -1; // A-Z
+                    if (A > B) return  1; // A-Z
+                    return 0;
+                });
 
-            console.log("KOIN TERFILTER:", filteredByChain);
+
+            console.log("KOIN TERFILTER CHAIN:", filteredByChain);
 
             loadKointoTable(filteredByChain);
             console.timeEnd('⏱️ Waktu eksekusi Memuat DATA KOIN');
@@ -2025,7 +2012,8 @@
                     settingData.AllChains = selectedChains;
                     saveToLocalStorage('SETTING_SCANNER', settingData);
                 }
-                refreshTokensTable(selectedChains);
+                location.reload();
+               // refreshTokensTable();
             });
 
             checkboxWrapper.append(checkbox);
@@ -2469,19 +2457,19 @@
         const chainConfig = CONFIG_CHAINS[chainName];
 
         // Debug awal — selalu muncul
-        console.group("=== DEBUG DisplayPNL ===");
-        console.log("PAIR:", NameX);
-        console.log("CEX:", cex);
-        console.log("DEX:", dex);
-        console.log("TRX:", trx);
-        console.log("Vol:", vol);
-        console.log("CheckVOL:", checkVol);
-        console.log("Fee WD:", FeeWD);
-        console.log("PNL:", PNL);
-        console.log("FEE ALL:", totalFee);
-        console.log("chainName:", chainName);
-        console.log("CONFIG_SCAN:", SavedSettingData);
-        console.groupEnd();
+        // console.group("=== DEBUG DisplayPNL ===");
+        // console.log("PAIR:", NameX);
+        // console.log("CEX:", cex);
+        // console.log("DEX:", dex);
+        // console.log("TRX:", trx);
+        // console.log("Vol:", vol);
+        // console.log("CheckVOL:", checkVol);
+        // console.log("Fee WD:", FeeWD);
+        // console.log("PNL:", PNL);
+        // console.log("FEE ALL:", totalFee);
+        // console.log("chainName:", chainName);
+        // console.log("CONFIG_SCAN:", SavedSettingData);
+        // console.groupEnd();
 
         // Jika config chain tidak ada
         if (!chainConfig) {
@@ -2917,7 +2905,7 @@
                         }
                     });
                 }, jedaCex);
-                console.log("JEDA EXCHANGER",jedaCex)
+                console.log(`JEDA EXCHANGER ${cex}: ${jedaCex}`)
             }
         });
     }
@@ -3748,20 +3736,29 @@
 
         cekDataAwal();
 
-        $('.sort-toggle').off('click').on('click', function () {
-        
-            $('.sort-toggle').removeClass('active');
-            $(this).addClass('active');
-            const sortValue = $(this).data('sort');
-            if (sortValue === "opt_B") {
-                filteredTokens = [...originalTokens].reverse();
-                //toastr.info("SORTING TOKEN PAIR BERUBAH KE -Z");
-            } else {
-                filteredTokens = [...originalTokens];
-                //toastr.info("SORTING TOKEN PAIR BERUBAH KE -A");
-            }
-            loadKointoTable(filteredTokens, false); // Jangan munculkan toastr error/info dari loadKointoTable saat sorting
-        });
+
+$('.sort-toggle').off('click').on('click', function () {
+    $('.sort-toggle').removeClass('active');
+    $(this).addClass('active');
+
+    const sortValue = $(this).data('sort');
+
+    // clone supaya originalTokens tidak terubah
+    const sortedData = [...originalTokens].sort((a, b) => {
+        const A = (a.symbol_in || "").toUpperCase();
+        const B = (b.symbol_in || "").toUpperCase();
+        if (A < B) return sortValue === "opt_A" ? -1 : 1; // A-Z
+        if (A > B) return sortValue === "opt_A" ?  1 : -1; // Z-A
+        return 0;
+    });
+
+    // SIMPAN GLOBAL supaya startSCAN mengikuti urutan ini
+    window.filteredTokens = sortedData;
+
+    // Render ulang tabel TANPA mengubah urutan (false = jangan re-sort di dalam fungsi)
+    loadKointoTable(window.filteredTokens, false);
+    console.log("DATA TERURUT", sortValue, window.filteredTokens);
+});
 
         $('#btn-save-setting').on('click', function() {
                 // Ambil nilai dasar
@@ -3998,38 +3995,46 @@
 
             loadSettings();
         });
-
-        //scan dengan batas maksimum eksekusi pergrup (speedscan)
+        
       $("#startSCAN").click(function () {
-          // ==== Ambil setting terbaru & daftar chain terpilih ====
-          const ConfigScan = getFromLocalStorage('SETTING_SCANNER', {}) || {};
-          let allowedChains = Array.isArray(ConfigScan.AllChains) && ConfigScan.AllChains.length
-              ? ConfigScan.AllChains.map(c => String(c).toLowerCase())
-              : (typeof getManagedChains === 'function' ? getManagedChains() : Object.keys(CONFIG_CHAINS || {}));
+            // ==== Ambil setting terbaru & daftar chain terpilih ====
+            const ConfigScan = getFromLocalStorage('SETTING_SCANNER', {}) || {};
+            let allowedChains = Array.isArray(ConfigScan.AllChains) && ConfigScan.AllChains.length
+                ? ConfigScan.AllChains.map(c => String(c).toLowerCase())
+                : (typeof getManagedChains === 'function' ? getManagedChains() : Object.keys(CONFIG_CHAINS || {}));
 
-          if (!allowedChains || !allowedChains.length) {
-              toastr.warning('Tidak ada chain yang dipilih. Silakan pilih minimal 1 chain.');
-              return;
-          }
+            if (!allowedChains || !allowedChains.length) {
+                toastr.warning('Tidak ada Chain yang dipilih. Silakan pilih minimal 1 Chain.');
+                return;
+            }
 
-          // Propagasi ke runtime/global agar loop lain juga menghormati
-          try { window.SavedSettingData = ConfigScan; } catch(_) {}
-          window.CURRENT_CHAINS = allowedChains;
+            // Propagasi ke runtime/global agar loop lain juga menghormati
+            try { window.SavedSettingData = ConfigScan; } catch(_) {}
+            window.CURRENT_CHAINS = allowedChains;
 
-          // ==== Filter DataTokens sesuai chain terpilih sebelum di-flatten ====
-          const sourceTokens = Array.isArray(DataTokens) ? DataTokens : [];
-          const filteredDataTokens = sourceTokens.filter(t => allowedChains.includes(String(t.chain).toLowerCase()));
+            // ==== Gunakan urutan saat ini (hasil sorting/filter di UI) ====
+            let flatTokens;
+            if (Array.isArray(window.filteredTokens) && window.filteredTokens.length) {
+                // Hormati pilihan chain terbaru juga
+                flatTokens = window.filteredTokens.filter(t =>
+                    allowedChains.includes(String(t.chain).toLowerCase())
+                );
+            } else {
+                // Fallback: bila belum ada `filteredTokens`, baru hitung dari DataTokens
+                const sourceTokens = Array.isArray(DataTokens) ? DataTokens : [];
+                const filteredDataTokens = sourceTokens.filter(t =>
+                    allowedChains.includes(String(t.chain).toLowerCase())
+                );
+                flatTokens = flattenDataKoin(filteredDataTokens);
+            }
 
-          var flatTokens = flattenDataKoin(filteredDataTokens); // gunakan data yang sudah difilter
-
-          // Jika tidak ada token setelah filter, hentikan
-          if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
-              console.log('Tidak ada token pada chain terpilih.');
-              toastr.info('Tidak ada token pada chain terpilih.');
-              $('#startSCAN').prop('disabled', false).text('Start');
-              return;
-          }
-
+            // Jika tidak ada token setelah filter, hentikan
+            if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
+                console.log('Tidak ada token pada chain terpilih atau hasil filter/sort.');
+                toastr.info('Tidak ada token pada chain terpilih.');
+                $('#startSCAN').prop('disabled', false).text('Start');
+                return;
+            }
           // ==== Status RUN ====
           let config = { run: 'YES' };
           localStorage.setItem('MONITORING_STATUS_RUN', JSON.stringify(config));
@@ -4289,8 +4294,455 @@
           processTokens();
 
       });
-       
+
+
+    $('#UpdateWalletCEX').on('click', () => {
+        if (confirm("Apakah Anda yakin ingin UPDATE WALLET CEX?")) {
+            checkAllCEXWallets();
+        }
+    }); 
+
+async function checkAllCEXWallets() {
+    try { $('#loadingOverlay').fadeIn(150); } catch(_) {}
+    $('#infoAPP').html('🚀 Memulai pengecekan DATA CEX...');
+    console.log('🚀 === MULAI PENGECEKAN WALLET CEX ===');
+
+    // ===== 0) Helper Functions =====
+    const clean = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const setInfo = (msg) => { 
+        try { 
+            $('#infoAPP').html(msg); 
+            console.log('📢', msg);
+        } catch(_) {} 
+    };
+
+    // ===== 1) Ambil setting & normalisasi daftar CEX & chain =====
+    let setting = {};
+    try {
+        setting = getFromLocalStorage('SETTING_SCANNER', {}) || {};
+    } catch (error) {
+        console.error('❌ Error getting SETTING_SCANNER:', error);
+        setting = {};
+    }
+
+    const selectedChains = Array.isArray(setting.AllChains) ? setting.AllChains.map(c => String(c).toLowerCase()) : [];
+    const selectedCexes = (setting.JedaCexs && typeof setting.JedaCexs === 'object') ? Object.keys(setting.JedaCexs) : [];
+
+    console.log('📋 Setting loaded:');
+    console.log('   Selected Chains:', selectedChains);
+    console.log('   Selected CEX:', selectedCexes);
+
+    // Validasi minimal requirement
+    if (selectedCexes.length === 0) {
+        console.warn('⚠ Tidak ada CEX yang dipilih dalam setting');
+        setInfo('⚠ Tidak ada CEX yang dipilih');
+        try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+        return;
+    }
+
+    // ===== 2) CEX FETCHER MAPPING =====
+    const cexFetchers = {
+        'BINANCE': {
+            fetchFn: (typeof fetchBinance === 'function') ? fetchBinance : null,
+            displayName: 'BINANCE',
+            storeKey: 'BINANCE'
+        },
+        'MEXC': {
+            fetchFn: (typeof fetchMexc === 'function') ? fetchMexc : null,
+            displayName: 'MEXC',
+            storeKey: 'MEXC'
+        },
+        'GATE': {
+            fetchFn: (typeof fetchGate === 'function') ? fetchGate : null,
+            displayName: 'GATE',
+            storeKey: 'GATE'
+        },
+        'INDODAX': {
+            fetchFn: (typeof fetchIndodax === 'function') ? fetchIndodax : null,
+            displayName: 'INDODAX',
+            storeKey: 'INDODAX'
+        }
+    };
+
+    // ===== 3) Fetch API TIAP CEX SEKALI (PARALLEL) - DINAMIS =====
+    const fetchJobs = [];
+    const validCexes = [];
+    
+    selectedCexes.forEach(cexKey => {
+        // Normalize key
+        const normalizedKey = (cexKey === 'GATE') ? 'GATEIO' : cexKey.toUpperCase();
+        const fetcher = cexFetchers[normalizedKey] || cexFetchers[cexKey.toUpperCase()];
+        
+        if (!fetcher) {
+            console.warn(`⚠ CEX "${cexKey}" tidak memiliki fetcher mapping`);
+            return;
+        }
+
+        if (!fetcher.fetchFn || typeof fetcher.fetchFn !== 'function') {
+            console.warn(`⚠ CEX "${cexKey}" function tidak tersedia atau bukan function`);
+            return;
+        }
+
+        validCexes.push(cexKey);
+        fetchJobs.push(
+            (async () => {
+                setInfo(`📡 Mengambil data ${fetcher.displayName}...`);
+                try {
+                    console.log(`🔄 Fetching data dari ${fetcher.displayName}...`);
+                    const data = await fetcher.fetchFn();
+                    console.log(`✅ Data ${fetcher.displayName} berhasil diambil:`, Array.isArray(data) ? data.length : 'bukan array');
+                    return [fetcher.storeKey, Array.isArray(data) ? data : []];
+                } catch (error) {
+                    console.error(`❌ Error fetching ${fetcher.displayName}:`, error);
+                    return [fetcher.storeKey, []];
+                }
+            })()
+        );
     });
+
+    // Jika tidak ada CEX yang valid, keluar
+    if (fetchJobs.length === 0) {
+        console.warn('⚠ Tidak ada CEX yang valid untuk di-fetch');
+        setInfo('⚠ Tidak ada CEX yang valid atau function tidak tersedia');
+        try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+        return;
+    }
+
+    setInfo(`📡 Mengambil data dari ${fetchJobs.length} CEX...`);
+    const fetched = await Promise.all(fetchJobs);
+    const walletByCex = {};
+    
+    fetched.forEach(([key, data]) => { 
+        walletByCex[key] = Array.isArray(data) ? data : []; 
+        console.log(`📦 Data ${key}:`, walletByCex[key].length, 'items');
+    });
+
+    // Simpan cache mentah
+    const cachePayload = { 
+        ts: Date.now(), 
+        chains: selectedChains, 
+        cexes: validCexes, // gunakan yang valid saja
+        data: walletByCex 
+    };
+    
+    try {
+        saveToLocalStorage('CEX_WALLET_CACHE', cachePayload);
+        console.log('💾 Cache CEX (raw) disimpan → CEX_WALLET_CACHE');
+    } catch (error) {
+        console.error('❌ Error saving cache:', error);
+    }
+
+    // ===== 4) Bangun INDEX per CHAIN_LABEL_VERSI_CEX + CEX =====
+    const index = {};
+    const pushIndex = (cexKey, rows) => {
+        if (!Array.isArray(rows) || rows.length === 0) {
+            console.log(`📝 ${cexKey}: tidak ada data untuk diindex`);
+            return;
+        }
+        
+        rows.forEach(item => {
+            if (!item || typeof item !== 'object') return;
+            
+            const chainLabel = String(item.chain || item.network || '').toUpperCase();
+            if (!chainLabel) {
+                console.warn(`⚠ Item tanpa chain/network di ${cexKey}:`, item);
+                return;
+            }
+            
+            const key = `${chainLabel}_${cexKey}`;
+            if (!index[key]) index[key] = [];
+            index[key].push(item);
+        });
+    };
+    
+    Object.keys(walletByCex).forEach(cexKey => {
+        console.log(`🔨 Indexing ${cexKey}...`);
+        pushIndex(cexKey, walletByCex[cexKey]);
+    });
+
+    // Simpan index untuk debug
+    const indexInfo = { 
+        ts: Date.now(), 
+        indexKeys: Object.keys(index),
+        indexCounts: Object.keys(index).reduce((acc, key) => {
+            acc[key] = index[key].length;
+            return acc;
+        }, {})
+    };
+    
+    try {
+        saveToLocalStorage('CEX_WALLET_INDEX', indexInfo);
+        console.log('💾 Index CEX disimpan:', indexInfo);
+    } catch (error) {
+        console.error('❌ Error saving index:', error);
+    }
+
+    // ===== 5) Ambil data token dari TOKEN_SCANNER =====
+    const tokenKey = 'TOKEN_SCANNER';
+    let tokens = [];
+    
+    try {
+        tokens = getFromLocalStorage(tokenKey, []);
+    } catch (error) {
+        console.error('❌ Error getting TOKEN_SCANNER:', error);
+        tokens = [];
+    }
+    
+    if (!Array.isArray(tokens) || tokens.length === 0) {
+        console.warn('⚠ Tidak ada data token pada TOKEN_SCANNER');
+        setInfo('⚠ Tidak ada data token untuk di-update.');
+        try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+        return;
+    }
+
+    console.log(`📋 Ditemukan ${tokens.length} token untuk diupdate`);
+
+    // ===== 6) Update dataCexs per token =====
+    const updatedTokens = tokens.map((token, tokenIndex) => {
+        if (!token || typeof token !== 'object') {
+            console.warn(`⚠ Token index ${tokenIndex} tidak valid:`, token);
+            return token;
+        }
+
+        const tokenChainKey = String(token.chain || '').toLowerCase();
+        if (!tokenChainKey) {
+            console.warn(`⚠ Token tanpa chain:`, token);
+            return token;
+        }
+        
+        // Gunakan getChainData untuk mendapatkan config chain
+        let chainData = null;
+        try {
+            chainData = getChainData(tokenChainKey);
+        } catch (error) {
+            console.error(`❌ Error getting chain data for ${tokenChainKey}:`, error);
+        }
+        
+        const chainCfg = (chainData && chainData.CEXCHAIN) ? chainData.CEXCHAIN : null;
+        const updatedDataCexs = { ...(token.dataCexs || {}) };
+
+        // Daftar CEX yang dipakai pada token
+        const tokenCexList = (Array.isArray(token.selectedCexs) && token.selectedCexs.length > 0)
+            ? token.selectedCexs
+            : validCexes; // gunakan validCexes bukan selectedCexes
+
+        const finalCexList = tokenCexList.filter(ck => validCexes.includes(ck));
+
+        const applyUpdate = (walletList, cexKey, symbol, isTokenIn) => {
+            if (!symbol || !cexKey) return;
+            
+            const symbolClean = clean(symbol);
+            const match = (Array.isArray(walletList) ? walletList : []).find(entry => {
+                if (!entry || typeof entry !== 'object') return false;
+                const n1 = clean(entry.tokenName || entry.token_name || '');
+                const n2 = clean(entry.token || entry.symbol || '');
+                return n1 === symbolClean || n2 === symbolClean;
+            });
+
+            if (!updatedDataCexs[cexKey]) updatedDataCexs[cexKey] = {};
+
+            if (match) {
+                const fee = String(match.feeWDs ?? match.withdrawFee ?? match.fee ?? '0');
+                const depo = !!(match.depositEnable ?? match.deposit ?? false);
+                const wd = !!(match.withdrawEnable ?? match.withdraw ?? false);
+
+                if (isTokenIn) {
+                    updatedDataCexs[cexKey].feeWDToken = fee;
+                    updatedDataCexs[cexKey].depositToken = depo;
+                    updatedDataCexs[cexKey].withdrawToken = wd;
+                } else {
+                    updatedDataCexs[cexKey].feeWDPair = fee;
+                    updatedDataCexs[cexKey].depositPair = depo;
+                    updatedDataCexs[cexKey].withdrawPair = wd;
+                }
+                
+                console.log(`✅ Match found for ${symbol} on ${cexKey}: fee=${fee}, deposit=${depo}, withdraw=${wd}`);
+            } else {
+                // Default values - pertahankan nilai lama jika ada
+                if (isTokenIn) {
+                    updatedDataCexs[cexKey].feeWDToken = updatedDataCexs[cexKey].feeWDToken || '0';
+                    updatedDataCexs[cexKey].depositToken = (updatedDataCexs[cexKey].depositToken ?? false);
+                    updatedDataCexs[cexKey].withdrawToken = (updatedDataCexs[cexKey].withdrawToken ?? false);
+                } else {
+                    updatedDataCexs[cexKey].feeWDPair = updatedDataCexs[cexKey].feeWDPair || '0';
+                    updatedDataCexs[cexKey].depositPair = (updatedDataCexs[cexKey].depositPair ?? false);
+                    updatedDataCexs[cexKey].withdrawPair = (updatedDataCexs[cexKey].withdrawPair ?? false);
+                }
+                
+                console.log(`⚠ No match for ${symbol} on ${cexKey}`);
+            }
+        };
+
+        finalCexList.forEach(cexKey => {
+            // Ambil label chain versi CEX dari CONFIG_CHAINS
+            let chainLabelForCEX = String(token.chain || '').toUpperCase();
+            
+            if (chainCfg && chainCfg[cexKey] && chainCfg[cexKey].chainCEX) {
+                chainLabelForCEX = String(chainCfg[cexKey].chainCEX).toUpperCase();
+            }
+
+            const storageKey = `${chainLabelForCEX}_${cexKey}`;
+            const walletList = index[storageKey] || [];
+            
+            console.log(`🔍 Processing ${token.symbol_in}/${token.symbol_out} on ${cexKey} (${storageKey}) - ${walletList.length} wallets available`);
+
+            // Update untuk token in dan out
+            if (token.symbol_in) {
+                applyUpdate(walletList, cexKey, token.symbol_in, true);
+            }
+            if (token.symbol_out) {
+                applyUpdate(walletList, cexKey, token.symbol_out, false);
+            }
+        });
+
+        return { ...token, dataCexs: updatedDataCexs };
+    });
+
+    // ===== 7) Simpan balik token ke localStorage =====
+    try {
+        saveToLocalStorage(tokenKey, updatedTokens);
+        console.log(`💾 ${updatedTokens.length} token berhasil diupdate → ${tokenKey}`);
+    } catch (error) {
+        console.error('❌ Error saving updated tokens:', error);
+    }
+
+    setInfo('✅ SELESAI CEX WALLET EXCHANGER');
+    console.log('🎉 === SELESAI PENGECEKAN WALLET CEX ===');
+    
+    try { $('#loadingOverlay').fadeOut(150); } catch(_) {}
+}
+
+async function fetchBinance() {
+    const { ApiKey, ApiSecret } = CONFIG_CEX.BINANCE;
+    const timestamp = Date.now().toString();
+    const queryString = `timestamp=${timestamp}`;
+    const signature = calculateSignature("BINANCE", ApiSecret, queryString, "HmacSHA256");
+    // bisa dibrowser
+    const url = `https://proxykanan.awokawok.workers.dev/?https://api-gcp.binance.com/sapi/v1/capital/config/getall?${queryString}&signature=${signature}`;
+    
+   // const originalUrl = `https://api3.binance.com/sapi/v1/capital/config/getall?${queryString}&signature=${signature}`;
+   // const url = withProxy(originalUrl); // 💡 gunakan proxy Vercel Anda
+
+    const response = await $.ajax({
+        url,
+        headers: { "X-MBX-ApiKey": ApiKey },
+        method: "GET"
+    });
+
+    const result = [];
+
+    for (const item of response) {
+        if (!item.trading || !Array.isArray(item.networkList)) continue;
+
+        for (const net of item.networkList) {
+            result.push({
+                cex: "BINANCE",
+                tokenName: item.coin,
+                chain: net.network,
+                feeWDs: parseFloat(net.withdrawFee || 0),
+                depositEnable: !!net.depositEnable,
+                withdrawEnable: !!net.withdrawEnable
+            });
+        }
+    }
+
+    console.log("✅ fetchBinance():", result.length, "items");
+    return result;
+}
+
+async function fetchMexc() {
+    const { ApiKey, ApiSecret } = CONFIG_CEX.MEXC;
+    const timestamp = Date.now();
+    const queryString = `recvWindow=5000&timestamp=${timestamp}`;
+    const signature = calculateSignature("MEXC", ApiSecret, queryString);
+
+    const url = `https://proxykiri.awokawok.workers.dev/?https://api.mexc.com/api/v3/capital/config/getall?${queryString}&signature=${signature}`;
+    const response = await $.ajax({
+        url,
+        headers: { "X-MEXC-APIKEY": ApiKey },
+        method: "GET"
+    });
+
+    const result = [];
+
+    for (const item of response) {
+        if (!Array.isArray(item.networkList)) continue;
+
+        for (const net of item.networkList) {
+            result.push({
+                cex: "MEXC",
+                tokenName: item.coin,
+                chain: net.netWork,
+                feeWDs: parseFloat(net.withdrawFee || 0),
+                depositEnable: !!net.depositEnable,
+                withdrawEnable: !!net.withdrawEnable
+            });
+        }
+    }
+
+    console.log("✅ fetchMexc():", result.length, "items");
+    return result;
+}
+
+async function fetchGate() {
+    const { ApiKey, ApiSecret } = CONFIG_CEX.GATE;
+    const host = "https://proxykiri.awokawok.workers.dev/?https://api.gateio.ws";
+    const timestamp = Math.floor(Date.now() / 1000);
+    const method = "GET";
+    const prefix = "/api/v4";
+
+    const buildSignature = (url, body) => {
+        const bodyHash = CryptoJS.SHA512(body).toString(CryptoJS.enc.Hex);
+        const signString = `${method}\n${prefix}${url}\n\n${bodyHash}\n${timestamp}`;
+        return CryptoJS.HmacSHA512(signString, ApiSecret).toString(CryptoJS.enc.Hex);
+    };
+
+    const headers = {
+        KEY: ApiKey,
+        SIGN: buildSignature("/wallet/withdraw_status", ""),
+        Timestamp: timestamp
+    };
+
+    const wdData = await $.ajax({
+        url: `${host}${prefix}/wallet/withdraw_status`,
+        method,
+        headers
+    });
+
+    const statusData = await $.ajax({
+        url: `${host}${prefix}/spot/currencies`,
+        method,
+        headers
+    });
+
+    const result = [];
+
+    for (const item of statusData) {
+        if (!Array.isArray(item.chains)) continue;
+
+        for (const chain of item.chains) {
+            const feeItem = wdData.find(f =>
+                f.currency?.toUpperCase() === item.currency?.toUpperCase() &&
+                f.withdraw_fix_on_chains &&
+                f.withdraw_fix_on_chains[chain.name]
+            );
+
+            result.push({
+                cex: "GATEIO",
+                tokenName: item.currency,
+                chain: chain.name,
+                feeWDs: feeItem ? parseFloat(feeItem.withdraw_fix_on_chains[chain.name]) : 0,
+                depositEnable: !chain.deposit_disabled,
+                withdrawEnable: !chain.withdraw_disabled
+            });
+        }
+    }
+
+    console.log("✅ fetchGate():", result.length, "items");
+    return result;
+}
+
+});
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.22/dist/js/uikit.min.js"></script>
