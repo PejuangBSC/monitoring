@@ -320,9 +320,9 @@
                             MONITORING [SNIPER]
                             <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" />
                         </h3>
-                        <span class="uk-margin-small-left">[&nbsp;<b> 
+                        <span>[ <b> 
                             <span class="uk-text-danger uk-text-small" id="infoAPP">???</span> 
-                        </b>&nbsp;]</span>
+                        </b> ]</span>
                     </div>
                 </div>
 
@@ -514,7 +514,7 @@
             </div>
             <div>
                 <label for="jeda-koin" class="uk-text-warning">FILTER PNL</label><br/>
-                <input class="uk-input" type="number" id="inFilterPNL" value="0" name="filterpnl" >         
+                <input class="uk-input" type="number" id="inFilterPNL" value="1" name="filterpnl" >         
             </div>
 
             <div class="uk-flex uk-flex-middle uk-margin">
@@ -701,7 +701,7 @@
             setDisabled($import, false);
             $('#infoAPP').html('⚠️ Import <b>DATA TOKEN</b> terlebih dahulu.').show();
         } else {
-            $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> & <b>TOKEN</b> terlebih dahulu.').show();
+            $('#infoAPP').html('⚠️ Lengkapi <b>SETTING</b> & <b>DATA KOIN</b> terlebih dahulu.').show();
             $('#SettingConfig').addClass('icon-wrapper');
         }
     }
@@ -1952,98 +1952,114 @@ function loadKointoTable(filteredData) {
     }
 
     function generateInputCheckbox(items, containerId, idPrefix, labelText, style, type = 'cex') {
-        if (type !== 'cex' && type !== 'chain') return;
+  if (type !== 'cex' && type !== 'chain') return;
 
-        const $container = $(`#${containerId}`);
-        $container.empty();
+  const $container = $(`#${containerId}`);
+  $container.empty();
 
-        // 🔹 Ambil data setting lama dari localStorage
-        let settingData = getFromLocalStorage('SETTING_SCANNER') || {};
-        let selectedChains = settingData.AllChains || [];
+  // 🔹 Ambil data setting lama dari localStorage
+  let settingData = getFromLocalStorage('SETTING_SCANNER') || {};
+  let selectedChains = settingData.AllChains || [];
 
-        // Label judul
-        const label = `
-            <b>
-                <span class="uk-text-secondary uk-text-medium">
-                    ${labelText}
-                </span>
-            </b>
-        `;
-        $container.append(label);
+  // Label judul
+  const label = `
+    <b>
+      <span class="uk-text-secondary uk-text-medium">
+        ${labelText}
+      </span>
+    </b>
+  `;
+  $container.append(label);
 
-        let itemsArr = [];
-        if (type === 'cex') {
-            itemsArr = Object.keys(items || {});
-        } else if (type === 'chain') {
-            itemsArr = Object.keys(items || {});
+  let itemsArr = [];
+  if (type === 'cex') {
+    itemsArr = Object.keys(items || {});
+  } else if (type === 'chain') {
+    itemsArr = Object.keys(items || {});
+  }
+
+  // === NEW: Hitung jumlah token per chain dari TOKEN_SCANNER ===
+  const tokenScanner = getFromLocalStorage('TOKEN_SCANNER', []);
+  const countByChain = (Array.isArray(tokenScanner) ? tokenScanner : []).reduce((acc, t) => {
+    const key = String(t.chain || '').toLowerCase();
+    if (!key) return acc;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const checkboxWrapper = $('<div style="display: flex; flex-wrap: wrap; gap: 10px;"></div>');
+
+  // --- PATCHED: New label/tooltip logic for chain + badge jumlah token ---
+  itemsArr.forEach(item => {
+    const checkboxId = `${idPrefix}${item.toUpperCase()}`;
+    let labelTextShow;
+    let tooltipText = '';
+
+    const itemLower = String(item).toLowerCase();
+    const tokenCount = countByChain[itemLower] || 0; // jumlah token pada chain ini
+
+    if (type === 'chain') {
+      const cd = getChainData(item);
+      // tampilkan SHORT_NAME jika ada, kalau tidak pakai Nama_Pendek dari items, atau fallback 3 huruf pertama
+      labelTextShow = (cd && cd.SHORT_NAME)
+        ? cd.SHORT_NAME
+        : ((items[item] && items[item].Nama_Pendek) ? items[item].Nama_Pendek : item.substring(0, 3).toUpperCase());
+      tooltipText = (cd && cd.Nama_Chain) ? cd.Nama_Chain : item;
+    } else {
+      // default CEX (tetap sama: pakai key uppercase)
+      labelTextShow = item.toUpperCase();
+      tooltipText = item;
+    }
+
+    // 🔹 Kalau chain → centang sesuai settingData.AllChains
+    const isChecked = (type === 'chain')
+      ? selectedChains.includes(itemLower)
+      : true;
+
+    // Badge jumlah token (UIkit: uk-badge)
+    const badgeHtml = `[${tokenCount}]`;
+
+    const checkbox = $(`
+      <label class="${style || ''}" for="${checkboxId}" title="${tooltipText}">
+        <input type="checkbox" id="${checkboxId}" value="${item}" ${isChecked ? 'checked' : ''}>
+        ${labelTextShow.toUpperCase()} ${badgeHtml}
+      </label>
+    `);
+
+    // 🔹 Event update AllChains dengan validasi minimal 1
+    checkbox.find('input').on('change', function () {
+      const val = $(this).val().toLowerCase();
+
+      if (type === 'chain') {
+        if (this.checked) {
+          if (!selectedChains.includes(val)) {
+            selectedChains.push(val);
+          }
+          toastr.info(`CHAIN ${labelTextShow.toUpperCase()} DITAMBAH`);
+        } else {
+          if (selectedChains.length <= 1) {
+            toastr.warning("Minimal harus ada 1 chain yang dipilih!");
+            $(this).prop('checked', true);
+            return;
+          }
+          selectedChains = selectedChains.filter(c => c !== val);
+          toastr.info(`CHAIN ${labelTextShow.toUpperCase()} DIHAPUS`);
         }
 
-        const checkboxWrapper = $('<div style="display: flex; flex-wrap: wrap; gap: 10px;"></div>');
+        settingData.AllChains = selectedChains;
+        saveToLocalStorage('SETTING_SCANNER', settingData);
+      }
+      location.reload();
+      // refreshTokensTable(); // kalau mau partial update tanpa reload
+    });
 
-        // --- PATCHED: New label/tooltip logic for chain ---
-        itemsArr.forEach(item => {
-            const checkboxId = `${idPrefix}${item.toUpperCase()}`;
-            let labelTextShow;
-            let tooltipText = '';
+    checkboxWrapper.append(checkbox);
+  });
+  // --- END PATCHED ---
 
-            if (type === 'chain') {
-                const cd = getChainData(item);
-                labelTextShow = (cd && cd.SHORT_NAME)
-                    ? cd.SHORT_NAME
-                    : ((items[item] && items[item].Nama_Pendek) ? items[item].Nama_Pendek : item.substring(0, 3).toUpperCase());
-                tooltipText = (cd && cd.Nama_Chain) ? cd.Nama_Chain : item;
-            } else {
-                // default CEX (tetap sama: pakai key uppercase)
-                labelTextShow = item.toUpperCase();
-                tooltipText = item;
-            }
+  $container.append(checkboxWrapper);
+}
 
-            // 🔹 Kalau chain → centang sesuai settingData.AllChains
-            const isChecked = (type === 'chain')
-                ? selectedChains.includes(item.toLowerCase())
-                : true;
-
-            const checkbox = $(`
-                <label class="${style || ''}" for="${checkboxId}" title="${tooltipText}">
-                    <input type="checkbox" id="${checkboxId}" value="${item}" ${isChecked ? 'checked' : ''}>
-                    ${labelTextShow.toUpperCase()}
-                </label>
-            `);
-
-            // 🔹 Event update AllChains dengan validasi minimal 1
-            checkbox.find('input').on('change', function () {
-                const val = $(this).val().toLowerCase();
-
-                if (type === 'chain') {
-                    if (this.checked) {
-                        if (!selectedChains.includes(val)) {
-                            selectedChains.push(val);
-                        }
-                        toastr.info(`CHAIN ${labelTextShow.toUpperCase()} DITAMBAH`);
-                    } else {
-                        if (selectedChains.length <= 1) {
-                            toastr.warning("Minimal harus ada 1 chain yang dipilih!");
-                            $(this).prop('checked', true);
-                            return;
-                        }
-                        selectedChains = selectedChains.filter(c => c !== val);
-                        toastr.info(`CHAIN ${labelTextShow.toUpperCase()} DIHAPUS`);
-                    }
-
-                    settingData.AllChains = selectedChains;
-                    saveToLocalStorage('SETTING_SCANNER', settingData);
-                }
-                location.reload();
-               // refreshTokensTable();
-            });
-
-            checkboxWrapper.append(checkbox);
-        });
-        // --- END PATCHED ---
-
-        $container.append(checkboxWrapper);
-    }
-    
     function loadSignalData() {
         const dexList = Object.keys(CONFIG_DEXS || {});
         const appSettings = getFromLocalStorage('SETTING_SCANNER', {});
@@ -2563,22 +2579,45 @@ function loadKointoTable(filteredData) {
             }
         }
 
-        if (PNL > 1) {
-          //  MultisendMessage(cex, dex.toUpperCase(), Coin_in, Coin_out, modal, PNL, priceCEX, priceDEX, FeeSwap, FeeWD, totalFee, nickname, sc_input, sc_output);
+        // ... (kode DisplayPNL di atas tetap)
+
+        // === Kirim TELE jika PNL > ambang ===
+        if (PNL > 0.25) {
+        // 1) Tentukan arah & harga BUY/SELL sesuai arah
+        const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
+        const priceBUY  = (direction === 'cex_to_dex') ? priceCEX : priceDEX;
+        const priceSELL = (direction === 'cex_to_dex') ? priceDEX : priceCEX;
+
+        // 2) Siapkan tokenData sesuai yang diharapkan MultisendMessage
+        const tokenData = {
+            symbol: Coin_in,                     // contoh: USDT
+            pairSymbol: Coin_out,                // contoh: ZRO
+            contractAddress: sc_input,           // SC untuk Coin_in
+            pairContractAddress: sc_output,      // SC untuk Coin_out
+            chain: nameChain                     // contoh: 'bsc', 'arb', dll
+        };
+
+        // 3) Panggil dg urutan argumen yang BENAR
+        MultisendMessage(
+            cex, dex.toUpperCase(),
+            tokenData, modal, PNL,
+            priceBUY, priceSELL,
+            FeeSwap, FeeWD, totalFee,
+            nickname, direction
+        );
         }
+
     }
 
   // Fungsi utama menampilkan sinyal
 function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx) {
     const chainData = getChainData(nameChain);
 
-    // Ambil short_name dari config chain; fallback aman kalau field berbeda/undefined
+     // pakai key yang benar dari getChainData()
     const chainShort = String(
-        chainData?.short_name ??
-        chainData?.Short_Name ??
-        chainData?.SNAME ??
-        chainData?.Nama_Chain ??
-        nameChain
+        chainData?.SHORT_NAME ||   // <-- ini ada
+        chainData?.Nama_Chain ||   // fallback
+        nameChain                  // fallback terakhir
     ).toUpperCase();
 
     const filterPNLValue = parseFloat(SavedSettingData.filterPNL);
@@ -2616,11 +2655,11 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
         ];
         var apiUrl = 'https://api.telegram.org/bot8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU/sendMessage';
         var message =  
-            "\n ----------------------------------------------------"+
+            //"\n ----------------------------------------------------"+
             "\n <b> #MULTIALL_SCANNER </b>"+
             "\n <b> USER: </b>" + (user ? user.toUpperCase() : '-') +
-            "\n <b> STATUS: </b>" + (status ? status.toUpperCase() : '-') +
-            "\n ----------------------------------------------------";
+            " [ <b>" + (status ? status.toUpperCase() : '-')+"</b> ]";
+//            "\n ----------------------------------------------------";
 
         users.forEach(function(chatTarget) {
             var chatId = chatTarget.chat_id;
@@ -2638,75 +2677,95 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     }
 
         //sent sinyal kegrup tele
-function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, FeeSwap, FeeWD, totalFee, nickname, direction) {
-   // const SavedSettingData = getFromLocalStorage('SETTING_SCANNER', { ID_GRUP: 0, TOKEN: '' });
-
-    // if (!SavedSettingData.TOKEN || !SavedSettingData.ID_GRUP) {
-    //     toastr.error("Token atau ID Grup Telegram tidak tersedia!");
-    //     return;
-    // }
-
-    // Tentukan symbol & contract berdasarkan arah trading
-    const fromSymbol = direction === 'cex_to_dex' ? tokenData.symbol : tokenData.pairSymbol;
-    const toSymbol   = direction === 'cex_to_dex' ? tokenData.pairSymbol : tokenData.symbol;
-    const scIn       = direction === 'cex_to_dex' ? tokenData.contractAddress : tokenData.pairContractAddress;
-    const scOut      = direction === 'cex_to_dex' ? tokenData.pairContractAddress : tokenData.contractAddress;
-
-    // Chain config
-    const chainName = tokenData.chain.toLowerCase();
-    const chainConfig = CONFIG_CHAINS[chainName];
-    if (!chainConfig) {
-        console.error('Chain configuration not found for:', tokenData.chain);
-        return;
+// ✅ DEFINISI BARU: cocok dengan cara panggil sekarang
+function MultisendMessage(
+  cex, dex,                   // string
+  tokenData,                  // { symbol, pairSymbol, contractAddress, pairContractAddress, chain }
+  modal, PNL,                 // number
+  priceBUY, priceSELL,        // number
+  FeeSwap, FeeWD, totalFee,   // number
+  nickname,                   // string
+  direction                   // 'cex_to_dex' | 'dex_to_cex'
+) {
+  try {
+    // Validasi minimal
+    if (!tokenData || !tokenData.chain) {
+      console.error('❌ tokenData/chain kosong:', tokenData);
+      return;
     }
 
-    // Link Explorer
+    const chainName   = String(tokenData.chain || '').toLowerCase();
+    const chainConfig = CONFIG_CHAINS[chainName];
+    if (!chainConfig) {
+      console.error('❌ Chain configuration not found for:', chainName);
+      return;
+    }
+
+    // Tentukan sisi BUY/SELL sesuai arah
+    const fromSymbol = (direction === 'cex_to_dex') ? tokenData.symbol      : tokenData.pairSymbol;
+    const toSymbol   = (direction === 'cex_to_dex') ? tokenData.pairSymbol  : tokenData.symbol;
+    const scIn       = (direction === 'cex_to_dex') ? tokenData.contractAddress     : tokenData.pairContractAddress;
+    const scOut      = (direction === 'cex_to_dex') ? tokenData.pairContractAddress : tokenData.contractAddress;
+
+    // Link explorer
     const linkBuy  = `<a href="${chainConfig.URL_Chain}/token/${scIn}" target="_blank">${fromSymbol}</a>`;
     const linkSell = `<a href="${chainConfig.URL_Chain}/token/${scOut}" target="_blank">${toSymbol}</a>`;
 
-    // Link DEX
+    // Link DEX (contoh pakai DefiLlama)
     const dexTradeLink = `<a href="https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${scIn}&to=${scOut}" target="_blank">${dex.toUpperCase()}</a>`;
 
-    // Link CEX
-    const cexLinkFrom = GeturlExchanger(cex.toUpperCase(), fromSymbol, fromSymbol)?.tradeLink || '#';
-    const cexLinkTo   = GeturlExchanger(cex.toUpperCase(), toSymbol, toSymbol)?.tradeLink || '#';
-    const linkCEX     = `<a href="${cexLinkFrom}" target="_blank">${cex.toUpperCase()}</a>`;
+    // Link CEX – gunakan properti yang benar (tradeToken/tradePair)
+    const urls = GeturlExchanger(String(cex).toUpperCase(), fromSymbol, toSymbol) || {};
+    const cexLinkFrom = urls.tradeToken || '#';
+    const cexLinkTo   = urls.tradePair  || '#';
+    const linkCEX     = `<a href="${cexLinkFrom}" target="_blank">${String(cex).toUpperCase()}</a>`;
 
-    // Buat pesan
+    // Pastikan angka aman
+    const pBuy   = Number(priceBUY)   || 0;
+    const pSell  = Number(priceSELL)  || 0;
+    const feeSW  = Number(FeeSwap)    || 0;
+    const feeWD  = Number(FeeWD)      || 0;
+    const feeAll = Number(totalFee)   || 0;
+    const pnl    = Number(PNL)        || 0;
+    const cap    = Number(modal)      || 0;
+
     const message =
-        `<b>#MULTI_SCANNER #${chainConfig.Nama_Chain.toUpperCase()}</b>\n` +
-        `<b>USER:</b> ~ ${nickname}\n` +
-        `-----------------------------------------\n` +
-        `<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n` +
-        `<b>TOKEN-PAIR:</b> <b>#<a href="${cexLinkFrom}" target="_blank">${fromSymbol}</a>_<a href="${cexLinkTo}" target="_blank">${toSymbol}</a></b>\n` +
-        `<b>MODAL:</b> $${modal} | <b>PROFIT:</b> ${PNL.toFixed(2)}$\n` +
-        `<b>BUY:</b> ${linkBuy} @ ${priceBUY}\n` +
-        `<b>SELL:</b> ${linkSell} @ ${priceSELL}\n` +
-        `<b>FEE WD:</b> ${FeeWD.toFixed(3)}$ \n` +
-        `<b>FEE TOTAL:</b> $${totalFee.toFixed(2)} | <b>SWAP:</b> $${FeeSwap.toFixed(2)}\n` +
-        `-----------------------------------------`;
+      `<b>#MULTIALL #${String(chainConfig.Nama_Chain || chainName).toUpperCase()}</b>\n` +
+      `<b>USER:</b> ~ ${nickname || '-'}\n` +
+      `-----------------------------------------\n` +
+      `<b>MARKET:</b> ${linkCEX} VS ${dexTradeLink}\n` +
+      `<b>TOKEN-PAIR:</b> <b>#<a href="${cexLinkFrom}" target="_blank">${fromSymbol}</a>_<a href="${cexLinkTo}" target="_blank">${toSymbol}</a></b>\n` +
+      `<b>MODAL:</b> $${cap} | <b>PROFIT:</b> ${pnl.toFixed(2)}$\n` +
+      `<b>BUY:</b> ${linkBuy} @ ${pBuy}\n` +
+      `<b>SELL:</b> ${linkSell} @ ${pSell}\n` +
+      `<b>FEE WD:</b> ${feeWD.toFixed(3)}$ \n` +
+      `<b>FEE TOTAL:</b> $${feeAll.toFixed(2)} | <b>SWAP:</b> $${feeSW.toFixed(2)}\n` +
+      `-----------------------------------------`;
 
-    // Kirim ke Telegram
-    const apiUrl = 'https://api.telegram.org/bot8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU/sendMessage';
+    // Kirim Telegram
     $.ajax({
-        url: apiUrl,
-        method: "POST",
-        data: {
-            chat_id:-1002079288809 ,
-            text: message,
-            parse_mode: "HTML",
-            disable_web_page_preview: true
-        },
-        success: function () {
-            console.log("✅ Pesan berhasil dikirim ke Telegram");
-        },
-        error: function (xhr, status, error) {
-            console.error("❌ Gagal kirim pesan:", error);
-            toastr.error("Gagal kirim ke Telegram: " + error);
-        }
+      url: `https://api.telegram.org/bot8053447166:AAH7YYbyZ4eBoPX31D8h3bCYdzEeIaiG4JU/sendMessage`,
+      method: "POST",
+      data: {
+        chat_id: -1002079288809,
+        text: message,
+        parse_mode: "HTML",
+        disable_web_page_preview: true
+      }
+    })
+    .done(function (res) {
+      console.log("✅ Pesan terkirim", res);
+    })
+    .fail(function (xhr, status, error) {
+      console.error("❌ Gagal kirim pesan:", status, error, xhr && xhr.responseText);
+      toastr.error("Gagal kirim Telegram: " + (xhr && xhr.responseText ? xhr.responseText : error));
     });
+
+  } catch (err) {
+    console.error('❌ MultisendMessage error:', err);
+  }
 }
-  
+
     // Fungsi CekIdentitas untuk mendapatkan ID perangkat
     async function CekIdentitas() {
         try {
@@ -3742,8 +3801,8 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
             $('body').removeClass('dark-mode uk-dark');
         }
             // Inisialisasi tabel token saat halaman siap
-        $('title').text("MULTI SCANNER");
-        $('#namachain').text("MULTI CHAIN");
+        $('title').text("MONITORING [SNIPER]");
+        $('#namachain').text("MONITORING [SNIPER]");
 
         $('#sinyal-container').css('color',"black");
         $('h4#daftar').css({ 'color': 'white', 'background': `linear-gradient(to right, #5c9513, #ffffff)`, 'padding-left': '7px','border-radius': '5px' });
@@ -3761,29 +3820,28 @@ function MultisendMessage(cex, dex, tokenData, modal, PNL, priceBUY, priceSELL, 
 
        // cekDataAwal();
 
+        $('.sort-toggle').off('click').on('click', function () {
+            $('.sort-toggle').removeClass('active');
+            $(this).addClass('active');
 
-$('.sort-toggle').off('click').on('click', function () {
-    $('.sort-toggle').removeClass('active');
-    $(this).addClass('active');
+            const sortValue = $(this).data('sort');
 
-    const sortValue = $(this).data('sort');
+            // clone supaya originalTokens tidak terubah
+            const sortedData = [...originalTokens].sort((a, b) => {
+                const A = (a.symbol_in || "").toUpperCase();
+                const B = (b.symbol_in || "").toUpperCase();
+                if (A < B) return sortValue === "opt_A" ? -1 : 1; // A-Z
+                if (A > B) return sortValue === "opt_A" ?  1 : -1; // Z-A
+                return 0;
+            });
 
-    // clone supaya originalTokens tidak terubah
-    const sortedData = [...originalTokens].sort((a, b) => {
-        const A = (a.symbol_in || "").toUpperCase();
-        const B = (b.symbol_in || "").toUpperCase();
-        if (A < B) return sortValue === "opt_A" ? -1 : 1; // A-Z
-        if (A > B) return sortValue === "opt_A" ?  1 : -1; // Z-A
-        return 0;
-    });
+            // SIMPAN GLOBAL supaya startSCAN mengikuti urutan ini
+            window.filteredTokens = sortedData;
 
-    // SIMPAN GLOBAL supaya startSCAN mengikuti urutan ini
-    window.filteredTokens = sortedData;
-
-    // Render ulang tabel TANPA mengubah urutan (false = jangan re-sort di dalam fungsi)
-    loadKointoTable(window.filteredTokens, false);
-    console.log("DATA TERURUT", sortValue, window.filteredTokens);
-});
+            // Render ulang tabel TANPA mengubah urutan (false = jangan re-sort di dalam fungsi)
+            loadKointoTable(window.filteredTokens, false);
+            console.log("DATA TERURUT", sortValue, window.filteredTokens);
+        });
 
         $('#btn-save-setting').on('click', function() {
                 // Ambil nilai dasar
@@ -3843,7 +3901,6 @@ $('.sort-toggle').off('click').on('click', function () {
                     const val = parseFloat($(this).val()) || 500;
                     JedaDexs[dex] = val;
                 });
-
 
                 // Buat objek settings, tambahkan AllChains dari CONFIG_CHAINS
                 const settingData = {
@@ -3968,7 +4025,7 @@ $('.sort-toggle').off('click').on('click', function () {
                 cexHtml += `
                 <div class="uk-flex uk-flex-middle uk-margin-small-bottom">
                     <label for="cex-${cex}" style="min-width:70px; display:inline-block; margin-left:5px;">${cex}</label>
-                    <input type="number" class="uk-input uk-form-small cex-modal-input" data-cex="${cex}" value="300" 
+                    <input type="number" class="uk-input uk-form-small cex-modal-input" data-cex="${cex}" value="30" 
                     style="width:80px; display:inline-block; margin-left:8px;" min="0">
                 </div>
                 `;
@@ -3982,7 +4039,7 @@ $('.sort-toggle').off('click').on('click', function () {
                 dexHtml += `
                 <div class="uk-flex uk-flex-middle uk-margin-small-bottom">
                     <label for="dex-${dex}" style="min-width:70px; display:inline-block; margin-left:5px;">${dex.toUpperCase()}</label>
-                    <input type="number" class="uk-input uk-form-small dex-modal-input" data-dex="${dex}" value="700" 
+                    <input type="number" class="uk-input uk-form-small dex-modal-input" data-dex="${dex}" value="100" 
                     style="width:80px; display:inline-block; margin-left:8px;" min="0">
                 </div>
                 `;
@@ -3996,7 +4053,7 @@ $('.sort-toggle').off('click').on('click', function () {
                 $('#jeda-time-group').val(appSettings.jedaTimeGroup || 500);
                 $('#jeda-koin').val(appSettings.jedaKoin || 500);
                 $('#walletMeta').val(appSettings.walletMeta || '');
-                $('#inFilterPNL').val(appSettings.filterPNL || 0);
+                $('#inFilterPNL').val(appSettings.filterPNL);
                 $(`input[name="koin-group"][value="${appSettings.scanPerKoin || 5}"]`).prop('checked', true);
                 $(`input[name="waktu-tunggu"][value="${appSettings.speedScan || 2}"]`).prop('checked', true);
 
@@ -4045,20 +4102,15 @@ $("#startSCAN").click(function () {
             allowedChains.includes(String(t.chain).toLowerCase())
         );
         
-    } else {
-        // ==== UBAHAN: Gunakan urutan yang sama dengan refreshTokensTable ====
-        // Ambil data mentah dari localStorage (sama seperti refreshTokensTable)
+     } else {
         const allTokens = getFromLocalStorage("TOKEN_SCANNER", []);
-        
-        // Flatten data agar struktur konsisten (sama seperti refreshTokensTable)
         const flattenedTokens = flattenDataKoin(allTokens);
-        
-        // Filter sesuai AllChains (sama seperti refreshTokensTable)
-        flatTokens = flattenedTokens.filter(token =>
-            allowedChains.includes((token.chain || '').toLowerCase())
-        );
-        refreshTokensTable(flatTokens)
+        flatTokens = flattenedTokens
+            .filter(token => allowedChains.includes((token.chain || '').toLowerCase()))
+            .sort((a, b) => (a.symbol_in || '').localeCompare(b.symbol_in || '', 'en', { sensitivity: 'base' })); // A–Z
+        refreshTokensTable(); // opsional, agar tampilan tabel selaras
     }
+
     
     // Jika tidak ada token setelah filter, hentikan
     if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
@@ -4375,7 +4427,7 @@ async function checkAllCEXWallets() {
         'BINANCE': { fn: (typeof fetchBinance === 'function') ? fetchBinance : null, name: 'BINANCE', key: 'BINANCE' },
         'MEXC':    { fn: (typeof fetchMexc    === 'function') ? fetchMexc    : null, name: 'MEXC',    key: 'MEXC' },
         'GATE':    { fn: (typeof fetchGate    === 'function') ? fetchGate    : null, name: 'GATE',    key: 'GATE' },
-        'INDODAX': { fn: (typeof fetchIndodax === 'function') ? fetchIndodax : null, name: 'INDODAX', key: 'INDODAX' },
+      //  'INDODAX': { fn: (typeof fetchIndodax === 'function') ? fetchIndodax : null, name: 'INDODAX', key: 'INDODAX' },
     };
 
     // ===== Parallel fetch (sekali per CEX) =====
@@ -4384,8 +4436,8 @@ async function checkAllCEXWallets() {
 
     selectedCexes.forEach(cexKey => {
         const F = cexFetchers[cexKey];
-        if (!F) { infoAdd(`⚠ ${cexKey}: fetcher tidak ditemukan`); return; }
-        if (!F.fn || typeof F.fn !== 'function') { infoAdd(`⚠ ${cexKey}: fungsi fetch tidak tersedia`); return; }
+        if (!F) {  return; }
+        if (!F.fn || typeof F.fn !== 'function') {return; }
 
         validCexes.push(F.key);
         fetchJobs.push((async () => {
@@ -4411,7 +4463,7 @@ async function checkAllCEXWallets() {
         return;
     }
 
-    infoAdd(`⏳ Menunggu ${fetchJobs.length} request CEX selesai...`);
+  //  infoAdd(`⏳ Menunggu ${fetchJobs.length} request CEX selesai...`);
     const fetched = await Promise.all(fetchJobs);
 
     const walletByCex = {};
@@ -4433,12 +4485,9 @@ async function checkAllCEXWallets() {
         infoAdd(msgSummary);
 
         const alertText = [
-            '❌ BEBERAPA CEX GAGAL DI-FETCH.',
-            '',
-            'Proses UPDATE WALLET dibatalkan agar data tidak rancu.',
-            '',
-            'Detail gagal:',
+            '❌ GAGAL UPDATE WALLET EXCHANGER.',
             ...failedList.map(s => `- ${s}`),
+            'PASTIKAN MOESIF ON & TELAH BUKA KUNCI'
         ].join('\n');
 
         try { alert(alertText); } catch(_) {}
