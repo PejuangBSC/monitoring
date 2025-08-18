@@ -365,17 +365,17 @@
                                 MONITORING [GLOBAL] :: <label id="namachain"></label> 
                                 <img src="https://coopsugar.org/storage/2022/03/new.gif" width="24px" />
                             </h3>
-                            <span class="uk-margin-small-left">[ &nbsp;<b> 
+                            <span >[ <b> 
                                 <span class="uk-text-danger uk-text-small" id="infoAPP">???</span> 
-                            </b>&nbsp; ]</span>
+                            </b> ]</span>
                         </div>
                     </div>
 
                     <!-- Kanan: Toolbar icon -->
                     <div class="uk-width-auto@s uk-width-1-1">
                         <div class="uk-flex uk-flex-middle uk-flex-wrap uk-flex-right@s" style="gap: 6px;">
-                            <a href="multiall.html"><img class="icon" title="MULTIALL SCANNER" width="22px"
-                                src="https://cdn-icons-png.flaticon.com/512/30/30279.png" target="_blank" /></a>
+                            <a href="multiall.html"  target="_blank"><img class="icon" title="MULTIALL SCANNER" width="22px"
+                                src="https://cdn-icons-png.flaticon.com/512/30/30279.png" /></a>
                              <span id="chain-links-container"></span>
                             <img class="icon" id="reload" title="RESET PROSES" width="24px"
                                 src="https://cdn-icons-png.flaticon.com/512/3580/3580284.png" />
@@ -600,7 +600,7 @@
                                     <!-- <div style="display: none;"> -->
                                         <div>
                                             <label for="jeda-koin" class="uk-text-warning">FILTER PNL</label><br/>
-                                            <input class="uk-input" type="number" id="inFilterPNL" value="0" name="filterpnl" >         
+                                            <input class="uk-input" type="number" id="inFilterPNL" value="1" name="filterpnl" >         
                                         </div>
                                         <div>
                                             <label for="jeda-time-group" class="uk-text-danger">JEDA / GROUP {500}</label><br/>
@@ -1451,7 +1451,7 @@ $(document).ready(function() {
                     var warnaFaded = hexToRgba(warnaAsli, 0.1); // Alpha 0.3
                 
                     // Update tampilan dengan nama chain dan warna
-                    $('title').text("SCANNER " + Nama_Chain.toUpperCase());
+                    $('title').text("MONITORING [GLOBAL] " + Nama_Chain.toUpperCase());
                     $('#namachain').text(Nama_Chain.toUpperCase());
                     $('#namachain2').text("CHAIN " + Nama_Chain.toUpperCase());
                     $('h2#judul').css('color', selectedChain.WARNA);
