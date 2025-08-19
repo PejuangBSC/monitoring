@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>???</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
+    
+    <script src="config.js"></script>
+
     <!-- jQuery 3.6.0 (single include; duplicate at bottom removed) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/js/uikit.min.js"></script>
@@ -18,8 +22,6 @@
     <script src="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/js/uikit-icons.min.js"></script> 
     
     <link id="favicon" rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/30/30279.png">
-
-    <script src="config.js"></script>
     <style>
                 /* Override semua class UIkit text* agar mengikuti warna Bootstrap */
     [class*="uk-text"] {
@@ -1325,26 +1327,43 @@ function loadKointoTable(filteredData) {
         }
     });
 
-    function getChainOptions() {
-  const managed = (typeof getManagedChains === 'function')
-    ? getManagedChains()
-    : Object.keys(window.CONFIG_CHAINS || {});
-  return (managed || [])
-    .map(k => String(k).toLowerCase())
-    .filter(k => CONFIG_CHAINS && CONFIG_CHAINS[k])
-    .map(k => ({ key: k, label: (CONFIG_CHAINS[k].Nama_Chain || k).toUpperCase() }));
+   function getChainOptions() {
+  const cfg = window.CONFIG_CHAINS || {};
+  return Object.keys(cfg)
+    .map(k => {
+      const item = cfg[k] || {};
+      return {
+        key: String(k).toLowerCase(),
+        label: (item.Nama_Chain || k).toUpperCase()
+      };
+    });
 }
 
+// Ambil SEMUA chain dari CONFIG_CHAINS lalu isi <select>
 function populateChainSelect($select, selectedKey) {
-  const opts = getChainOptions();
+  const cfg = window.CONFIG_CHAINS || {};
+  const keys = Object.keys(cfg);
+
+  // Jika config belum siap, tampilkan placeholder agar kelihatan penyebabnya
   $select.empty();
-  opts.forEach(o => $select.append(`<option value="${o.key}">${o.label}</option>`));
-  if (selectedKey && opts.some(o => o.key === String(selectedKey).toLowerCase())) {
-    $select.val(String(selectedKey).toLowerCase());
-  } else if (opts.length) {
-    $select.val(opts[0].key);
+  if (!keys.length) {
+    $select.append('<option value="">-- CONFIG_CHAINS belum siap --</option>');
+    return;
   }
+
+  // Render opsi
+  keys.sort().forEach(k => {
+    const item  = cfg[k] || {};
+    const label = (item.Nama_Chain || item.nama_chain || item.name || k).toString().toUpperCase();
+    $select.append(`<option value="${k.toLowerCase()}">${label}</option>`);
+  });
+
+  // Select nilai yang diinginkan bila ada; jika tidak, pilih pertama
+  const want = String(selectedKey || '').toLowerCase();
+  const lowerKeys = keys.map(k => k.toLowerCase());
+  $select.val(lowerKeys.includes(want) ? want : lowerKeys[0]);
 }
+
 
     function setStatusRadios(isOn) {
     $('#mgrStatusOn').prop('checked', !!isOn);
@@ -1509,7 +1528,7 @@ function populateChainSelect($select, selectedKey) {
         const symbol_out = ($('#inputSymbolPair').val() || '').toString().trim();
         const des_out    = Number($('#inputDesPair').val() || 0);
         const sc_out     = ($('#inputSCPair').val() || '').toString().trim();
- const chain = String($('#FormEditKoinModal #mgrChain').val() || '').toLowerCase();
+        const chain = String($('#FormEditKoinModal #mgrChain').val() || '').toLowerCase();
         // --- Ambil CEX & DEX yang dipilih dari form
         const { selectedCexs } = readCexSelectionFromForm();
         const { selectedDexs, dataDexs } = readDexSelectionFromForm();
@@ -1894,28 +1913,6 @@ function populateChainSelect($select, selectedKey) {
         return flatResult;
     }
 
-    function scanner_form_off() {
-        const $form = $("#FormScanner");
-
-        // Disable semua input, checkbox, radio, dan tombol di dalam form
-        $form.find("input, button, select, textarea")
-            .prop("disabled", true)        // nonaktifkan
-            .css("opacity", "0.5")         // tampilkan efek redup
-            .css("pointer-events", "none"); // cegah klik
-
-        // Tambahkan kelas untuk efek visual (opsional)
-        $form.addClass("uk-disabled");
-    }
-
-    function scanner_form_on() {
-        const $form = $("#FormScanner");
-        $form.find("input, button, select, textarea")
-            .prop("disabled", false)
-            .css("opacity", "")
-            .css("pointer-events", "");
-        $form.removeClass("uk-disabled");
-    }
-    
     function cekDataAwal() {
         let info = true;
         let errorMessages = [];
@@ -2728,142 +2725,6 @@ function populateChainSelect($select, selectedKey) {
                 nickname, direction
             );
         }
-    }
-
-    function DisplayPNLLAMA( PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, nameChain, codeChain, trx, profitLossPercent, vol ) {
-        // Ambil setting
-       // console.log("LOAD DATA SETTTING",SavedSettingData);
-        var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
-        var nickname = SavedSettingData.nickname;
-        var totalValue = parseFloat(totalValue);
-        var totalGet = totalValue - parseFloat(modal);
-        var totalModal = parseFloat(totalModal);
-        var totalFee = parseFloat(totalFee);
-        var checkVol = $('#checkVOL').is(':checked');
-
-        // Ambil link CEX
-        const urlsCEXToken = GeturlExchanger(cex.toUpperCase(), Coin_in, Coin_out);
-        var buyLink = urlsCEXToken.tradeToken;
-        var sellLink = urlsCEXToken.tradePair;
-
-        // Pastikan chainName lowercase untuk ambil config
-        const chainName = nameChain.toLowerCase();
-        const chainConfig = CONFIG_CHAINS[chainName];
-
-        // Debug awal — selalu muncul
-        // console.group("=== DEBUG DisplayPNL ===");
-        // console.log("PAIR:", NameX);
-        // console.log("CEX:", cex);
-        // console.log("DEX:", dex);
-        // console.log("TRX:", trx);
-        // console.log("Vol:", vol);
-        // console.log("CheckVOL:", checkVol);
-        // console.log("Fee WD:", FeeWD);
-        // console.log("PNL:", PNL);
-        // console.log("FEE ALL:", totalFee);
-        // console.log("chainName:", chainName);
-        // console.log("CONFIG_SCAN:", SavedSettingData);
-        // console.groupEnd();
-
-        // Jika config chain tidak ada
-        if (!chainConfig) {
-            console.error(`❌ Chain configuration not found for: '${chainName}'`);
-            return;
-        }
-
-        // Buat ID unik
-        var IdCELL = `${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(chainConfig.Nama_Chain).toUpperCase()}`;
-        var rowCell = $(`#${IdCELL}`);
-        var resultCell = $(`#RESULT_${IdCELL}`);
-        var buyCell = $(`#BUY_${IdCELL}`);
-        var sellCell = $(`#SELL_${IdCELL}`);
-
-        // Buat teks sinyal
-        var sinyals = `<a href="#SWAP_${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(nameChain).toUpperCase()}" class='link-class'>
-            ${cex.toUpperCase()} VS ${dex.toUpperCase()} : ${NameX} (${PNL.toFixed(2)}$)</a>`;
-
-        const isPNLPositive = (filterPNLValue === 0 && totalValue > totalModal) || ((totalValue - totalModal) > filterPNLValue);
-        const isVolEnough = parseFloat(vol) >= parseFloat(modal);
-        const canHighlight = (!checkVol && isPNLPositive) || (checkVol && isPNLPositive && isVolEnough);
-
-        if (canHighlight || isPNLPositive) {
-            toastr.success(sinyals);
-            
-            rowCell.attr("style",
-                "background-color: #daf4c3 !important;" +
-                "font-weight: bolder !important;" +
-                "color: black !important;" +
-                "vertical-align: middle !important;" + // kalau table
-                "text-align: center !important;"       // kalau table
-            );
-
-            let htmlFee = '';
-            if (trx === "TokentoPair") {
-                htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | 
-                        ${createLink(urlsCEXToken.withdrawUrl, 'WD')}<br/>`;
-            } else if (trx === "PairtoToken") {
-                htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | 
-                        ${createLink(urlsCEXToken.depositUrl, 'DP')}<br/>`;
-            }
-            let htmlResult = `
-                ${htmlFee}
-                <span style="color: #d20000;">All: ${totalFee.toFixed(2)}$</span>
-                <span style="color: #1e87f0;">SW: ${FeeSwap.toFixed(2)}$</span><br/>
-                <span style="color: #444;">GT: ${totalGet.toFixed(2)}$</span>
-                <span style="color: #444;">PNL: ${PNL.toFixed(2)}$</span><br/>
-            `;
-            resultCell.html(htmlResult);
-
-            if (!buyCell.parent().is("span")) {
-                buyCell.wrap('<a href="' + buyLink + '" target="_blank"></a>');
-            }
-            if (!sellCell.parent().is("span")) {
-                sellCell.wrap('<a href="' + sellLink + '" target="_blank"></a>');
-            }      
-
-            InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
-            
-        } else {
-            resultCell.html(`
-                <span style="color:black;" title="FEE WD CEX">FeeWD : ${FeeWD.toFixed(2)}$</span><br/>
-                <span class="uk-text-danger" title="FEE ALL">ALL:${totalFee.toFixed(2)}$</span>
-                <span class="uk-text-primary" title="FEE SWAP"> ${FeeSwap.toFixed(2)}$</span><br/>
-                <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
-                <span class="uk-text-warning" title="GET NETTO / PNL" > ${PNL.toFixed(2)}$</span>
-            `);
-            if (PNL > totalFee) {
-                InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), Coin_in, Coin_out, profitLossPercent, modal,nameChain, codeChain, trx);
-            }
-        }
-
-        // ... (kode DisplayPNL di atas tetap)
-
-        // === Kirim TELE jika PNL > ambang ===
-        if (PNL > 0.25) {
-        // 1) Tentukan arah & harga BUY/SELL sesuai arah
-        const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
-        const priceBUY  = (direction === 'cex_to_dex') ? priceCEX : priceDEX;
-        const priceSELL = (direction === 'cex_to_dex') ? priceDEX : priceCEX;
-
-        // 2) Siapkan tokenData sesuai yang diharapkan MultisendMessage
-        const tokenData = {
-            symbol: Coin_in,                     // contoh: USDT
-            pairSymbol: Coin_out,                // contoh: ZRO
-            contractAddress: sc_input,           // SC untuk Coin_in
-            pairContractAddress: sc_output,      // SC untuk Coin_out
-            chain: nameChain                     // contoh: 'bsc', 'arb', dll
-        };
-
-        // 3) Panggil dg urutan argumen yang BENAR
-        MultisendMessage(
-            cex, dex.toUpperCase(),
-            tokenData, modal, PNL,
-            priceBUY, priceSELL,
-            FeeSwap, FeeWD, totalFee,
-            nickname, direction
-        );
-        }
-
     }
 
   // Fungsi utama menampilkan sinyal
@@ -4873,19 +4734,21 @@ function renderTokenManagementList() {
 // inisialisasi
 $('#searchMgr').on('input', renderTokenManagementList);
 renderTokenManagementList();
+$('#btnNewToken').on('click', () => {
+  // 1) pilih chain pertama yang punya DEX (fallback: key pertama)
+  const keys = Object.keys(window.CONFIG_CHAINS || {});
+  const firstChainWithDex =
+    keys.find(k => {
+      const d = CONFIG_CHAINS[k]?.DEXS;
+      return Array.isArray(d) ? d.length > 0 : !!(d && Object.keys(d).length);
+    }) || keys[0] || '';
 
-$('#btnNewToken').on('click', ()=>{
-  // 1) pilih chain pertama yang benar-benar punya DEX di CONFIG_CHAINS
-  const firstChainWithDex = Object.keys(CONFIG_CHAINS || {}).find(k=>{
-    const d = CONFIG_CHAINS[k]?.DEXS;
-    return Array.isArray(d) ? d.length > 0 : !!(d && Object.keys(d).length);
-  }) || Object.keys(CONFIG_CHAINS||{})[0] || '';
-
+  // siapkan objek kosong
   const empty = {
     id: Date.now().toString(),
     symbol_in:'', des_in:'', sc_in:'',
     symbol_out:'', des_out:'', sc_out:'',
-    chain: firstChainWithDex,     // ⬅️ pakai chain yg pasti punya DEX
+    chain: String(firstChainWithDex || '').toLowerCase(),
     status: true,
     selectedCexs: [],
     selectedDexs: [],
@@ -4893,31 +4756,48 @@ $('#btnNewToken').on('click', ()=>{
     dataCexs: {}
   };
 
-  // isi field dasar (sesuaikan id input Anda)
+  // isi field dasar
   $('#multiTokenIndex').val(empty.id);
-  $('#inputSymbolToken').val('');
-  $('#inputDesToken').val('');
-  $('#inputSCToken').val('');
-  $('#inputSymbolPair').val('');
-  $('#inputDesPair').val('');
-  $('#inputSCPair').val('');
+  $('#inputSymbolToken, #inputSCToken, #inputSymbolPair, #inputSCPair').val('');
+  $('#inputDesToken, #inputDesPair').val('');
+  if (typeof setStatusRadios === 'function') setStatusRadios(true);
 
-  // 2) Pastikan kontainer DEX/CEX ada
-  if (!$('#dex-checkbox-koin').length) {
-    console.warn('Kontainer #dex-checkbox-koin tidak ditemukan di modal.');
+  // 2) populate combo chain dari CONFIG_CHAINS
+  const $sel = $('#FormEditKoinModal #mgrChain');
+  if (typeof populateChainSelect === 'function') {
+    populateChainSelect($sel, empty.chain); // tampilkan SEMUA chain & pilih default
+  } else {
+    // fallback sederhana kalau belum punya helper populate
+    $sel.empty();
+    keys.sort().forEach(k => {
+      const item  = CONFIG_CHAINS[k] || {};
+      const label = (item.Nama_Chain || item.nama_chain || item.name || k).toString().toUpperCase();
+      $sel.append(`<option value="${k.toLowerCase()}">${label}</option>`);
+    });
+    $sel.val(empty.chain || (keys[0] || '').toLowerCase());
   }
-  if (!$('#cex-checkbox-koin').length) {
-    console.warn('Kontainer #cex-checkbox-koin tidak ditemukan di modal.');
-  }
 
-  // 3) Build dari CONFIG (bukan dari setting)
-  buildCexCheckboxForKoin(empty);
-  buildDexCheckboxForKoin(empty);
+  // ambil chain yang benar-benar terpilih dari select
+  const currentChain = String($sel.val() || empty.chain).toLowerCase();
+  const baseToken = { ...empty, chain: currentChain };
 
-  // 4) Tampilkan modal
+  // 3) build dari CONFIG
+  if (!$('#dex-checkbox-koin').length) console.warn('Kontainer #dex-checkbox-koin tidak ditemukan di modal.');
+  if (!$('#cex-checkbox-koin').length) console.warn('Kontainer #cex-checkbox-koin tidak ditemukan di modal.');
+
+  try { buildCexCheckboxForKoin(baseToken); } catch (e) { console.warn('Build CEX gagal:', e); }
+  try { buildDexCheckboxForKoin(baseToken); } catch (e) { console.warn('Build DEX gagal:', e); }
+
+  // 4) jika chain diganti → rebuild DEX sesuai chain baru
+  $sel.off('change.rebuildDexAdd').on('change.rebuildDexAdd', function () {
+    const newChain = String($(this).val() || '').toLowerCase();
+    try { buildDexCheckboxForKoin({ ...baseToken, chain: newChain }); } catch (_) {}
+  });
+
+  // 5) tampilkan modal
   if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').show();
+  else document.getElementById('FormEditKoinModal').style.display = 'block';
 });
-
 
     $('#UpdateWalletCEX').on('click', () => {
         if (confirm("APAKAH ANDA INGIN UPDATE WALLET EXCHANGER?")) {
