@@ -2597,8 +2597,129 @@ function loadKointoTable(filteredData) {
                 return null;
         }
     } 
-     
+
     function DisplayPNL( PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, nameChain, codeChain, trx, profitLossPercent, vol ) {
+    // Ambil setting
+    var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
+    var nickname = SavedSettingData.nickname;
+    var totalValue = parseFloat(totalValue);
+    var totalGet = totalValue - parseFloat(modal);
+    var totalModal = parseFloat(totalModal);
+    var totalFee = parseFloat(totalFee);
+    var checkVol = $('#checkVOL').is(':checked');
+
+    // Ambil link CEX
+    const urlsCEXToken = GeturlExchanger(cex.toUpperCase(), Coin_in, Coin_out);
+    var buyLink = urlsCEXToken.tradeToken;
+    var sellLink = urlsCEXToken.tradePair;
+
+    // Pastikan chainName lowercase untuk ambil config
+    const chainName = nameChain.toLowerCase();
+    const chainConfig = CONFIG_CHAINS[chainName];
+
+    if (!chainConfig) {
+        console.error(`❌ Chain configuration not found for: '${chainName}'`);
+        return;
+    }
+
+    // Buat ID unik
+    var IdCELL = `${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(chainConfig.Nama_Chain).toUpperCase()}`;
+    var rowCell = $(`#${IdCELL}`);
+    var resultCell = $(`#RESULT_${IdCELL}`);
+    var buyCell = $(`#BUY_${IdCELL}`);
+    var sellCell = $(`#SELL_${IdCELL}`);
+
+    // Buat teks sinyal
+    var sinyals = `<a href="#SWAP_${cex.toUpperCase()}_${dex.toUpperCase()}_${NameX}_${(nameChain).toUpperCase()}" class='link-class'>
+        ${cex.toUpperCase()} VS ${dex.toUpperCase()} : ${NameX} (${PNL.toFixed(2)}$)</a>`;
+
+    // === LOGIKA LAMA (tetap, jika masih kamu perlukan di tempat lain)
+    const isPNLPositive = (filterPNLValue === 0 && totalValue > totalModal) || ((totalValue - totalModal) > filterPNLValue);
+    const isVolEnough = parseFloat(vol) >= parseFloat(modal);
+    const canHighlight = (!checkVol && isPNLPositive) || (checkVol && isPNLPositive && isVolEnough);
+
+    // === LOGIKA BARU: highlight bila PNL > totalFee ATAU PNL > filterPNLValue
+    const isHighlight = (PNL > totalFee) || (PNL > filterPNLValue);
+
+    // === GANTI KONDISI IF MENGGUNAKAN isHighlight
+    if (isHighlight) {
+        toastr.success(sinyals);
+
+        // Ubah background ke aliceblue (hanya ini yang diubah dari style lama)
+        rowCell.attr("style",
+            "background-color: aliceblue !important;" +
+            "font-weight: bolder !important;" +
+            "color: black !important;" +
+            "vertical-align: middle !important;" +
+            "text-align: center !important;"
+        );
+
+        let htmlFee = '';
+        if (trx === "TokentoPair") {
+            htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | 
+                    ${createLink(urlsCEXToken.withdrawUrl, 'WD')}<br/>`;
+        } else if (trx === "PairtoToken") {
+            htmlFee = `<span style="color:#0f04e2 !important;">FeeWD: ${FeeWD.toFixed(2)}$</span> | 
+                    ${createLink(urlsCEXToken.depositUrl, 'DP')}<br/>`;
+        }
+        let htmlResult = `
+            ${htmlFee}
+            <span style="color: #d20000;">All: ${totalFee.toFixed(2)}$</span>
+            <span style="color: #1e87f0;">SW: ${FeeSwap.toFixed(2)}$</span><br/>
+            <span style="color: #444;">GT: ${totalGet.toFixed(2)}$</span>
+            <span style="color: #444;">PNL: ${PNL.toFixed(2)}$</span><br/>
+        `;
+        resultCell.html(htmlResult);
+
+        if (!buyCell.parent().is("span")) {
+            buyCell.wrap('<a href="' + buyLink + '" target="_blank"></a>');
+        }
+        if (!sellCell.parent().is("span")) {
+            sellCell.wrap('<a href="' + sellLink + '" target="_blank"></a>');
+        }
+
+        InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), 
+                   Coin_in, Coin_out, profitLossPercent, modal, nameChain, codeChain, trx);
+
+    } else {
+        resultCell.html(`
+            <span style="color:black;" title="FEE WD CEX">FeeWD : ${FeeWD.toFixed(2)}$</span><br/>
+            <span class="uk-text-danger" title="FEE ALL">ALL:${totalFee.toFixed(2)}$</span>
+            <span class="uk-text-primary" title="FEE SWAP"> ${FeeSwap.toFixed(2)}$</span><br/>
+            <span class="uk-text-success" title="GET BRUTO">GT:${totalGet.toFixed(2)}$</span>
+            <span class="uk-text-warning" title="GET NETTO / PNL" > ${PNL.toFixed(2)}$</span>
+        `);
+        if (PNL > totalFee) {
+            InfoSinyal(dex.toLowerCase(), NameX, PNL, totalFee, cex.toUpperCase(), 
+                       Coin_in, Coin_out, profitLossPercent, modal, nameChain, codeChain, trx);
+        }
+    }
+
+    // === Kirim TELE jika PNL > ambang (tetap)
+    if (PNL > 0.25) {
+        const direction = (trx === 'TokentoPair') ? 'cex_to_dex' : 'dex_to_cex';
+        const priceBUY  = (direction === 'cex_to_dex') ? priceCEX : priceDEX;
+        const priceSELL = (direction === 'cex_to_dex') ? priceDEX : priceCEX;
+
+        const tokenData = {
+            symbol: Coin_in,
+            pairSymbol: Coin_out,
+            contractAddress: sc_input,
+            pairContractAddress: sc_output,
+            chain: nameChain
+        };
+
+        MultisendMessage(
+            cex, dex.toUpperCase(),
+            tokenData, modal, PNL,
+            priceBUY, priceSELL,
+            FeeSwap, FeeWD, totalFee,
+            nickname, direction
+        );
+    }
+}
+
+    function DisplayPNLLAMA( PNL, cex, Coin_in, NameX, totalFee, modal, dex, priceCEX, priceDEX, FeeSwap, FeeWD, sc_input, sc_output, Coin_out, totalValue, totalModal, conclusion, selisih, nameChain, codeChain, trx, profitLossPercent, vol ) {
         // Ambil setting
        // console.log("LOAD DATA SETTTING",SavedSettingData);
         var filterPNLValue = parseFloat(SavedSettingData.filterPNL);
@@ -5130,4 +5251,5 @@ async function fetchGate() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.22/dist/js/uikit.min.js"></script>
 </body>
+
 </html>
