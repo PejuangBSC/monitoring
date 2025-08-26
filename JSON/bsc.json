@@ -2337,6 +2337,26 @@
   },
   {
     "cex": "BINANCE",
+    "symbol_in": "HBAR",
+    "sc_in": "0x0422f966bf8e978075a97d47ef4c7efd3563fa51",
+    "des_in": 18,
+    "symbol_out": "USDT",
+    "sc_out": "0x55d398326f99059ff775485246999027b3197955",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
+    "symbol_in": "HBAR",
+    "sc_in": "0x0422f966bf8e978075a97d47ef4c7efd3563fa51",
+    "des_in": 18,
+    "symbol_out": "BNB",
+    "sc_out": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
     "symbol_in": "HFT",
     "sc_in": "0x44ec807ce2f4a6f2737a92e985f318d035883e47",
     "des_in": 18,
@@ -3347,6 +3367,26 @@
   },
   {
     "cex": "BINANCE",
+    "symbol_in": "PROVE",
+    "sc_in": "0x7ddf164cecfddd0f992299d033b5a11279a15929",
+    "des_in": 18,
+    "symbol_out": "USDT",
+    "sc_out": "0x55d398326f99059ff775485246999027b3197955",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
+    "symbol_in": "PROVE",
+    "sc_in": "0x7ddf164cecfddd0f992299d033b5a11279a15929",
+    "des_in": 18,
+    "symbol_out": "BNB",
+    "sc_out": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
     "symbol_in": "QI",
     "sc_in": "0x8729438eb15e2c8b576fcc6aecda6a148776c0f5",
     "des_in": 18,
@@ -3797,6 +3837,26 @@
   },
   {
     "cex": "BINANCE",
+    "symbol_in": "SUI",
+    "sc_in": "0xd57f2e190c11cffc667aa5ad026cd4c8de0772a7",
+    "des_in": 18,
+    "symbol_out": "USDT",
+    "sc_out": "0x55d398326f99059ff775485246999027b3197955",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
+    "symbol_in": "SUI",
+    "sc_in": "0xd57f2e190c11cffc667aa5ad026cd4c8de0772a7",
+    "des_in": 18,
+    "symbol_out": "BNB",
+    "sc_out": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
     "symbol_in": "SUSHI",
     "sc_in": "0x947950bcc74888a40ffa2593c5798f11fc9124c4",
     "des_in": 18,
@@ -3932,6 +3992,26 @@
     "des_in": 4,
     "symbol_out": "USDT",
     "sc_out": "0x55d398326f99059ff775485246999027b3197955",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
+    "symbol_in": "TOWNS",
+    "sc_in": "0x00000000bca93b25a6694ca3d2109d545988b13b",
+    "des_in": 18,
+    "symbol_out": "USDT",
+    "sc_out": "0x55d398326f99059ff775485246999027b3197955",
+    "des_out": 18,
+    "status": true
+  },
+  {
+    "cex": "BINANCE",
+    "symbol_in": "TOWNS",
+    "sc_in": "0x00000000bca93b25a6694ca3d2109d545988b13b",
+    "des_in": 18,
+    "symbol_out": "BNB",
+    "sc_out": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
     "des_out": 18,
     "status": true
   },
