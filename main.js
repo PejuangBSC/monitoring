@@ -579,7 +579,7 @@ function bootApp() {
             if (typeof toast !== 'undefined') {
                 if (state === 'MISSING_SETTINGS' && toast.warning) toast.warning('Lengkapi SETTING terlebih dahulu');
                 else if (state === 'MISSING_TOKENS' && toast.warning) toast.warning('Tambah/Import/Sinkronisasi KOIN terlebih dahulu');
-                else if (toast.error) toast.error('LAKUKAN SETTING APLIASI & LENGKAPI DATA KOIN TOKEN');
+                else if (toast.error) toast.error('LAKUKAN SETTING APLIKASI & LENGKAPI DATA KOIN TOKEN');
             }
         }
     }
