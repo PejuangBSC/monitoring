@@ -1045,9 +1045,16 @@ async function deferredInit() {
             setScanUIGating(true);
         }
     } catch(_) {}
-    // Auto open Token Management when no tokens exist
+    // Auto open Token Management when no tokens exist (but settings are valid)
     (function autoOpenManagerIfNoTokens(){
         try {
+            // FIXED: Only auto-open token management if settings are already complete
+            // If settings are missing, bootApp() already showed the settings section
+            if (!hasValidSettings()) {
+                // Settings missing - do NOT override the settings section
+                return;
+            }
+
             const mode = getAppMode();
             let hasTokens = false;
             if (mode.type === 'single') {
