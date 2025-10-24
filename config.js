@@ -2,7 +2,7 @@
 const CONFIG_APP = {
     APP: {
         NAME: "MONITORING-KOIN",
-        VERSION: "3.1",        
+        VERSION: "3.3",        
         SCAN_LIMIT:false,
     }
 };
