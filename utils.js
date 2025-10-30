@@ -1115,7 +1115,7 @@ function generateDexLink(dex, chainName, codeChain, NameToken, sc_input, NamePai
     if (!dex) return null;
 
     const lowerDex = dex.toLowerCase();
-
+    
     // Find the correct DEX configuration key by checking if the input 'dex' string includes it.
     // This handles cases like "kyber" and "kyber via LIFI".
     let dexKey = Object.keys(CONFIG_DEXS).find(key => lowerDex.includes(key));
@@ -1131,7 +1131,7 @@ function generateDexLink(dex, chainName, codeChain, NameToken, sc_input, NamePai
     if (dexKey && CONFIG_DEXS[dexKey] && typeof CONFIG_DEXS[dexKey].builder === 'function') {
         const builder = CONFIG_DEXS[dexKey].builder;
         return builder({
-            chainName: chainName,
+            chainName: chainName.toLowerCase(),
             // Provide both to satisfy different builder signatures
             codeChain: codeChain,    // some builders expect codeChain
             chainCode: codeChain,    // others used chainCode
@@ -1239,6 +1239,10 @@ function setScanUIGating(isRunning) {
             // Allow only reload (dark mode toggle ikut dinonaktifkan saat scan)
             $('#reload').css({ pointerEvents: 'auto', opacity: 1 });
             // Allow chain selection icons remain active during scan (including their img.icon children)
+            // Disable "Manajemen Koin" and "Update Wallet" icons
+            $('#ManajemenKoin').css({ pointerEvents: 'none', opacity: 0.4 });
+            $('#UpdateWalletCEX').css({ pointerEvents: 'none', opacity: 0.4 });
+
             $('#chain-links-container a, #chain-links-container .chain-link, #chain-links-container .icon, #multichain_scanner, #multichain_scanner .icon')
                 .css({ pointerEvents: 'auto', opacity: 1 });
             // Disable scanner config controls and filter card inputs
