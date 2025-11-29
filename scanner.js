@@ -196,6 +196,17 @@ function appendCellTitleById(id, line){
 }
 
 /**
+ * Mengatur (replace) teks tooltip berdasarkan ID sel.
+ * @param {string} id - ID elemen sel.
+ * @param {string} text - Teks tooltip yang akan diatur.
+ */
+function setCellTitleById(id, text){
+    const cell = document.getElementById(id);
+    if (!cell) return;
+    setCellTitleByEl(cell, text);
+}
+
+/**
  * Placeholder function untuk kompatibilitas.
  * Form edit TETAP AKTIF saat scanning untuk memungkinkan user mengubah data.
  * Fungsi simpan akan di-modifikasi agar tidak refresh tabel saat scanning.
@@ -497,8 +508,9 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
         if (!isScanRunning && uiUpdateQueue.length === 0) return;
 
         const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        // Batas waktu eksekusi per frame (misal, 8ms) untuk menjaga UI tetap responsif.
-        const budgetMs = 8; // aim to keep under one frame @120Hz
+        // Increased budget from 8ms to 16ms to process more updates per frame
+        // This prevents queue backlog when scanning many rows
+        const budgetMs = 16; // aim to keep under one frame @60Hz
         let processed = 0;
 
         // "Penyapuan keamanan": Finalisasi sel DEX yang melewati batas waktu (timeout)
@@ -511,12 +523,30 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                 try {
                     const d = Number(cell.dataset.deadline || 0);
                     const done = String(cell.dataset.final || '') === '1';
-                    if (!done && d > 0 && nowTs - d > 250) {
+                    // Increased buffer from 250ms to 1000ms to allow slower responses to complete
+                    if (!done && d > 0 && nowTs - d > 1000) {
+                        // CRITICAL FIX: Check if there's a pending update in queue for this cell
+                        // Don't force timeout if the result is already queued but not yet processed
+                        const cellId = cell.id;
+                        let hasPendingUpdate = false;
+                        try {
+                            hasPendingUpdate = uiUpdateQueue.some(item =>
+                                item && (item.id === cellId || item.resultId === cellId)
+                            );
+                        } catch(_) {}
+
+                        // Skip timeout if update is pending in queue
+                        if (hasPendingUpdate) {
+                            return; // Let the queued update process normally
+                        }
+
                         const dexName = (cell.dataset.dex || '').toUpperCase() || 'DEX';
                         // stop any lingering ticker for this cell
                         try { clearDexTickerById(cell.id); } catch(_) {}
                         // Paksa finalisasi ke status TIMEOUT.
                         try { cell.classList.add('dex-error'); } catch(_) {}
+
+                        // Standard cell timeout handling (multi-aggregator now uses the same UI)
                         const span = ensureDexStatusSpan(cell);
                         try {
                             span.classList.remove('uk-text-muted', 'uk-text-warning');
@@ -524,6 +554,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             span.innerHTML = `<span class=\"uk-label uk-label-warning\">TIMEOUT</span>`;
                             span.title = `${dexName}: Request Timeout`;
                         } catch(_) {}
+
                         try { cell.dataset.final = '1'; delete cell.dataset.checking; delete cell.dataset.deadline; } catch(_) {}
                     }
                 } catch(_) {}
@@ -712,6 +743,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         return;
                                     }
                                 } catch(_) {}
+
+                                    // Standard single-DEX cell handling
                                     // Presentation only: spinner for checking, badge for error
                                     try { cell.classList.remove('dex-error'); } catch(_) {}
                                     let statusSpan = ensureDexStatusSpan(cell);
@@ -850,6 +883,9 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                         dex, token.chain, CONFIG_CHAINS[token.chain.toLowerCase()].Kode_Chain,
                                         direction, 0, finalDexRes
                                     );
+
+                                    // Note: Multi-DEX handling (DZAP, LIFI) is now done in DisplayPNL
+                                    // The subResults are passed via calculateResult -> update -> DisplayPNL
                                     // Buat log ringkasan untuk console jika diaktifkan.
                                     // Console log summary for this successful check (cleaned)
                                     try {
@@ -1011,7 +1047,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                             `    🚀 PROFIT : ${profitLoss>=0?'+':''}${profitLoss.toFixed(2)} USDT`,
                                             `idCELL: ${idCELL}`,
                                         ].filter(Boolean).join('\n'); // filter(Boolean) menghapus string kosong
-                                        appendCellTitleById(idCELL, lines);
+                                        // FIX: Gunakan setCellTitleById untuk replace (bukan append) agar tidak ada header [LOG...]
+                                        setCellTitleById(idCELL, lines);
                                         try { if (window.SCAN_LOG_ENABLED) console.log(lines); } catch(_) {}
                                     } catch(_) {}
                                     // Masukkan hasil kalkulasi ke antrian pembaruan UI.
@@ -1192,7 +1229,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                                 prosesLine,
                                                 statusLine
                                             ].join('\n');
-                                            appendCellTitleById(idCELL, headerBlock);
+                                            // FIX: Gunakan setCellTitleById untuk replace (bukan append) agar tidak ada header [LOG...]
+                                            setCellTitleById(idCELL, headerBlock);
                                             try { if (window.SCAN_LOG_ENABLED) console.log(headerBlock); } catch(_) {}
                                         } catch(_) {}
                                         try {
@@ -1208,7 +1246,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                 const cexSummary = `CEX READY BT=${fmt6(DataCEX.priceBuyToken)} ST=${fmt6(DataCEX.priceSellToken)} BP=${fmt6(DataCEX.priceBuyPair)} SP=${fmt6(DataCEX.priceSellPair)}`;
                                 updateDexCellStatus('checking', dex, cexSummary);
                                 // REMOVED: Watchdog for primary DEX removed
-                                const dexTimeoutWindow = getJedaDex(dex) + Math.max(speedScan) + 300;
+                                // Increased timeout window from 300ms to 2000ms for slower DEX APIs
+                                const dexTimeoutWindow = getJedaDex(dex) + Math.max(speedScan) + 2000;
                                 // Mulai ticker countdown untuk menampilkan sisa detik pada label "Checking".
                                 try {
                                     const endAt = Date.now() + dexTimeoutWindow;

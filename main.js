@@ -2118,10 +2118,8 @@ const SnapshotOverlay = (function() {
                     progressMax: 100,
                     canClose: false
                 });
-
-                // console.log(`[SnapshotOverlay] Shown: ${title}`);
             } catch(error) {
-                // console.error('[SnapshotOverlay.show] Error:', error);
+                console.error('[SnapshotOverlay.show] ERROR:', error);
             }
         },
 
@@ -2135,7 +2133,6 @@ const SnapshotOverlay = (function() {
                     if (overlayId) {
                         AppOverlay.hide(overlayId);
                         overlayId = null;
-                        // console.log('[SnapshotOverlay] Hidden');
                     }
                 };
 
@@ -2145,7 +2142,7 @@ const SnapshotOverlay = (function() {
                     doHide();
                 }
             } catch(error) {
-                // console.error('[SnapshotOverlay.hide] Error:', error);
+                console.error('[SnapshotOverlay.hide] ERROR:', error);
             }
         },
 
@@ -2157,11 +2154,13 @@ const SnapshotOverlay = (function() {
          */
         updateProgress(current, total, message = '') {
             try {
-                if (!overlayId) return;
+                if (!overlayId) {
+                    return;
+                }
 
                 AppOverlay.updateProgress(overlayId, current, total, message);
             } catch(error) {
-                // console.error('[SnapshotOverlay.updateProgress] Error:', error);
+                console.error('[SnapshotOverlay.updateProgress] Error:', error);
             }
         },
 
@@ -2493,23 +2492,33 @@ try { window.updateAddTokenButtonState = updateAddTokenButtonState; } catch(_) {
 
 function updatePriceFilterState() {
     try {
-        // Check if table has data (koin sudah dimuat)
-        const hasData = $('#sync-modal-tbody tr').length > 0;
-        const isEmpty = $('#sync-modal-tbody tr td[colspan]').length > 0; // Cek jika ada pesan kosong
+        // Check if table has data rows (bukan pesan kosong)
+        const $tbody = $('#sync-modal-tbody');
+        const rowCount = $tbody.find('tr').length;
+        const hasEmptyMessage = $tbody.find('tr td[colspan]').length > 0;
+        const hasData = rowCount > 0 && !hasEmptyMessage;
 
-        const shouldEnable = hasData && !isEmpty;
+        // Get radio buttons
+        const $allRadio = $('input[name="sync-price-filter"][value="all"]');
+        const $priceRadio = $('input[name="sync-price-filter"][value="with-price"]');
 
-        // Enable/disable radio buttons
-        const $priceRadios = $('input[name="sync-price-filter"]');
-        $priceRadios.prop('disabled', !shouldEnable);
+        // Kedua filter SELALU enabled jika ada data di tabel
+        // Pesan informatif akan ditampilkan di tabel jika tidak ada hasil
+        $allRadio.prop('disabled', !hasData);
+        $priceRadio.prop('disabled', !hasData);
 
-        // Visual feedback
-        $('#sync-price-filter-container label').css({
-            opacity: shouldEnable ? '1' : '0.5',
-            cursor: shouldEnable ? 'pointer' : 'not-allowed'
+        // Visual feedback untuk setiap label
+        $allRadio.closest('label').css({
+            opacity: hasData ? '1' : '0.5',
+            cursor: hasData ? 'pointer' : 'not-allowed'
         });
 
-        console.log(`[updatePriceFilterState] Price filter ${shouldEnable ? 'enabled' : 'disabled'}`);
+        $priceRadio.closest('label').css({
+            opacity: hasData ? '1' : '0.5',
+            cursor: hasData ? 'pointer' : 'not-allowed'
+        });
+
+        console.log(`[updatePriceFilterState] Rows: ${rowCount}, HasData: ${hasData}, Filters: ${hasData ? 'ENABLED' : 'DISABLED'}`);
     } catch(e) {
         console.error('[updatePriceFilterState] Error:', e);
     }
@@ -2984,41 +2993,50 @@ function normalizeSnapshotRecord(rec, chainKey) {
 async function loadSnapshotRecords(chainKey) {
     try {
         const snapshotMap = await (window.snapshotDbGet ? window.snapshotDbGet(SNAPSHOT_DB_CONFIG.snapshotKey) : Promise.resolve(null));
-        // console.log('loadSnapshotRecords - snapshotMap:', snapshotMap);
+        console.log('[SYNC DEBUG] loadSnapshotRecords - snapshotMap keys:', snapshotMap ? Object.keys(snapshotMap) : 'null');
 
         if (!snapshotMap || typeof snapshotMap !== 'object') {
-            // console.warn('loadSnapshotRecords - No snapshot map found');
+            console.warn('[SYNC DEBUG] loadSnapshotRecords - No snapshot map found');
             return [];
         }
 
         const keyLower = String(chainKey || '').toLowerCase();
         const fallbackKey = String(chainKey || '').toUpperCase();
 
-        // console.log('loadSnapshotRecords - Looking for keys:', { keyLower, fallbackKey });
-        // console.log('loadSnapshotRecords - Available keys:', Object.keys(snapshotMap));
+        console.log('[SYNC DEBUG] loadSnapshotRecords - Looking for keys:', { keyLower, fallbackKey, availableKeys: Object.keys(snapshotMap) });
 
         const arr = Array.isArray(snapshotMap[keyLower]) ? snapshotMap[keyLower]
                   : Array.isArray(snapshotMap[fallbackKey]) ? snapshotMap[fallbackKey]
                   : [];
 
-        // console.log('loadSnapshotRecords - Found array length:', arr.length);
+        console.log('[SYNC DEBUG] loadSnapshotRecords - Found array length:', arr.length);
 
         if (!Array.isArray(arr) || !arr.length) {
-            // console.warn('loadSnapshotRecords - Empty array');
+            console.warn('[SYNC DEBUG] loadSnapshotRecords - Empty array for chain:', chainKey);
             return [];
         }
 
         const seen = new Set();
         const out = [];
-        arr.forEach((rec) => {
+        let skippedNorm = 0;
+        let skippedDedup = 0;
+        arr.forEach((rec, i) => {
             const norm = normalizeSnapshotRecord(rec, keyLower);
-            if (!norm) return;
+            if (!norm) {
+                skippedNorm++;
+                if (i < 3) console.log('[SYNC DEBUG] Skipped record (null norm):', rec);
+                return;
+            }
             const dedupKey = `${norm.cex}__${norm.symbol_in}__${String(norm.sc_in || '').toLowerCase()}`;
-            if (seen.has(dedupKey)) return;
+            if (seen.has(dedupKey)) {
+                skippedDedup++;
+                return;
+            }
             seen.add(dedupKey);
             norm._idx = out.length;
             out.push(norm);
         });
+        console.log('[SYNC DEBUG] Normalization stats:', { total: arr.length, valid: out.length, skippedNorm, skippedDedup });
 
         // console.log('loadSnapshotRecords - Returning:', out.length, 'tokens');
         return out;
@@ -3051,7 +3069,7 @@ async function fetchTokensFromServer(chainKey) {
         };
 
         clone.cex = String(clone.cex || clone.exchange || '').toUpperCase();
-        const symbolRaw = clone.symbol || clone.ticker || clone.token || clone.nama_token || clone.name || '';
+        const symbolRaw = clone.symbol_in || clone.symbol || clone.ticker || clone.token || clone.nama_token || clone.name || '';
         const pairRaw = clone.symbol_out || clone.pair || clone.quote || '';
         const scRaw = clone.sc_in || clone.sc || clone.contract || clone.address || '';
         const decimalsRaw = clone.des_in ?? clone.decimals ?? clone.decimal ?? 0;
@@ -3084,13 +3102,18 @@ async function fetchTokensFromServer(chainKey) {
 
 async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
     const key = String(chainKey || '').toLowerCase();
+    console.log('[SYNC DEBUG] loadSyncTokensFromSnapshot called for:', key);
     const raw = await loadSnapshotRecords(key);
+    console.log('[SYNC DEBUG] loadSyncTokensFromSnapshot - raw.length:', raw.length);
     if (!raw.length) {
+        console.warn('[SYNC DEBUG] loadSyncTokensFromSnapshot - Empty raw, returning false');
         if (!silent) throw new Error('Snapshot kosong untuk chain ini.');
         return false; // Return false instead of throwing when silent
     }
     const savedTokens = getTokensChain(chainKey);
+    console.log('[SYNC DEBUG] loadSyncTokensFromSnapshot - calling setSyncModalData');
     setSyncModalData(chainKey, raw, savedTokens, 'Snapshot');
+    console.log('[SYNC DEBUG] loadSyncTokensFromSnapshot - returning true');
     if (!silent) {
         try { if (typeof toast !== 'undefined' && toast.success) toast.success(`Berhasil memuat ${raw.length} koin dari snapshot lokal`); } catch(_) {}
     }
@@ -3154,13 +3177,13 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
             }
 
             // Save to IndexedDB
-            // console.log('Saving to snapshot...');
-            await window.SnapshotModule.saveToSnapshot(activeSingleChainKey, rawTokens);
-            // console.log('Saved to snapshot successfully');
+            console.log('[SYNC DEBUG] Saving to snapshot...', { chain: activeSingleChainKey, tokenCount: rawTokens.length });
+            const saveResult = await window.SnapshotModule.saveToSnapshot(activeSingleChainKey, rawTokens);
+            console.log('[SYNC DEBUG] Save result:', saveResult);
 
             // Load to modal
             const loaded = await loadSyncTokensFromSnapshot(activeSingleChainKey, true);
-            // console.log('Load result:', loaded);
+            console.log('[SYNC DEBUG] Load result:', loaded);
 
             if (loaded) {
                 $('#sync-snapshot-status').text(`Data dimuat: ${rawTokens.length} koin`);
@@ -3168,7 +3191,7 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
                     toast.success(`Berhasil memuat ${rawTokens.length} koin dari server`);
                 }
             } else {
-                // console.error('Failed to load after save');
+                console.error('[SYNC DEBUG] Failed to load after save - saveResult was:', saveResult);
                 $('#sync-modal-tbody').html('<tr><td colspan="7">Gagal memuat data setelah save</td></tr>');
             }
         } catch(error) {
@@ -3521,7 +3544,8 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
 
             // Map pair to config; if unknown → NON
             // NON concept: any pair NOT explicitly listed in PAIRDEXS.
-            // For NON we should keep sc_out from source if provided; only fallback to PAIRDEXS['NON'] when input is missing/invalid.
+            // PENTING: Jika user memilih pair dari radio button (USDT, SOL, dll),
+            // SELALU gunakan SC dari config, BUKAN dari data token!
             const customPairDef = usingCustomNon ? {
                 scAddressPair: nonPairConfig.sc || '',
                 desPair: Number.isFinite(nonPairConfig.des) ? nonPairConfig.des : 18,
@@ -3529,21 +3553,26 @@ async function loadSyncTokensFromSnapshot(chainKey, silent = false) {
             } : null;
             const pairDef = pairDefs[symbolOut] || customPairDef || pairDefs['NON'] || { scAddressPair: '0x', desPair: 18, symbolPair: 'NON' };
             const isAddrInvalid = (addr) => !addr || String(addr).toLowerCase() === '0x' || String(addr).length < 6;
-            let scOut = tok.sc_out || tok.contract_out || '';
-            let desOut = Number.isFinite(desOutRaw) && desOutRaw > 0 ? desOutRaw : Number(pairDef.desPair);
+
+            let scOut = '';
+            let desOut = 0;
+
             if (pairDefs[symbolOut]) {
-                // Known pair in config: allow fallback to config default if source empty
-                scOut = scOut || pairDef.scAddressPair;
-                desOut = Number.isFinite(desOutRaw) && desOutRaw > 0 ? desOutRaw : Number(pairDef.desPair);
+                // ========== KNOWN PAIR: SELALU gunakan SC dari config ==========
+                // Jangan gunakan sc_out dari token karena itu mungkin SC pair yang berbeda
+                scOut = pairDef.scAddressPair;
+                desOut = Number(pairDef.desPair) || 18;
             } else if (usingCustomNon) {
-                scOut = nonPairConfig.sc || scOut || pairDef.scAddressPair || '';
-                if (isAddrInvalid(scOut)) scOut = pairDef.scAddressPair || scOut;
-                desOut = Number.isFinite(nonPairConfig.des) ? nonPairConfig.des : (Number.isFinite(desOutRaw) && desOutRaw > 0 ? desOutRaw : Number(pairDef.desPair || 18));
+                // Custom NON pair: gunakan input dari user
+                scOut = nonPairConfig.sc || pairDef.scAddressPair || '';
+                desOut = Number.isFinite(nonPairConfig.des) ? nonPairConfig.des : Number(pairDef.desPair || 18);
             } else {
                 // NON: keep source SC if present; only fallback when invalid
+                scOut = tok.sc_out || tok.contract_out || '';
+                desOut = Number.isFinite(desOutRaw) && desOutRaw > 0 ? desOutRaw : 18;
                 if (isAddrInvalid(scOut)) {
-                    scOut = pairDef.scAddressPair || scOut;
-                    desOut = Number(pairDef.desPair || desOutRaw || 18);
+                    scOut = pairDef.scAddressPair || '';
+                    desOut = Number(pairDef.desPair || 18);
                 }
             }
 
@@ -4474,7 +4503,16 @@ $(document).ready(function() {
 
         // Filter berdasarkan CEX dan Harga
         const priceFilter = $('input[name="sync-price-filter"]:checked').val() || 'all';
-        const filtered = processed.filter(t => {
+
+        // Hitung berapa token punya harga untuk validasi filter
+        const tokensWithPrice = processed.filter(t => {
+            const cexUp = String(t.cex || '').toUpperCase();
+            if (selectedCexs.length && !selectedCexs.includes(cexUp)) return false;
+            const price = Number(t.current_price || 0);
+            return Number.isFinite(price) && price > 0;
+        });
+
+        let filtered = processed.filter(t => {
             const cexUp = String(t.cex || '').toUpperCase();
             if (selectedCexs.length && !selectedCexs.includes(cexUp)) return false;
 
@@ -4484,16 +4522,27 @@ $(document).ready(function() {
                 const hasPrice = Number.isFinite(price) && price > 0;
 
                 if (priceFilter === 'with-price' && !hasPrice) return false;
-                if (priceFilter === 'no-price' && hasPrice) return false;
             }
 
             return true;
         });
 
         if (!filtered.length) {
-            modalBody.html('<tr><td colspan="7">No tokens match filters.</td></tr>');
+            // Pesan lebih informatif berdasarkan kondisi
+            let emptyMessage = 'Tidak ada koin yang cocok dengan filter.';
+            if (priceFilter === 'with-price' && tokensWithPrice.length === 0) {
+                emptyMessage = 'Tidak ada koin dengan harga. Klik "SNAPSHOT [UPDATE KOIN]" untuk memuat harga terbaru.';
+            } else if (selectedCexs.length === 0) {
+                emptyMessage = 'Pilih minimal 1 CEX untuk menampilkan koin.';
+            }
+            modalBody.html(`<tr><td colspan="7">${emptyMessage}</td></tr>`);
             updateSyncSelectedCount();
             updateSyncSortIndicators();
+
+            // Jika filter "Berharga" tapi tidak ada token dengan harga, reset ke "Semua"
+            if (priceFilter === 'with-price' && tokensWithPrice.length === 0) {
+                $('input[name="sync-price-filter"][value="all"]').prop('checked', true);
+            }
             return;
         }
 
@@ -4563,8 +4612,26 @@ $(document).ready(function() {
             /* debug logs removed */
         } catch(e) { /* debug logs removed */ }
 
+        // Declare in higher scope for chunked rendering
         const priceJobKeys = new Set();
         const priceJobs = [];
+
+        // ========== PERFORMANCE FIX: LIMIT ROWS TO PREVENT BROWSER FREEZE ==========
+        // Jika filtered > 1000 rows, limit untuk menghindari browser hang
+        const MAX_SYNC_ROWS = 1000; // ← REDUCED dari 3000 ke 1000 untuk mencegah "Not Responding"
+        const totalFiltered = filtered.length;
+        if (totalFiltered > MAX_SYNC_ROWS) {
+            console.warn(`[renderSyncTableCore] Too many rows (${totalFiltered}). Limiting to ${MAX_SYNC_ROWS} rows to prevent browser freeze.`);
+            filtered = filtered.slice(0, MAX_SYNC_ROWS);
+
+            // Show warning message to user
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning(`⚠️ Menampilkan ${MAX_SYNC_ROWS} dari ${totalFiltered} koin.\n\n✅ GUNAKAN FILTER untuk mempersempit hasil:\n• Filter by CEX (BITGET, BYBIT, dll)\n• Filter by Status (WD/DP ON/OFF)\n• Filter by Pair (USDT, BTC, dll)\n\nTerlalu banyak rows menyebabkan browser hang!`, {
+                    duration: 10000
+                });
+            }
+        }
+        // ===========================================================================
 
         // ========== OPTIMASI: BATCH DOM RENDERING ==========
         // Build semua HTML rows dalam 1 string, lalu insert sekali saja
@@ -4810,13 +4877,33 @@ $(document).ready(function() {
         } finally {
             // ========== LOADING OVERLAY: END ==========
             // Hide overlay setelah rendering selesai (atau error)
-            // Tambahkan delay kecil agar transisi lebih smooth
-            setTimeout(() => {
-                if (overlayId && window.AppOverlay) {
-                    console.log('[renderSyncTableCore] Hiding overlay after render:', overlayId);
+            console.log('[renderSyncTableCore] Finally block executed. overlayId:', overlayId, 'AppOverlay exists:', !!window.AppOverlay);
+
+            // Immediate hide instead of setTimeout to prevent event loop blocking
+            if (overlayId && window.AppOverlay) {
+                console.log('[renderSyncTableCore] Calling AppOverlay.hide for:', overlayId);
+                try {
                     window.AppOverlay.hide(overlayId);
+                    console.log('[renderSyncTableCore] AppOverlay.hide called successfully');
+                } catch(err) {
+                    console.error('[renderSyncTableCore] Error hiding overlay:', err);
                 }
-            }, 100);
+
+                // FORCE HIDE: Double-check dan remove element langsung jika masih ada
+                setTimeout(() => {
+                    const overlayElement = document.getElementById(overlayId);
+                    if (overlayElement) {
+                        console.warn('[renderSyncTableCore] FORCE REMOVING stuck overlay element:', overlayId);
+                        overlayElement.remove();
+                        // Unfreeze body manually jika AppOverlay gagal
+                        if (window.AppOverlay && window.AppOverlay.bodyFreezed) {
+                            window.AppOverlay.unfreezeBody();
+                        }
+                    }
+                }, 500);
+            } else {
+                console.warn('[renderSyncTableCore] Cannot hide overlay - overlayId:', overlayId, 'AppOverlay:', !!window.AppOverlay);
+            }
             // ==========================================
         }
     }
@@ -5081,3 +5168,266 @@ $(document).on('click', '#histClearAll', async function(){
         };
         reader.readAsText(file);
     });
+
+// =================================================================================
+// BULK MODAL EDITOR - Edit modal DEX untuk semua token sekaligus (Single Chain Only)
+// =================================================================================
+(function initBulkModalEditor() {
+    'use strict';
+
+    // State untuk bulk editor
+    let bulkState = {
+        chain: null,
+        selectedCexs: [],
+        dexInputs: {},
+        affectedTokens: []
+    };
+
+    // Initialize modal when it's shown
+    $(document).on('beforeshow', '#bulk-modal-editor', function() {
+        const m = getAppMode();
+        if (m.type !== 'single') {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Bulk Modal Editor hanya tersedia di mode Single Chain');
+            }
+            return false; // Prevent modal from opening
+        }
+        bulkState.chain = m.chain;
+        initBulkEditor();
+    });
+
+    function initBulkEditor() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) return;
+
+        // Update chain label
+        $('#bulk-chain-label').text(String(chainKey).toUpperCase());
+
+        // Populate CEX checkboxes (vertical layout)
+        const $cexContainer = $('#bulk-filter-cex').empty();
+        const cexList = CONFIG_UI?.CEXES || [];
+        cexList.forEach(cex => {
+            const cexKey = cex.key;
+            const cexLabel = cex.label || cexKey;
+            const cexColor = CONFIG_CEX?.[cexKey]?.WARNA || '#666';
+            $cexContainer.append(`
+                <div class="uk-margin-small-bottom">
+                    <label class="uk-flex uk-flex-middle" style="gap:6px; cursor:pointer;">
+                        <input type="checkbox" class="uk-checkbox bulk-cex-filter" value="${cexKey}" checked>
+                        <span style="color:${cexColor}; font-weight:bold; font-size:14px;">${cexLabel}</span>
+                    </label>
+                </div>
+            `);
+        });
+
+        // Populate DEX inputs based on chain's DEXS
+        const chainConfig = CONFIG_CHAINS?.[chainKey] || {};
+        const dexList = chainConfig.DEXS || [];
+        const $dexContainer = $('#bulk-dex-inputs').empty();
+
+        dexList.forEach(dexKey => {
+            const dexConfig = CONFIG_DEXS?.[dexKey] || {};
+            const dexUiConfig = CONFIG_UI?.DEXES?.find(d => d.key === dexKey) || {};
+            const dexLabel = dexConfig.label || dexUiConfig.label || String(dexKey).toUpperCase();
+            const dexColor = dexConfig.warna || '#666';
+
+            $dexContainer.append(`
+                <div class="uk-card uk-card-default uk-card-body uk-padding-small uk-margin-small-bottom">
+                    <div class="uk-flex uk-flex-middle uk-flex-between">
+                        <label class="uk-flex uk-flex-middle" style="gap:6px; cursor:pointer;">
+                            <input type="checkbox" class="uk-checkbox bulk-dex-checkbox" value="${dexKey}" checked>
+                            <span style="color:${dexColor}; font-weight:bold; font-size:14px;">${dexLabel}</span>
+                        </label>
+                        <div class="uk-flex uk-flex-middle" style="gap:8px;">
+                            <div class="uk-flex uk-flex-middle" style="gap:4px;">
+                                <span class="uk-text-small" style="color:${dexColor};">KIRI:</span>
+                                <input type="number" class="uk-input uk-form-small bulk-dex-left" data-dex="${dexKey}"
+                                       style="width:70px; text-align:center;" placeholder="0" min="0" step="1" value="100">
+                            </div>
+                            <div class="uk-flex uk-flex-middle" style="gap:4px;">
+                                <span class="uk-text-small" style="color:${dexColor};">KANAN:</span>
+                                <input type="number" class="uk-input uk-form-small bulk-dex-right" data-dex="${dexKey}"
+                                       style="width:70px; text-align:center;" placeholder="0" min="0" step="1" value="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+
+        // Initial update
+        updateAffectedCount();
+    }
+
+    // Handle CEX filter changes
+    $(document).on('change', '.bulk-cex-filter', function() {
+        updateAffectedCount();
+    });
+
+    // Handle DEX checkbox changes
+    $(document).on('change', '.bulk-dex-checkbox', function() {
+        updateAffectedCount();
+    });
+
+    // Handle "Apply to All DEX" checkbox
+    $(document).on('change', '#bulk-apply-all-dex', function() {
+        const isChecked = $(this).is(':checked');
+        $('.bulk-dex-checkbox').prop('checked', isChecked);
+        updateAffectedCount();
+    });
+
+    // Handle Quick Set buttons
+    $(document).on('click', '.bulk-quick-set', function() {
+        const value = $(this).data('value');
+        $('.bulk-dex-left, .bulk-dex-right').val(value);
+    });
+
+    function getSelectedCexs() {
+        const selected = [];
+        $('.bulk-cex-filter:checked').each(function() {
+            selected.push(String($(this).val()).toUpperCase());
+        });
+        return selected;
+    }
+
+    function getSelectedDexInputs() {
+        const inputs = {};
+        $('.bulk-dex-checkbox:checked').each(function() {
+            const dexKey = String($(this).val()).toLowerCase();
+            const left = parseFloat($(`.bulk-dex-left[data-dex="${dexKey}"]`).val()) || 0;
+            const right = parseFloat($(`.bulk-dex-right[data-dex="${dexKey}"]`).val()) || 0;
+            inputs[dexKey] = { left, right };
+        });
+        return inputs;
+    }
+
+    function getAffectedTokens() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) return [];
+
+        const tokens = getTokensChain(chainKey) || [];
+        const selectedCexs = getSelectedCexs();
+
+        if (selectedCexs.length === 0) return [];
+
+        // Filter tokens that have at least one matching CEX
+        return tokens.filter(t => {
+            const tokenCexs = (t.selectedCexs || []).map(c => String(c).toUpperCase());
+            return tokenCexs.some(c => selectedCexs.includes(c));
+        });
+    }
+
+    function updateAffectedCount() {
+        const affected = getAffectedTokens();
+        bulkState.affectedTokens = affected;
+        $('#bulk-token-count').text(affected.length);
+
+        // Update CEX label
+        const selectedCexs = getSelectedCexs();
+        if (selectedCexs.length === 0) {
+            $('#bulk-cex-label').text('Tidak ada');
+        } else if (selectedCexs.length === (CONFIG_UI?.CEXES?.length || 0)) {
+            $('#bulk-cex-label').text('Semua');
+        } else {
+            $('#bulk-cex-label').text(selectedCexs.join(', '));
+        }
+
+        // Enable/disable apply button
+        const dexInputs = getSelectedDexInputs();
+        const canApply = affected.length > 0 && Object.keys(dexInputs).length > 0;
+        $('#bulk-apply-btn').prop('disabled', !canApply);
+    }
+
+
+    // Handle Apply button
+    $(document).on('click', '#bulk-apply-btn', async function() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) return;
+
+        const affected = getAffectedTokens();
+        const dexInputs = getSelectedDexInputs();
+
+        if (affected.length === 0 || Object.keys(dexInputs).length === 0) {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Tidak ada perubahan untuk diterapkan');
+            }
+            return;
+        }
+
+        // Confirm before applying
+        const confirmMsg = `Anda akan mengubah modal DEX untuk ${affected.length} token.\n\nDEX yang diubah:\n${
+            Object.entries(dexInputs).map(([dex, vals]) => `- ${dex.toUpperCase()}: KIRI=${vals.left}, KANAN=${vals.right}`).join('\n')
+        }\n\nLanjutkan?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            // Disable button during processing
+            const $btn = $(this).prop('disabled', true).html('<span uk-spinner="ratio: 0.5"></span> Memproses...');
+
+            // Get all tokens and update affected ones
+            let allTokens = getTokensChain(chainKey) || [];
+            const affectedIds = new Set(affected.map(t => String(t.id)));
+
+            let updatedCount = 0;
+            allTokens = allTokens.map(token => {
+                if (!affectedIds.has(String(token.id))) return token;
+
+                // Update dataDexs for this token
+                const newDataDexs = { ...(token.dataDexs || {}) };
+
+                Object.entries(dexInputs).forEach(([dexKey, vals]) => {
+                    // Only update if this DEX is already selected for the token, or add it if not
+                    newDataDexs[dexKey] = { left: vals.left, right: vals.right };
+                });
+
+                // Also ensure selectedDexs includes all the DEXes we're updating
+                let newSelectedDexs = [...(token.selectedDexs || [])];
+                Object.keys(dexInputs).forEach(dexKey => {
+                    if (!newSelectedDexs.includes(dexKey)) {
+                        newSelectedDexs.push(dexKey);
+                    }
+                });
+
+                updatedCount++;
+                return {
+                    ...token,
+                    dataDexs: newDataDexs,
+                    selectedDexs: newSelectedDexs
+                };
+            });
+
+            // Save updated tokens
+            setTokensChain(chainKey, allTokens);
+
+            // Close modal
+            UIkit.modal('#bulk-modal-editor').hide();
+
+            // Show success message
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Berhasil mengubah modal DEX untuk ${updatedCount} token`);
+            }
+
+            // Refresh management list
+            if (typeof renderTokenManagementList === 'function') {
+                renderTokenManagementList();
+            }
+            if (typeof loadAndDisplaySingleChainTokens === 'function') {
+                loadAndDisplaySingleChainTokens();
+            }
+
+            // Log action
+            try { setLastAction('BULK MODAL UPDATE'); } catch(_) {}
+
+        } catch(err) {
+            console.error('Bulk modal update error:', err);
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Terjadi kesalahan saat mengupdate modal');
+            }
+        } finally {
+            // Re-enable button
+            $('#bulk-apply-btn').prop('disabled', false).html('<span uk-icon="icon: check; ratio: 0.8"></span> Terapkan Perubahan');
+        }
+    });
+
+})();
