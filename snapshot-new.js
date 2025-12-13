@@ -114,6 +114,27 @@
     const WEB3_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
     const WEB3_PENDING_REQUESTS = new Map(); // Track pending requests untuk deduplication
 
+    /**
+     * Get default decimals by chain
+     * Solana tokens typically use 6 or 9 decimals (not 18 like EVM)
+     * @param {string} chainName - Chain name (e.g., 'solana', 'ethereum')
+     * @returns {number} Default decimals for the chain
+     */
+    function getDefaultDecimalsByChain(chainName) {
+        const chain = String(chainName || '').toLowerCase();
+        // Solana: Most tokens use 6 or 9, default to 9 (safer than 18)
+        // Common Solana decimals:
+        // - SOL: 9
+        // - USDC: 6
+        // - USDT: 6
+        // Using 9 as default is safer (less precision loss than 18)
+        if (chain === 'solana' || chain === 'sol') {
+            return 9;
+        }
+        // EVM chains: Default to 18 (standard for most ERC20 tokens)
+        return 18;
+    }
+
     // Load web3 cache from IndexedDB
     async function loadWeb3Cache() {
         try {
@@ -410,6 +431,25 @@
                     const upperKey = String(key || '').toUpperCase();
                     map.set(upperKey, price);
                     map.set(upperKey.replace(/[_-]/g, ''), price);
+                });
+                return map;
+            }
+        },
+        LBANK: {
+            url: 'https://api.lbkex.com/v1/ticker.do?symbol=all',
+            proxy: true,
+            parser: (data) => {
+                // LBank returns array of tickers or data object with ticker array
+                const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+                const map = new Map();
+                list.forEach(item => {
+                    const symbol = String(item?.symbol || '').toUpperCase();
+                    const price = Number(item?.ticker?.latest ?? item?.latest ?? item?.last);
+                    if (!symbol || !Number.isFinite(price)) return;
+                    // LBank uses underscore format like eth_usdt
+                    map.set(symbol, price);
+                    map.set(symbol.replace(/_/g, ''), price); // Also add without underscore
+                    map.set(symbol.replace(/_/g, '-'), price); // Also add with dash
                 });
                 return map;
             }
@@ -799,8 +839,11 @@
                                 return {
                                     cex: cexUpper,
                                     symbol_in: symbol,
+                                    tokenName: item.tokenName || symbol, // ✅ Preserve tokenName for enrichment
                                     token_name: existing?.token_name || item.tokenName || '',
                                     sc_in: contractAddress, // Use contract address from CEX API
+                                    contractAddress: contractAddress, // ✅ Preserve contractAddress field for enrichment
+                                    needsEnrichment: item.needsEnrichment || false, // ✅ Preserve needsEnrichment flag from services/cex.js
                                     tradeable: item.trading !== undefined ? !!item.trading : true, // Use trading status dari CEX API, fallback true jika tidak ada
                                     decimals: existing?.des_in || existing?.decimals || '',
                                     des_in: existing?.des_in || existing?.decimals || '',
@@ -844,6 +887,11 @@
                 }
             }
 
+            // ===== NO REMOTE ENRICHMENT FOR LBANK =====
+            // LBANK (and all CEX) will use local database lookup in validateTokenData
+            // Tokens without SC from CEX API will be looked up in snapshot database (local)
+            // If not found in local database, they will be filtered out (not displayed)
+
             // console.log(`fetchCexData for ${cex}: fetched ${coins.length} coins total`);
             return coins;
         } catch(error) {
@@ -869,16 +917,14 @@
         }
 
         if (!sc || sc === '0x') {
-            // Token tidak memiliki SC, coba cari di database berdasarkan simbol / nama
+            // Token tidak memiliki SC, cari di database snapshot SEMUA CEX (bukan hanya CEX yang sama)
             let matched = null;
             if (symbolLookupMap instanceof Map) {
-                const keyByCexSymbol = `CEX:${cexUp}__SYM:${symbol}`;
-                if (symbolLookupMap.has(keyByCexSymbol)) {
-                    matched = symbolLookupMap.get(keyByCexSymbol);
-                }
-                if (!matched && symbolLookupMap.has(`SYM:${symbol}`)) {
+                // ✅ LANGSUNG cari berdasarkan symbol di SEMUA CEX (tidak prioritaskan CEX yang sama)
+                if (symbolLookupMap.has(`SYM:${symbol}`)) {
                     matched = symbolLookupMap.get(`SYM:${symbol}`);
                 }
+                // ✅ Jika tidak ada, cari berdasarkan token name
                 if (!matched) {
                     const tokenNameLower = String(token.token_name || token.name || '').toLowerCase();
                     if (tokenNameLower && symbolLookupMap.has(`NAME:${tokenNameLower}`)) {
@@ -969,15 +1015,17 @@
                         sc: sc
                     };
                 } else {
-                    // Set default decimals 18 jika web3 tidak berhasil
-                    token.des_in = 18;
-                    token.decimals = 18;
-                    // console.warn(`⚠️ ${symbol}: Using default decimals (18) - Web3 returned no data`);
+                    // Set default decimals based on chain (9 for Solana, 18 for EVM)
+                    const defaultDecimals = getDefaultDecimalsByChain(chain);
+                    token.des_in = defaultDecimals;
+                    token.decimals = defaultDecimals;
+                    // console.warn(`⚠️ ${symbol}: Using default decimals (${defaultDecimals}) - Web3 returned no data`);
                 }
             } catch(e) {
-                // Set default decimals 18 jika error
-                token.des_in = 18;
-                token.decimals = 18;
+                // Set default decimals based on chain (9 for Solana, 18 for EVM)
+                const defaultDecimals = getDefaultDecimalsByChain(chain);
+                token.des_in = defaultDecimals;
+                token.decimals = defaultDecimals;
 
                 // Show toast error for Web3 fetch failure (with more details)
                 // Only show every 5th error to avoid spam
@@ -1012,12 +1060,10 @@
             // console.log(`✅ ${symbol}: DES already available (${token.des_in})`);
         }
 
+        // ✅ Update symbolLookupMap untuk pencarian berikutnya (SEMUA CEX)
         if (symbolLookupMap instanceof Map) {
             const symKey = `SYM:${symbol}`;
             symbolLookupMap.set(symKey, token);
-            if (cexUp) {
-                symbolLookupMap.set(`CEX:${cexUp}__SYM:${symbol}`, token);
-            }
             const nameKey = String(token.token_name || token.name || '').toLowerCase();
             if (nameKey) {
                 symbolLookupMap.set(`NAME:${nameKey}`, token);
@@ -1205,8 +1251,8 @@
                             const symbolResult = results.find(r => r.id === 2)?.result;
                             const nameResult = results.find(r => r.id === 3)?.result;
 
-                            // Fetch decimals
-                            let decimals = 18; // default
+                            // Fetch decimals (use chain-specific default)
+                            let decimals = getDefaultDecimalsByChain(chainKey);
                             if (decimalsResult && decimalsResult !== '0x' && !results.find(r => r.id === 1)?.error) {
                                 decimals = parseInt(decimalsResult, 16);
                             }
@@ -1331,9 +1377,12 @@
             );
         }
 
+        // Declare web3Cache in function scope so it's accessible in finally block
+        let web3Cache = null;
+
         try {
             // ========== LOAD WEB3 CACHE ==========
-            const web3Cache = await loadWeb3Cache();
+            web3Cache = await loadWeb3Cache();
             //console.log('[Web3 Cache] Loaded cache with', Object.keys(web3Cache).length, 'entries');
             // =====================================
 
@@ -1343,22 +1392,16 @@
             const existingTokens = Array.isArray(existingData[keyLower]) ? existingData[keyLower] : [];
 
             const snapshotMap = {}; // Map by SC address for quick lookup
-            const snapshotSymbolMap = new Map(); // Map by symbol/name for SC-less resolution
+            const snapshotSymbolMap = new Map(); // Map by symbol/name for SC-less resolution (ALL CEX)
             existingTokens.forEach(token => {
                 const sc = String(token.sc_in || token.sc || '').toLowerCase();
                 if (sc) snapshotMap[sc] = token;
                 const sym = String(token.symbol_in || token.symbol || '').toUpperCase();
-                const cexTok = String(token.cex || token.exchange || '').toUpperCase();
                 if (sym) {
+                    // ✅ Hanya simpan SYM: (tanpa CEX prefix) - mencakup SEMUA CEX
                     const symKey = `SYM:${sym}`;
                     if (!snapshotSymbolMap.has(symKey)) {
                         snapshotSymbolMap.set(symKey, token);
-                    }
-                    if (cexTok) {
-                        const cexSymKey = `CEX:${cexTok}__SYM:${sym}`;
-                        if (!snapshotSymbolMap.has(cexSymKey)) {
-                            snapshotSymbolMap.set(cexSymKey, token);
-                        }
                     }
                 }
                 const nameKey = String(token.token_name || token.name || '').toLowerCase();
@@ -1684,6 +1727,20 @@
 
                 if (result.status === 'fulfilled' && result.value?.validated) {
                     const { validated, hadDecimals, hadCachedData } = result.value;
+
+                    // ===== FILTER: Only include tokens with valid SC =====
+                    // Skip tokens without smart contract address
+                    const sc = String(validated.sc_in || '').trim().toLowerCase();
+                    const hasValidSC = sc && sc !== '0x' && sc.length > 6;
+
+                    if (!hasValidSC) {
+                        // console.log(`⚠️ Skipping ${validated.symbol_in || 'UNKNOWN'} from ${validated.cex || 'UNKNOWN'}: No valid contract address`);
+                        errorCount++;
+                        batchErrorCount++;
+                        batchErrorTokens.push(`${validated.symbol_in || '???'} (No SC)`);
+                        return; // Skip this token
+                    }
+
                     enrichedTokens.push(validated);
 
                     // Update statistics
@@ -1699,11 +1756,17 @@
                     batchErrorTokens.push(token.symbol_in || '???');
 
                     // console.error(`Validation failed for token ${token.symbol_in}:`, result.reason);
-                    enrichedTokens.push({
-                        ...token,
-                        des_in: 18,
-                        decimals: 18
-                    });
+                    // ===== FILTER: Don't push error tokens without SC either =====
+                    const errorSc = String(token.sc_in || '').trim().toLowerCase();
+                    const hasValidErrorSC = errorSc && errorSc !== '0x' && errorSc.length > 6;
+
+                    if (hasValidErrorSC) {
+                        enrichedTokens.push({
+                            ...token,
+                            des_in: 18,
+                            decimals: 18
+                        });
+                    }
                 }
             });
 

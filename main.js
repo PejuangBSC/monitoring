@@ -789,7 +789,7 @@ async function deferredInit() {
         // Create data attribute for color to be used by CSS
         const colorData = color ? `data-color="${color}"` : '';
 
-        return `<label class="uk-text-small ${cls}" data-val="${dval}" ${colorData} style="display:inline-flex;align-items:inherit;cursor:pointer;${styleDis}">
+        return `<label class="uk-text-small ${cls}" data-val="${dval}" ${colorData} style="display:inline-flex;align-items:center;cursor:pointer;${styleDis}">
             <input type="checkbox" class="uk-checkbox" id="${id}" ${checked && !disabled ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
             <span style="${color?`color:${color};`:''} padding-left:4px; font-weight:bolder;">${label}</span>&nbsp;${badge}
         </label>`;
@@ -1999,24 +1999,150 @@ $("#startSCAN").click(function () {
 
             // Upsert into TOKEN_MULTICHAIN by (chain, symbol_in, symbol_out)
             let multi = getTokensMulti();
-            const matchIdx = multi.findIndex(t => String(t.chain).toLowerCase() === chainKey && String(t.symbol_in||'').toUpperCase() === tokenObj.symbol_in.toUpperCase() && String(t.symbol_out||'').toUpperCase() === tokenObj.symbol_out.toUpperCase());
+
+            // ========== AGGRESSIVE DEBUGGING ==========
+            console.group(`[IMPORT DEBUG] Token Import Process`);
+            console.log(`🔍 Looking for: Chain="${chainKey.toUpperCase()}" Pair="${tokenObj.symbol_in}/${tokenObj.symbol_out}"`);
+            console.log(`📊 Total tokens in multichain: ${multi.length}`);
+
+            // Show all tokens in multichain
+            if (multi.length > 0) {
+                console.log(`📋 All tokens in multichain:`);
+                console.table(multi.map((t, idx) => ({
+                    Index: idx,
+                    Chain: String(t.chain).toUpperCase(),
+                    'Symbol In': t.symbol_in,
+                    'Symbol Out': t.symbol_out,
+                    Pair: `${t.symbol_in}/${t.symbol_out}`
+                })));
+            }
+
+            // Filter by chain
+            const sameChainTokens = multi.filter(t => String(t.chain).toLowerCase() === chainKey);
+            console.log(`🔎 Tokens in chain "${chainKey.toUpperCase()}": ${sameChainTokens.length}`);
+            if (sameChainTokens.length > 0) {
+                console.table(sameChainTokens.map((t, idx) => ({
+                    'Original Index': multi.indexOf(t),
+                    'Symbol In': t.symbol_in,
+                    'Symbol Out': t.symbol_out,
+                    Pair: `${t.symbol_in}/${t.symbol_out}`
+                })));
+            }
+
+            // Detailed match checking
+            console.log(`🔍 Checking for exact match:`);
+            const matchIdx = multi.findIndex(t => {
+                const chainMatch = String(t.chain).toLowerCase() === chainKey;
+                const symbolInMatch = String(t.symbol_in||'').toUpperCase() === tokenObj.symbol_in.toUpperCase();
+                const symbolOutMatch = String(t.symbol_out||'').toUpperCase() === tokenObj.symbol_out.toUpperCase();
+
+                console.log(`  Token ${multi.indexOf(t)}: Chain=${chainMatch} (${String(t.chain).toLowerCase()} vs ${chainKey}), SymIn=${symbolInMatch} (${String(t.symbol_in||'').toUpperCase()} vs ${tokenObj.symbol_in.toUpperCase()}), SymOut=${symbolOutMatch} (${String(t.symbol_out||'').toUpperCase()} vs ${tokenObj.symbol_out.toUpperCase()})`);
+
+                return chainMatch && symbolInMatch && symbolOutMatch;
+            });
+
+            if (matchIdx !== -1) {
+                console.warn(`⚠️ MATCH FOUND at index ${matchIdx}!`);
+                console.log(`Existing token:`, multi[matchIdx]);
+            } else {
+                console.log(`✅ NO MATCH - Token will be added as new`);
+            }
+            console.groupEnd();
+            // ========== END AGGRESSIVE DEBUGGING ==========
+
             let proceed = true;
             if (matchIdx !== -1) {
-                proceed = confirm('DATA KOIN di mode Multichain SUDAH ADA. Ganti dengan data ini?');
-                if (!proceed) return;
+                // Token already exists in multichain, show detailed confirmation
+                const existing = multi[matchIdx];
+                const existingCexs = (existing.selectedCexs || []).map(c => String(c).toUpperCase()).join(', ') || 'Tidak ada';
+                const existingDexs = (existing.selectedDexs || []).map(d => String(d).toUpperCase()).join(', ') || 'Tidak ada';
+                const newCexs = (tokenObj.selectedCexs || []).map(c => String(c).toUpperCase()).join(', ') || 'Tidak ada';
+                const newDexs = (tokenObj.selectedDexs || []).map(d => String(d).toUpperCase()).join(', ') || 'Tidak ada';
+
+                const detailMsg = `DATA KOIN di mode Multichain SUDAH ADA:\n\n` +
+                    `Chain: ${String(chainKey).toUpperCase()}\n` +
+                    `Pair : ${tokenObj.symbol_in}/${tokenObj.symbol_out}\n\n` +
+                    `DATA LAMA (di Multichain):\n` +
+                    `- CEX: ${existingCexs}\n` +
+                    `- DEX: ${existingDexs}\n\n` +
+                    `DATA BARU (dari form ini):\n` +
+                    `- CEX: ${newCexs}\n` +
+                    `- DEX: ${newDexs}\n\n` +
+                    `💡 Tip: Buka Console (F12) untuk melihat detail lengkap\n\n` +
+                    `Ganti dengan data baru?`;
+
+                proceed = confirm(detailMsg);
+                if (!proceed) {
+                    console.log('[IMPORT] User cancelled the import/replace operation');
+                    if (typeof toast !== 'undefined' && toast.info) toast.info('Import dibatalkan');
+                    return;
+                }
+                console.log('[IMPORT] Replacing existing token at index', matchIdx);
                 multi[matchIdx] = { ...multi[matchIdx], ...tokenObj };
             } else {
+                console.log('[IMPORT] Adding new token to multichain');
                 multi.push(tokenObj);
             }
+
             setTokensMulti(multi);
-            if (typeof toast !== 'undefined' && toast.success) toast.success('Koin berhasil disalin ke mode Multichain');
-            $('#FormEditKoinModal').hide();
-            try { if (typeof renderFilterCard === 'function') renderFilterCard(); } catch(_){}
+            console.log(`[IMPORT] Success! Token ${tokenObj.symbol_in}/${tokenObj.symbol_out} saved to multichain`);
+
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Koin ${tokenObj.symbol_in}/${tokenObj.symbol_out} (${String(chainKey).toUpperCase()}) berhasil disalin ke mode Multichain`);
+            }
+
+            // Close modal
+            if (window.UIkit?.modal) UIkit.modal('#FormEditKoinModal').hide();
+
+            // Refresh UI to show new/updated token
+            try {
+                if (typeof renderFilterCard === 'function') renderFilterCard();
+                console.log('[IMPORT] UI refreshed');
+            } catch(e) {
+                console.warn('[IMPORT] Failed to refresh UI:', e);
+            }
         } catch(e) {
-            // console.error('Copy to Multichain failed:', e);
-            if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal menyalin ke Multichain');
+            console.error('[IMPORT] Error during import:', e);
+            if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal menyalin ke Multichain: ' + e.message);
         }
     });
+
+    // ========== DEBUG HELPER: View Multichain Tokens ==========
+    // User can call this from browser console to see all tokens in multichain
+    // Usage: window.debugMultichainTokens() or window.debugMultichainTokens('ethereum')
+    window.debugMultichainTokens = function(chainFilter = null) {
+        try {
+            const multi = getTokensMulti();
+            console.log(`[DEBUG] Total tokens in multichain: ${multi.length}`);
+
+            if (chainFilter) {
+                const filtered = multi.filter(t => String(t.chain).toLowerCase() === String(chainFilter).toLowerCase());
+                console.log(`[DEBUG] Tokens for chain "${chainFilter}": ${filtered.length}`);
+                console.table(filtered.map(t => ({
+                    Chain: String(t.chain).toUpperCase(),
+                    Pair: `${t.symbol_in}/${t.symbol_out}`,
+                    CEX: (t.selectedCexs || []).join(', ') || '-',
+                    DEX: (t.selectedDexs || []).join(', ') || '-',
+                    Status: t.status ? 'ON' : 'OFF'
+                })));
+                return filtered;
+            } else {
+                console.table(multi.map(t => ({
+                    Chain: String(t.chain).toUpperCase(),
+                    Pair: `${t.symbol_in}/${t.symbol_out}`,
+                    CEX: (t.selectedCexs || []).join(', ') || '-',
+                    DEX: (t.selectedDexs || []).join(', ') || '-',
+                    Status: t.status ? 'ON' : 'OFF'
+                })));
+                return multi;
+            }
+        } catch(e) {
+            console.error('[DEBUG] Error:', e);
+            return null;
+        }
+    };
+    console.log('💡 Debug helper loaded: window.debugMultichainTokens() or window.debugMultichainTokens("ethereum")');
+    // ========== END DEBUG HELPER ==========
 
     $('#mgrTbody').on('click', '.mgrEdit', function () {
         try {
@@ -4516,6 +4642,14 @@ $(document).ready(function() {
             const cexUp = String(t.cex || '').toUpperCase();
             if (selectedCexs.length && !selectedCexs.includes(cexUp)) return false;
 
+            // ===== FILTER: Only show tokens with valid SC =====
+            // Skip tokens without smart contract address (untuk semua CEX, termasuk LBANK)
+            const sc = String(t.sc_in || t.contract_in || '').trim().toLowerCase();
+            const hasValidSC = sc && sc !== '0x' && sc.length > 6;
+            if (!hasValidSC) {
+                return false; // ❌ Skip token tanpa SC valid
+            }
+
             // Filter harga
             if (priceFilter !== 'all') {
                 const price = Number(t.current_price || 0);
@@ -5184,7 +5318,7 @@ $(document).on('click', '#histClearAll', async function(){
     };
 
     // Initialize modal when it's shown
-    $(document).on('beforeshow', '#bulk-modal-editor', function() {
+    $(document).on('beforeshow', '#bulk-modal-editor', async function() {
         const m = getAppMode();
         if (m.type !== 'single') {
             if (typeof toast !== 'undefined' && toast.warning) {
@@ -5193,10 +5327,10 @@ $(document).on('click', '#histClearAll', async function(){
             return false; // Prevent modal from opening
         }
         bulkState.chain = m.chain;
-        initBulkEditor();
+        await initBulkEditor();
     });
 
-    function initBulkEditor() {
+    async function initBulkEditor() {
         const chainKey = bulkState.chain;
         if (!chainKey) return;
 
@@ -5208,7 +5342,7 @@ $(document).on('click', '#histClearAll', async function(){
         const cexList = CONFIG_UI?.CEXES || [];
         cexList.forEach(cex => {
             const cexKey = cex.key;
-            const cexLabel = cex.label || cexKey;
+            const cexLabel = (cex.label || cexKey).toUpperCase();
             const cexColor = CONFIG_CEX?.[cexKey]?.WARNA || '#666';
             $cexContainer.append(`
                 <div class="uk-margin-small-bottom">
@@ -5228,7 +5362,7 @@ $(document).on('click', '#histClearAll', async function(){
         dexList.forEach(dexKey => {
             const dexConfig = CONFIG_DEXS?.[dexKey] || {};
             const dexUiConfig = CONFIG_UI?.DEXES?.find(d => d.key === dexKey) || {};
-            const dexLabel = dexConfig.label || dexUiConfig.label || String(dexKey).toUpperCase();
+            const dexLabel = (dexConfig.label || dexUiConfig.label || String(dexKey)).toUpperCase();
             const dexColor = dexConfig.warna || '#666';
 
             $dexContainer.append(`
@@ -5257,6 +5391,9 @@ $(document).on('click', '#histClearAll', async function(){
 
         // Initial update
         updateAffectedCount();
+
+        // Populate profile dropdown
+        await populateProfileSelect();
     }
 
     // Handle CEX filter changes
@@ -5276,10 +5413,305 @@ $(document).on('click', '#histClearAll', async function(){
         updateAffectedCount();
     });
 
-    // Handle Quick Set buttons
-    $(document).on('click', '.bulk-quick-set', function() {
-        const value = $(this).data('value');
-        $('.bulk-dex-left, .bulk-dex-right').val(value);
+    // ========== PROFILE MODAL MANAGEMENT ==========
+    // 🚀 CHAIN-BASED PROFILES: Each chain has its own set of profiles
+    // BSC profiles are independent from Ethereum profiles, etc.
+    function getProfileStorageKey(chainKey) {
+        const chain = String(chainKey || '').toUpperCase();
+        return `MODAL_PROFILES_${chain}`;
+    }
+
+    // Get storage key for last selected profile index per chain
+    function getLastProfileKey(chainKey) {
+        const chain = String(chainKey || '').toUpperCase();
+        return `MODAL_LAST_PROFILE_${chain}`;
+    }
+
+    // Save last selected profile index for a chain
+    function saveLastProfileIndex(chainKey, index) {
+        try {
+            const storageKey = getLastProfileKey(chainKey);
+            localStorage.setItem(storageKey, String(index));
+            console.log(`[Bulk Modal] Saved last profile index ${index} for chain: ${chainKey}`);
+        } catch(e) {
+            console.error('Error saving last profile index:', e);
+        }
+    }
+
+    // Load last selected profile index for a chain
+    async function loadLastProfileIndex(chainKey) {
+        try {
+            // Wait for IndexedDB-backed localStorage to be ready
+            if (window.__IDB_LOCALSTORAGE_READY__) {
+                await window.__IDB_LOCALSTORAGE_READY__;
+            }
+            const storageKey = getLastProfileKey(chainKey);
+            const stored = localStorage.getItem(storageKey);
+            return stored !== null ? parseInt(stored) : null;
+        } catch(e) {
+            console.error('Error loading last profile index:', e);
+            return null;
+        }
+    }
+
+    // Load profiles from IndexedDB (chain-specific)
+    async function loadProfiles(chainKey) {
+        try {
+            // Wait for IndexedDB-backed localStorage to be ready
+            console.log('[Bulk Modal] 🔄 Waiting for IndexedDB to be ready...');
+            if (window.__IDB_LOCALSTORAGE_READY__) {
+                await window.__IDB_LOCALSTORAGE_READY__;
+                console.log('[Bulk Modal] ✅ IndexedDB is ready');
+            }
+
+            const storageKey = getProfileStorageKey(chainKey);
+            console.log(`[Bulk Modal] 🔑 Loading profiles with key: ${storageKey}`);
+
+            const stored = localStorage.getItem(storageKey);
+            console.log(`[Bulk Modal] 📦 Raw data from storage:`, stored);
+
+            const profiles = stored ? JSON.parse(stored) : [];
+            console.log(`[Bulk Modal] ✅ Loaded ${profiles.length} profiles for chain: ${chainKey}`, profiles);
+
+            return profiles;
+        } catch(e) {
+            console.error('[Bulk Modal] ❌ Error loading profiles:', e);
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error(`Gagal memuat profil: ${e.message}`);
+            }
+            return [];
+        }
+    }
+
+    // Save profiles to IndexedDB (chain-specific)
+    function saveProfiles(chainKey, profiles) {
+        try {
+            const storageKey = getProfileStorageKey(chainKey);
+            const dataToSave = JSON.stringify(profiles);
+
+            console.log(`[Bulk Modal] 🔄 Saving ${profiles.length} profiles for chain: ${chainKey}`);
+            console.log(`[Bulk Modal] 🔑 Storage Key: ${storageKey}`);
+            console.log(`[Bulk Modal] 💾 Data to save:`, profiles);
+
+            localStorage.setItem(storageKey, dataToSave);
+
+            // Verify save was successful
+            const verification = localStorage.getItem(storageKey);
+            if (verification === dataToSave) {
+                console.log(`[Bulk Modal] ✅ Save VERIFIED for ${storageKey}`);
+                return true;
+            } else {
+                console.error(`[Bulk Modal] ❌ Save FAILED - verification mismatch for ${storageKey}`);
+                if (typeof toast !== 'undefined' && toast.error) {
+                    toast.error('Gagal menyimpan profil - verifikasi gagal');
+                }
+                return false;
+            }
+        } catch(e) {
+            console.error('[Bulk Modal] ❌ Error saving profiles:', e);
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error(`Gagal menyimpan profil: ${e.message}`);
+            }
+            return false;
+        }
+    }
+
+    // Populate profile dropdown (chain-specific)
+    async function populateProfileSelect() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) {
+            console.warn('[Bulk Modal] ⚠️ Cannot populate profiles - chain key is missing');
+            return;
+        }
+
+        console.log(`[Bulk Modal] 🔄 Populating profile dropdown for chain: ${chainKey}`);
+
+        const profiles = await loadProfiles(chainKey);
+        const $select = $('#profile-select');
+        $select.find('option:not(:first)').remove();
+
+        console.log(`[Bulk Modal] 📝 Adding ${profiles.length} profiles to dropdown`);
+
+        profiles.forEach((profile, index) => {
+            $select.append(`<option value="${index}">${profile.name}</option>`);
+        });
+
+        // 🚀 Auto-load last selected profile for this chain
+        const lastIndex = await loadLastProfileIndex(chainKey);
+        console.log(`[Bulk Modal] 🔍 Last profile index for ${chainKey}: ${lastIndex}`);
+
+        if (lastIndex !== null && lastIndex >= 0 && lastIndex < profiles.length) {
+            $select.val(lastIndex);
+            const profile = profiles[lastIndex];
+            if (profile) {
+                applyProfileValues(profile);
+                console.log(`[Bulk Modal] ✅ Auto-loaded profile "${profile.name}" for chain: ${chainKey}`);
+                if (typeof toast !== 'undefined' && toast.info) {
+                    toast.info(`Profil "${profile.name}" dimuat otomatis`);
+                }
+            }
+        } else {
+            console.log(`[Bulk Modal] ℹ️ No previous profile to auto-load for ${chainKey}`);
+        }
+    }
+
+    // Get current DEX values from inputs
+    function getCurrentDexValues() {
+        const values = {};
+        $('.bulk-dex-left').each(function() {
+            const dexKey = $(this).data('dex');
+            const left = parseFloat($(this).val()) || 0;
+            const right = parseFloat($(`.bulk-dex-right[data-dex="${dexKey}"]`).val()) || 0;
+            values[dexKey] = { left, right };
+        });
+        return values;
+    }
+
+    // Apply profile values to DEX inputs
+    function applyProfileValues(profile) {
+        const ranges = profile.ranges || {};
+        Object.keys(ranges).forEach(dexKey => {
+            const { left, right } = ranges[dexKey];
+            $(`.bulk-dex-left[data-dex="${dexKey}"]`).val(left);
+            $(`.bulk-dex-right[data-dex="${dexKey}"]`).val(right);
+        });
+    }
+
+    // Handle profile selection change
+    $(document).on('change', '#profile-select', async function() {
+        const selectedIndex = $(this).val();
+        if (selectedIndex === '') {
+            // Clear last profile when user selects "-- Pilih Profil --"
+            const chainKey = bulkState.chain;
+            if (chainKey) {
+                saveLastProfileIndex(chainKey, -1);
+            }
+            return;
+        }
+
+        const chainKey = bulkState.chain;
+        if (!chainKey) return;
+
+        const profiles = await loadProfiles(chainKey);
+        const profile = profiles[parseInt(selectedIndex)];
+        if (profile) {
+            applyProfileValues(profile);
+            // 🚀 Save this as the last selected profile for this chain
+            saveLastProfileIndex(chainKey, parseInt(selectedIndex));
+            if (typeof toast !== 'undefined' && toast.info) {
+                toast.info(`Profil "${profile.name}" diterapkan (Chain: ${chainKey.toUpperCase()})`);
+            }
+        }
+    });
+
+    // Handle save profile button
+    $(document).on('click', '#profile-save-btn', async function() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Chain tidak terdeteksi');
+            }
+            return;
+        }
+
+        const profileName = prompt('Masukkan nama profil:');
+        if (!profileName || profileName.trim() === '') {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Nama profil tidak boleh kosong');
+            }
+            return;
+        }
+
+        const currentValues = getCurrentDexValues();
+        const profiles = await loadProfiles(chainKey);
+
+        // Check if profile with same name exists
+        const existingIndex = profiles.findIndex(p => p.name === profileName.trim());
+
+        const newProfile = {
+            name: profileName.trim(),
+            chain: chainKey, // 🚀 Store chain info
+            ranges: currentValues,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        if (existingIndex >= 0) {
+            // Update existing profile
+            const confirm = window.confirm(`Profil "${profileName}" sudah ada. Timpa profil yang ada?`);
+            if (!confirm) return;
+
+            profiles[existingIndex] = newProfile;
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Profil "${profileName}" diperbarui (Chain: ${chainKey.toUpperCase()})`);
+            }
+        } else {
+            // Create new profile
+            profiles.push(newProfile);
+            if (typeof toast !== 'undefined' && toast.success) {
+                toast.success(`Profil "${profileName}" disimpan (Chain: ${chainKey.toUpperCase()})`);
+            }
+        }
+
+        const saveSuccess = saveProfiles(chainKey, profiles);
+
+        if (!saveSuccess) {
+            console.error('[Bulk Modal] ❌ Failed to save profile - aborting');
+            if (typeof toast !== 'undefined' && toast.error) {
+                toast.error('Profil gagal disimpan ke database');
+            }
+            return;
+        }
+
+        // 🚀 Save this profile index as last selected
+        const newIndex = existingIndex >= 0 ? existingIndex : profiles.length - 1;
+        saveLastProfileIndex(chainKey, newIndex);
+
+        await populateProfileSelect();
+
+        // Force verification after save
+        console.log('[Bulk Modal] 🔍 Verifying saved profiles...');
+        const verifyProfiles = await loadProfiles(chainKey);
+        console.log(`[Bulk Modal] ✅ Verification: ${verifyProfiles.length} profiles found in storage`);
+    });
+
+    // Handle delete profile button
+    $(document).on('click', '#profile-delete-btn', async function() {
+        const chainKey = bulkState.chain;
+        if (!chainKey) {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Chain tidak terdeteksi');
+            }
+            return;
+        }
+
+        const selectedIndex = $('#profile-select').val();
+        if (selectedIndex === '') {
+            if (typeof toast !== 'undefined' && toast.warning) {
+                toast.warning('Pilih profil yang akan dihapus');
+            }
+            return;
+        }
+
+        const profiles = await loadProfiles(chainKey);
+        const profile = profiles[parseInt(selectedIndex)];
+        if (!profile) return;
+
+        const confirm = window.confirm(`Hapus profil "${profile.name}"?`);
+        if (!confirm) return;
+
+        profiles.splice(parseInt(selectedIndex), 1);
+        saveProfiles(chainKey, profiles);
+
+        // 🚀 Clear last profile index since we deleted it
+        saveLastProfileIndex(chainKey, -1);
+
+        await populateProfileSelect();
+        $('#profile-select').val('');
+
+        if (typeof toast !== 'undefined' && toast.success) {
+            toast.success(`Profil "${profile.name}" dihapus (Chain: ${chainKey.toUpperCase()})`);
+        }
     });
 
     function getSelectedCexs() {
