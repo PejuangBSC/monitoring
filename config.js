@@ -1,8 +1,8 @@
 
 const CONFIG_APP = {
     APP: {
-        NAME: "MONITORING-KOIN",
-        VERSION: "9.0",
+        NAME: "MULTIPLUS",
+        VERSION: "9.9",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur autorun
@@ -688,25 +688,26 @@ const CONFIG_DEXS = {
         },
         allowFallback: true, // ✅ Enable fallback to SWOOP
     },
-    '1inch': {
-        label: '1inch',
-        badgeClass: 'bg-1inch',
-        disabled: true, // ⚠️ DISABLED - Disabled by user request
-        warna: "#06109bff",
-        builder: ({ chainCode, NameToken, NamePair }) => `https://1inch.com/swap?src=${chainCode}:${NameToken}&dst=${chainCode}:${NamePair}`,
-        fetchdex: {
-            primary: { tokentopair: 'hinkal-1inch', pairtotoken: 'hinkal-1inch' },
-            alternative: { tokentopair: 'zero-1inch', pairtotoken: 'zero-1inch' }
-        },
-        allowFallback: true, // Enable fallback ke alternative
-    },
+    // '1inch': {
+    //     label: '1inch',
+    //     badgeClass: 'bg-1inch',
+    //     disabled: true, // ⚠️ DISABLED - Disabled by user request
+    //     warna: "#06109bff",
+    //     builder: ({ chainCode, NameToken, NamePair }) => `https://1inch.com/swap?src=${chainCode}:${NameToken}&dst=${chainCode}:${NamePair}`,
+    //     fetchdex: {
+    //         primary: { tokentopair: 'hinkal-1inch', pairtotoken: 'hinkal-1inch' },
+    //         alternative: { tokentopair: 'zero-1inch', pairtotoken: 'zero-1inch' }
+    //     },
+    //     allowFallback: true, // Enable fallback ke alternative
+    // },
     rubic: {
         label: 'Rubic',
         badgeClass: 'bg-rubic',
-        disabled: true, // ⚠️ DISABLED - Disabled by user request
+        disabled: false, // ✅ ENABLED - Multi-quote aggregator
         proxy: true, // ✅ Enable CORS proxy to avoid 429/500 errors
         warna: "#00e28d", // Rubic green
-        isMultiDex: true, // ⭐ Multi-DEX aggregator - tampilkan top 3 providers
+        isMultiDex: true, // ⭐ Multi-DEX aggregator - tampilkan top N providers
+        maxProviders: 2, // ⚠️ LIMIT: Tampilkan 2 DEX teratas (dari 4 routes yang dikembalikan API)
         builder: ({ chainName, NameToken, NamePair }) => {
             // Rubic chain mapping (chainName from config → Rubic API format)
             const chainMap = {
@@ -790,13 +791,13 @@ const CONFIG_DEXS = {
         maxProviders: 2 // ⚠️ LIMIT: Hanya tampilkan 2 DEX teratas (tidak 3 seperti DZAP)
     },
 
+
     rango: {
         label: 'RANGO',
         badgeClass: 'bg-rango',
         warna: "#00d4ff", // Rango cyan/blue
-        disabled: true, // ⚠️ DISABLED: Even test API key returns 403 Forbidden
-        // Rango requires official production API key with domain whitelist
-        // Request key via Discord: https://discord.gg/rango (#support-ticket)
+        disabled: false, // ✅ ENABLED - Multi-quote aggregator
+        proxy: true, // ✅ Enable CORS proxy to avoid CORS errors
         builder: ({ chainCode, chainName, tokenAddress, pairAddress }) => {
             // Rango uses chain names, not chain IDs
             // Map common chains to Rango format
@@ -820,9 +821,10 @@ const CONFIG_DEXS = {
             }
         },
         allowFallback: false, // Rango is already a multi-chain aggregator
-        isMultiDex: true, // Tampilkan top 3 routes dengan format lengkap
-        maxProviders: 2 // Display top 3 routes
+        isMultiDex: true, // ⭐ Multi-DEX aggregator - tampilkan top N routes
+        maxProviders: 2 // ⚠️ LIMIT: Tampilkan 2 DEX teratas (dari routes yang dikembalikan API)
     },
+
 
     jupiter: {
         label: 'Jupiter',
@@ -872,24 +874,24 @@ const CONFIG_DEXS = {
         allowFallback: false // Kamino is Solana-specific multi-DEX aggregator
     },
 
-    fly: {
-        label: 'FLY',
-        badgeClass: 'bg-fly',
-        disabled: true, // ❌ DISABLED - FlyTrade not active
-        proxy: false,
-        warna: "#ba28f9ff", // fly purple
-        builder: ({ chainName, tokenAddress, pairAddress }) => {
-            const net = String(chainName || '').toLowerCase() || 'ethereum';
-            return `https://app.fly.trade/swap/${net}/${String(tokenAddress).toLowerCase()}/${net}/${String(pairAddress).toLowerCase()}`;
-        },
-        fetchdex: {
-            primary: {
-                tokentopair: 'fly',
-                pairtotoken: 'fly'
-            }
-        },
-        allowFallback: false
-    }
+    // fly: {
+    //     label: 'FLY',
+    //     badgeClass: 'bg-fly',
+    //     disabled: true, // ❌ DISABLED - FlyTrade not active
+    //     proxy: false,
+    //     warna: "#ba28f9ff", // fly purple
+    //     builder: ({ chainName, tokenAddress, pairAddress }) => {
+    //         const net = String(chainName || '').toLowerCase() || 'ethereum';
+    //         return `https://app.fly.trade/swap/${net}/${String(tokenAddress).toLowerCase()}/${net}/${String(pairAddress).toLowerCase()}`;
+    //     },
+    //     fetchdex: {
+    //         primary: {
+    //             tokentopair: 'fly',
+    //             pairtotoken: 'fly'
+    //         }
+    //     },
+    //     allowFallback: false
+    // }
 
 
 };
@@ -916,5 +918,203 @@ const CHAIN_SYNONYMS = {
     base: ['BASE', 'BASE MAINNET', 'BASEEVM'],
     solana: ['SOL', 'SOLANA', 'SPL', 'SOLANA MAINNET']
 };
+
+try { if (typeof window !== 'undefined') { window.CHAIN_SYNONYMS = window.CHAIN_SYNONYMS || CHAIN_SYNONYMS; } } catch (_) { }
+
+/**
+ * AUTO-GENERATE DEXS LIST FROM CONFIG_DEXS
+ * Replaces hardcoded DEXS arrays in CONFIG_CHAINS
+ * 
+ * @param {string} chainKey - Chain identifier (e.g., 'bsc', 'ethereum', 'solana')
+ * @returns {Array<string>} - Array of enabled DEX keys for this chain
+ */
+function getDexsForChain(chainKey) {
+    const chain = String(chainKey || '').toLowerCase();
+    const enabledDexs = [];
+
+    // Chain-specific DEX support mapping (based on implementations in dex.js)
+    const chainSupport = {
+        // EVM chains support (most DEXs)
+        evm: ['kyber', '0x', 'odos', 'paraswap', 'okx', 'lifi', 'rubic', 'rango', 'dzap'],
+        // Solana-specific DEXs
+        solana: ['lifi', '0x', 'okx', 'jupiter', 'dflow', 'kamino', 'rango', 'dzap']
+    };
+
+    // Determine which DEXs to check based on chain type
+    const supportedDexs = chain === 'solana' ? chainSupport.solana : chainSupport.evm;
+
+    // Filter DEXs that are both supported AND enabled
+    for (const dexKey of supportedDexs) {
+        const dexConfig = CONFIG_DEXS?.[dexKey];
+        if (!dexConfig) continue; // DEX not in CONFIG_DEXS
+
+        // Check if DEX is explicitly disabled
+        if (dexConfig.disabled === true) continue;
+
+        // Add to list
+        enabledDexs.push(dexKey);
+    }
+
+    return enabledDexs;
+}
+
+/**
+ * AUTO-GENERATE CEX LIST FROM CONFIG_CEX
+ * Returns array of enabled CEX with metadata
+ * 
+ * @returns {Array<Object>} - Array of CEX objects with key, label, color, etc.
+ */
+function getEnabledCexList() {
+    const cexList = [];
+
+    for (const cexKey in CONFIG_CEX) {
+        const cexConfig = CONFIG_CEX[cexKey];
+        if (!cexConfig) continue;
+
+        // Skip if explicitly disabled
+        if (cexConfig.disabled === true) continue;
+
+        cexList.push({
+            key: cexKey.toUpperCase(),
+            label: cexConfig.label || cexKey,
+            short: cexKey.substring(0, 4).toUpperCase(),
+            color: cexConfig.WARNA || '#666',
+            badgeClass: `bg-${cexKey.toLowerCase()}`
+        });
+    }
+
+    return cexList;
+}
+
+/**
+ * AUTO-GENERATE CHAIN LIST FROM CONFIG_CHAINS
+ * Returns array of enabled chains with metadata
+ * 
+ * @param {boolean} includeMultichain - Whether to include 'multichain' option
+ * @returns {Array<Object>} - Array of chain objects
+ */
+function getEnabledChainList(includeMultichain = false) {
+    const chainList = [];
+
+    for (const chainKey in CONFIG_CHAINS) {
+        // Skip multichain unless explicitly requested
+        if (chainKey === 'multichain' && !includeMultichain) continue;
+
+        const chainConfig = CONFIG_CHAINS[chainKey];
+        if (!chainConfig) continue;
+
+        // Skip if explicitly disabled
+        if (chainConfig.disabled === true) continue;
+
+        chainList.push({
+            key: chainKey.toLowerCase(),
+            label: chainConfig.Nama_Chain || chainKey,
+            short: chainConfig.Nama_Pendek || chainKey.toUpperCase(),
+            code: chainConfig.Kode_Chain,
+            color: chainConfig.WARNA || '#666',
+            icon: chainConfig.ICON || '',
+            badgeClass: `bg-${chainKey.toLowerCase()}`
+        });
+    }
+
+    return chainList;
+}
+
+/**
+ * AUTO-GENERATE PAIR LIST FOR A CHAIN
+ * Returns array of available pairs for a chain
+ * 
+ * @param {string} chainKey - Chain identifier
+ * @returns {Array<string>} - Array of pair symbols (e.g., ['USDT', 'BNB', 'ETH'])
+ */
+function getPairsForChain(chainKey) {
+    const chain = String(chainKey || '').toLowerCase();
+    const chainConfig = CONFIG_CHAINS?.[chain];
+
+    if (!chainConfig || !chainConfig.PAIRDEXS) {
+        return ['NON']; // Default fallback
+    }
+
+    return Object.keys(chainConfig.PAIRDEXS).map(key => key.toUpperCase());
+}
+
+/**
+ * GET CEX WALLET ADDRESS FOR CHAIN
+ * Returns CEX wallet address for a specific chain
+ * 
+ * @param {string} cexKey - CEX identifier (e.g., 'BINANCE')
+ * @param {string} chainKey - Chain identifier (e.g., 'bsc')
+ * @returns {Object|null} - Wallet info or null
+ */
+function getCexWalletForChain(cexKey, chainKey) {
+    const chain = String(chainKey || '').toLowerCase();
+    const cex = String(cexKey || '').toUpperCase();
+
+    const chainConfig = CONFIG_CHAINS?.[chain];
+    if (!chainConfig || !chainConfig.WALLET_CEX) return null;
+
+    return chainConfig.WALLET_CEX[cex] || null;
+}
+
+/**
+ * GET ALL CEX WALLETS FOR CHAIN
+ * Returns all CEX wallet addresses for a chain
+ * 
+ * @param {string} chainKey - Chain identifier
+ * @returns {Array<Object>} - Array of {cex, address, chainCEX}
+ */
+function getAllCexWalletsForChain(chainKey) {
+    const chain = String(chainKey || '').toLowerCase();
+    const chainConfig = CONFIG_CHAINS?.[chain];
+
+    if (!chainConfig || !chainConfig.WALLET_CEX) return [];
+
+    const wallets = [];
+    for (const cexKey in chainConfig.WALLET_CEX) {
+        const wallet = chainConfig.WALLET_CEX[cexKey];
+        if (wallet && wallet.address) {
+            wallets.push({
+                cex: cexKey,
+                address: wallet.address,
+                address2: wallet.address2,
+                address3: wallet.address3,
+                chainCEX: wallet.chainCEX
+            });
+        }
+    }
+
+    return wallets;
+}
+
+try {
+    if (typeof window !== 'undefined') {
+        // Expose auto-generation functions globally
+        window.getDexsForChain = getDexsForChain;
+        window.getEnabledCexList = getEnabledCexList;
+        window.getEnabledChainList = getEnabledChainList;
+        window.getPairsForChain = getPairsForChain;
+        window.getCexWalletForChain = getCexWalletForChain;
+        window.getAllCexWalletsForChain = getAllCexWalletsForChain;
+
+        // Auto-populate DEXS for all chains in CONFIG_CHAINS
+        if (window.CONFIG_CHAINS) {
+            for (const chainKey in window.CONFIG_CHAINS) {
+                const chain = window.CONFIG_CHAINS[chainKey];
+                // Only override if DEXS is not already customized or is using old hardcoded list
+                if (!chain.DEXS || Array.isArray(chain.DEXS)) {
+                    chain.DEXS = getDexsForChain(chainKey);
+                    console.log(`[CONFIG] Auto-generated DEXS for ${chainKey}:`, chain.DEXS);
+                }
+            }
+        }
+
+        // Log auto-generation summary
+        console.log('[CONFIG] Auto-generation functions loaded:', {
+            cexList: getEnabledCexList().map(c => c.key),
+            chainList: getEnabledChainList().map(c => c.key),
+            functions: ['getDexsForChain', 'getEnabledCexList', 'getEnabledChainList', 'getPairsForChain']
+        });
+    }
+} catch (_) { }
 
 try { if (typeof window !== 'undefined') { window.CHAIN_SYNONYMS = window.CHAIN_SYNONYMS || CHAIN_SYNONYMS; } } catch (_) { }
