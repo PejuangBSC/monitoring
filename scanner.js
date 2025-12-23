@@ -760,14 +760,37 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             const side = isKiri ? 'asks' : 'bids';
                             const maxModal = Number(isKiri ? modalKiri : modalKanan) || 0;
 
+                            // 🔍 DEBUG: Auto Volume settings and CEX data
+                            console.log('🎯 [SCANNER] Auto Volume Active');
+                            console.log('  Direction:', isKiri ? 'CEX→DEX (TokenToPair)' : 'DEX→CEX (PairToToken)');
+                            console.log('  Side:', side);
+                            console.log('  Max Modal:', maxModal);
+                            console.log('  Auto Vol Levels:', autoVolSettings.levels);
+                            console.log('  CEX Orderbook Available:', !!DataCEX.orderbook);
+                            console.log('  CEX Buy Token Price:', DataCEX.priceBuyToken);
+                            console.log('  CEX Sell Token Price:', DataCEX.priceSellToken);
+
                             autoVolResult = (typeof calculateAutoVolume === 'function')
                                 ? calculateAutoVolume(DataCEX.orderbook, maxModal, autoVolSettings.levels, side)
                                 : null;
 
+                            // 🔍 DEBUG: Auto Volume result
+                            console.log('📦 [SCANNER] Auto Volume Result:', autoVolResult);
+
                             if (autoVolResult && !autoVolResult.error && autoVolResult.totalCoins > 0) {
-                                // Auto Volume success
-                                modal = autoVolResult.actualModal;
+                                // ✅ CRITICAL FIX: Use actualModal for PNL calculation, not maxModal!
+                                // If orderbook volume is insufficient, actualModal < maxModal
+                                // PNL must be calculated based on the actual amount of coins purchased/sold
+                                modal = autoVolResult.actualModal;  // ← Use ACTUAL modal that was used!
                                 avgPriceCEX = autoVolResult.avgPrice;
+
+                                // 🔍 DEBUG: Modal validation
+                                if (autoVolResult.actualModal < maxModal) {
+                                    console.warn('⚠️  [AUTO VOLUME] Insufficient orderbook volume!');
+                                    console.warn('  Max Modal:', maxModal);
+                                    console.warn('  Actual Modal:', autoVolResult.actualModal);
+                                    console.warn('  Shortfall:', (maxModal - autoVolResult.actualModal).toFixed(2));
+                                }
 
                                 // ✅ FIX: Different amountIn per direction
                                 if (isKiri) {
@@ -779,8 +802,17 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const pricePair = DataCEX.priceBuyPair || 1;
                                     amountIn = autoVolResult.actualModal / pricePair;
                                 }
+
+                                // 🔍 DEBUG: Final values used
+                                console.log('✅ [SCANNER] Using Auto Volume:');
+                                console.log('  Modal (for PNL):', modal, '(ACTUAL, not max)');
+                                console.log('  Max Modal:', maxModal);
+                                console.log('  Amount In:', amountIn);
+                                console.log('  Avg Price CEX:', avgPriceCEX);
+                                console.log('  Last Level Price (for display):', autoVolResult.lastLevelPrice);
                             } else {
                                 // Fallback to fixed modal
+                                console.warn('⚠️  [SCANNER] Auto Volume fallback to fixed modal:', autoVolResult?.error || 'No valid result');
                                 modal = Number(isKiri ? modalKiri : modalKanan) || 0;
                                 amountIn = isKiri ? amount_in_token : amount_in_pair;
                                 avgPriceCEX = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
@@ -788,6 +820,12 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             }
                         } else {
                             // Fixed modal (existing behavior)
+                            if (autoVolSettings.enabled) {
+                                console.log('⏭️  [SCANNER] Auto Volume skipped:');
+                                console.log('  Auto Vol Enabled:', autoVolSettings.enabled);
+                                console.log('  Orderbook Available:', !!DataCEX.orderbook);
+                                console.log('  CEX Result OK:', cexResult.ok);
+                            }
                             modal = Number(isKiri ? modalKiri : modalKanan) || 0;
                             amountIn = isKiri ? amount_in_token : amount_in_pair;
                             avgPriceCEX = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
@@ -965,8 +1003,20 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     // Override CEX price for display with lastLevelPrice
                                     if (isKiri) {
                                         update.cexBuyPriceDisplay = autoVolResult.lastLevelPrice;
+                                        console.log('🎨 [SCANNER] CEX BUY Price Display Override:', {
+                                            originalPrice: DataCEX.priceBuyToken,
+                                            displayPrice: autoVolResult.lastLevelPrice,
+                                            avgPrice: autoVolResult.avgPrice,
+                                            levelsUsed: autoVolResult.levelsUsed
+                                        });
                                     } else {
                                         update.cexSellPriceDisplay = autoVolResult.lastLevelPrice;
+                                        console.log('🎨 [SCANNER] CEX SELL Price Display Override:', {
+                                            originalPrice: DataCEX.priceSellToken,
+                                            displayPrice: autoVolResult.lastLevelPrice,
+                                            avgPrice: autoVolResult.avgPrice,
+                                            levelsUsed: autoVolResult.levelsUsed
+                                        });
                                     }
                                 }
 

@@ -85,26 +85,10 @@
                 return chainKeys;
             }
 
-
             // Fallback: Detect from IndexedDB keys
-            console.warn('[Database Viewer] CONFIG_CHAINS not found, using auto-generation fallback');
-
-            // ✅ AUTO-GENERATED: Try to get from function first, then ultimate fallback
-            if (typeof getEnabledChainList === 'function') {
-                try {
-                    const autoChains = getEnabledChainList().map(c => c.key);
-                    if (autoChains.length > 0) {
-                        console.log('[Database Viewer] Using auto-generated chains:', autoChains);
-                        return autoChains;
-                    }
-                } catch (e) {
-                    console.warn('[Database Viewer] Auto-generation failed:', e);
-                }
-            }
-
-            // Ultimate hardcoded fallback (only if config system completely fails)
-            console.warn('[Database Viewer] Using ultimate fallback chain list');
-            return ['bsc', 'ethereum', 'solana', 'polygon', 'arbitrum', 'base'];
+            console.warn('[Database Viewer] CONFIG_CHAINS not found, using fallback chain list');
+            // Hardcoded common chains sebagai fallback
+            return ['bsc', 'ethereum', 'solana', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'fantom', 'base', 'ton'];
         } catch (err) {
             console.error('[Database Viewer] Error getting chain keys:', err);
             // Ultimate fallback

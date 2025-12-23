@@ -591,10 +591,11 @@ function renderTokenManagementList() {
   const controls = (() => {
     const base = [
       `<button id=\"btnNewToken\" class=\"uk-button uk-button-default uk-button-small\" title=\"Tambah Data Koin\"><span uk-icon=\"plus-circle\"></span> ADD COIN</button>`,
+      `<button id=\"btnToggleMgrFilter\" class=\"uk-button uk-button-small uk-button-primary\" title=\"Toggle Filter Setting\"><span uk-icon=\"settings\"></span> FILTER</button>`,
       `<button id=\"btnExportTokens\" data-feature=\"export\" class=\"uk-button uk-button-small uk-button-secondary\" title=\"Export CSV\"><span uk-icon=\"download\"></span> Export</button>`,
       `<button id=\"btnImportTokens\" data-feature=\"import\" class=\"uk-button uk-button-small uk-button-danger\" title=\"Import CSV\"><span uk-icon=\"upload\"></span> Import</button>`,
       `<input type=\"file\" id=\"uploadJSON\" accept=\".csv,text/csv\" style=\"display:none;\" onchange=\"uploadTokenScannerCSV(event)\"> <button type="button" id="btn-cancel-setting" class="uk-button uk-button-muted uk-button-small">
-        <span uk-icon="icon:  arrow-left" class="uk-text-primary"></span>  <span class="uk-text-primary">KEMBALI</span> 
+        <span uk-icon="icon:  arrow-left" class="uk-text-primary"></span>  <span class="uk-text-primary">KEMBALI</span>
       </button>  `
     ];
     // Add SYNC button only for single chain mode
@@ -605,18 +606,108 @@ function renderTokenManagementList() {
     return base.join('\n');
   })();
 
+  // ✅ Build filter chips visual (CEX/Pair/DEX)
+  let filterChipsHtml = '';
+  let hasActiveFilters = false;
+  if (m.type === 'single') {
+    const chainKey = m.chain;
+    const filters = getFilterChain(chainKey) || { cex: [], pair: [], dex: [] };
+    const cexSel = filters.cex || [];
+    const pairSel = filters.pair || [];
+    const dexSel = (filters.dex || []).map(x => String(x).toLowerCase());
+    hasActiveFilters = cexSel.length > 0 && pairSel.length > 0 && dexSel.length > 0;
+
+    const cexChips = cexSel.map(cx => {
+      const col = CONFIG_CEX?.[cx]?.WARNA || '#666';
+      return `<span class="filter-chip" style="background:${col}; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${String(cx).toUpperCase()}</span>`;
+    }).join('');
+
+    const pairChips = pairSel.map(p => {
+      return `<span class="filter-chip" style="background:#28a745; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${String(p).toUpperCase()}</span>`;
+    }).join('');
+
+    const dexChips = dexSel.map(dx => {
+      const col = (CONFIG_DEXS?.[dx]?.warna || CONFIG_DEXS?.[dx]?.WARNA) || '#333';
+      return `<span class="filter-chip" style="background:${col}; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${String(dx).toUpperCase()}</span>`;
+    }).join('');
+
+    if (cexChips || pairChips || dexChips) {
+      filterChipsHtml = `
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${cexChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:50px; display:inline-block;">CEX:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${cexChips}</span>
+          </div>` : ''}
+          ${pairChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:50px; display:inline-block;">PAIR:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${pairChips}</span>
+          </div>` : ''}
+          ${dexChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:50px; display:inline-block;">DEX:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${dexChips}</span>
+          </div>` : ''}
+        </div>
+      `;
+    }
+  } else {
+    const filters = getFilterMulti() || { chains: [], cex: [], dex: [] };
+    const chainsSel = (filters.chains || []).map(c => String(c).toLowerCase());
+    const cexSel = filters.cex || [];
+    const dexSel = (filters.dex || []).map(x => String(x).toLowerCase());
+    const saved = getFromLocalStorage('FILTER_MULTICHAIN', null);
+    hasActiveFilters = saved !== null && chainsSel.length > 0 && cexSel.length > 0 && dexSel.length > 0;
+
+    const chainChips = chainsSel.map(ch => {
+      const cfg = CONFIG_CHAINS?.[ch] || {};
+      const col = cfg.WARNA || '#666';
+      const label = (cfg.Nama_Pendek || cfg.SHORT_NAME || ch).toUpperCase();
+      return `<span class="filter-chip" style="background:${col}; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${label}</span>`;
+    }).join('');
+
+    const cexChips = cexSel.map(cx => {
+      const col = CONFIG_CEX?.[cx]?.WARNA || '#666';
+      return `<span class="filter-chip" style="background:${col}; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${String(cx).toUpperCase()}</span>`;
+    }).join('');
+
+    const dexChips = dexSel.map(dx => {
+      const col = (CONFIG_DEXS?.[dx]?.warna || CONFIG_DEXS?.[dx]?.WARNA) || '#333';
+      return `<span class="filter-chip" style="background:${col}; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px; margin:2px;">${String(dx).toUpperCase()}</span>`;
+    }).join('');
+
+    if (chainChips || cexChips || dexChips) {
+      filterChipsHtml = `
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${chainChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:60px; display:inline-block;">CHAIN:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${chainChips}</span>
+          </div>` : ''}
+          ${cexChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:60px; display:inline-block;">CEX:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${cexChips}</span>
+          </div>` : ''}
+          ${dexChips ? `<div class="uk-text-small">
+            <b class="uk-text-muted" style="min-width:60px; display:inline-block;">DEX:</b>
+            <span style="cursor:pointer;" onclick="$('#ScannerFilterModal').trigger('click');" title="Klik untuk edit filter">${dexChips}</span>
+          </div>` : ''}
+        </div>
+      `;
+    }
+  }
+
   // Render header only once; on subsequent calls, only update stats summary to avoid losing focus on input
   const $hdr = $('#token-management-stats');
   if ($hdr.find('.mgr-header').length === 0) {
-    const headerHtml = `<div class="uk-flex uk-flex-between uk-flex-middle mgr-header" style="gap:8px; align-items:center;">
-                        <!-- Bagian kiri -->
-                        <div id="mgrStatsSummary" class="uk-flex uk-flex-middle" style="white-space:nowrap;">
-                            <h4 class="uk-margin-remove">${statsHtml}</h4>
-                        </div>
+    const headerHtml = `<div class="mgr-header">
+                        <div class="uk-flex uk-flex-between uk-flex-middle" style="gap:8px; align-items:center;">
+                            <!-- Bagian kiri -->
+                            <div id="mgrStatsSummary" class="uk-flex uk-flex-middle" style="white-space:nowrap;">
+                                <h4 class="uk-margin-remove">${statsHtml}</h4>
+                            </div>
 
-                        <!-- Bagian kanan -->
-                        <div class="uk-flex uk-flex-middle" style="gap:6px; align-items:center;">
-                            ${controls}
+                            <!-- Bagian kanan -->
+                            <div class="uk-flex uk-flex-middle" style="gap:6px; align-items:center;">
+                                ${controls}
+                            </div>
                         </div>
                     </div>
                     `;
@@ -935,12 +1026,47 @@ function DisplayPNL(data) {
     const actualModal = n(data.autoVolResult.actualModal || 0);
     const maxModal = n(data.maxModal || 0);
 
+    // 🔍 DEBUG: Auto Volume data received
+    const isInsufficientVolume = actualModal < maxModal;
+    if (isInsufficientVolume) {
+      console.warn('⚠️  [DOM-RENDERER] INSUFFICIENT ORDERBOOK VOLUME!');
+      console.warn('  DEX:', dextype);
+      console.warn('  Max Modal:', maxModal);
+      console.warn('  Actual Modal:', actualModal);
+      console.warn('  Shortfall:', (maxModal - actualModal).toFixed(2));
+      console.warn('  ⚠️  PNL will be calculated using ACTUAL modal ($' + actualModal.toFixed(2) + '), not max modal!');
+    }
+    console.log('🖼️  [DOM-RENDERER] Auto Volume Data Received:', {
+      dex: dextype,
+      actualModal,
+      maxModal,
+      levelsUsed: data.autoVolResult.levelsUsed,
+      lastLevelPrice: data.autoVolResult.lastLevelPrice,
+      avgPrice: data.autoVolResult.avgPrice,
+      totalCoins: data.autoVolResult.totalCoins,
+      volumeStatus: isInsufficientVolume ? '⚠️ INSUFFICIENT' : '✅ SUFFICIENT'
+    });
+
     if (actualModal > 0 && maxModal > 0) {
       try {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           const baseName = String(dextype || '').toUpperCase().substring(0, 6);
-          const modalText = `[$${maxModal.toFixed(0)}] <span style="color:#3fa9a7">│ ${actualModal.toFixed(0)}$</span>`;
+
+          // ⚠️ Highlight if actualModal < maxModal (insufficient orderbook volume)
+          const isInsufficient = actualModal < maxModal;
+
+          let modalText;
+          if (isInsufficient) {
+            // Show actual modal with warning icon if insufficient
+            const warningIcon = '<span style="color:#ff6b35; font-size:10px;" title="Insufficient orderbook volume! Using partial modal.">⚠️</span>';
+            modalText = `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ${warningIcon}`;
+          } else {
+            // Show only checkmark if sufficient
+            const checkIcon = '<span style="color:#3fa9a7; font-size:11px;" title="Orderbook volume sufficient">✅</span>';
+            modalText = `[$${maxModal.toFixed(0)}] ${checkIcon}`;
+          }
+
           dexNameStrong.html(`${baseName} ${modalText}`);
         }
       } catch (_) { }
@@ -951,9 +1077,19 @@ function DisplayPNL(data) {
 
     // Override CEX prices with lastLevelPrice for display
     if (data.cexBuyPriceDisplay) {
+      console.log('💵 [DOM-RENDERER] Override CEX BUY Price:', {
+        original: priceBuyToken_CEX,
+        override: data.cexBuyPriceDisplay,
+        difference: ((data.cexBuyPriceDisplay - priceBuyToken_CEX) / priceBuyToken_CEX * 100).toFixed(2) + '%'
+      });
       displayPriceBuyToken = data.cexBuyPriceDisplay;
     }
     if (data.cexSellPriceDisplay) {
+      console.log('💵 [DOM-RENDERER] Override CEX SELL Price:', {
+        original: priceSellToken_CEX,
+        override: data.cexSellPriceDisplay,
+        difference: ((data.cexSellPriceDisplay - priceSellToken_CEX) / priceSellToken_CEX * 100).toFixed(2) + '%'
+      });
       displayPriceSellToken = data.cexSellPriceDisplay;
     }
   }
@@ -1231,6 +1367,17 @@ function DisplayPNL(data) {
   const refCexBuy = n(displayPriceBuyToken);
   const refCexSell = n(displayPriceSellToken);
 
+  // 🔍 DEBUG: Log CEX prices used for calculation vs display
+  console.log('🎯 [DisplayPNL] Price Analysis:', {
+    dex: dextype,
+    direction: trx,
+    priceBuyToken_CEX_original: priceBuyToken_CEX,
+    priceSellToken_CEX_original: priceSellToken_CEX,
+    displayPriceBuyToken: displayPriceBuyToken,
+    displayPriceSellToken: displayPriceSellToken,
+    autoVolActive: !!(data.autoVolResult && data.maxModal)
+  });
+
   let dexUsdtPerToken;
   if (lower(trx) === 'tokentopair') {
     if (refCexBuy > 0 && candA > 0 && candB > 0) {
@@ -1272,6 +1419,21 @@ function DisplayPNL(data) {
     const inv = sellPrice > 0 ? (1 / sellPrice) : 0;
     tipSell = `${Name_out} -> USDT | ${CEX} | ${fmtIDR(sellPrice)} | ${inv > 0 && isFinite(inv) ? inv.toFixed(6) : 'N/A'} ${Name_in}/${Name_out}`;
   }
+
+  // 🔍 DEBUG: Final buy/sell prices for display
+  console.log('💰 [DisplayPNL] Final Display Prices:', {
+    dex: dextype,
+    direction,
+    Name_in,
+    Name_out,
+    buyPrice,
+    sellPrice,
+    dexUsdtPerToken,
+    profitLoss: pnl,
+    totalValue: n(totalValue),
+    totalModal: n(totalModal),
+    anomaly: direction === 'pairtotoken' && sellPrice < buyPrice ? '⚠️ SELL < BUY (Should be LOSS!)' : direction === 'tokentopair' && buyPrice > sellPrice ? '⚠️ BUY > SELL (Should be LOSS!)' : 'OK'
+  });
 
   // Re-apply detailed title log only on price links when result is complete (not for errors)
   if (__titleLog && __titleLog.length > 0) {
@@ -1601,6 +1763,29 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
   }
   const profitLoss = totalValue - totalModal;
   const profitLossPercent = totalModal !== 0 ? (profitLoss / totalModal) * 100 : 0;
+
+  // 🔍 DEBUG: PNL Calculation Details
+  console.log('📊 [calculateResult] PNL Calculation:', {
+    dex: dextype,
+    direction: trx,
+    Name_in,
+    Name_out,
+    amount_in,
+    amount_out,
+    priceBuyToken_CEX,
+    priceSellToken_CEX,
+    priceBuyPair_CEX,
+    priceSellPair_CEX,
+    Modal,
+    totalFee,
+    totalModal,
+    totalValue,
+    profitLoss,
+    formula: trx === 'TokentoPair'
+      ? `totalValue = ${amount_out} × ${priceSellPair_CEX} = ${totalValue}`
+      : `totalValue = ${amount_out} × ${priceSellToken_CEX} = ${totalValue}`,
+    anomaly: profitLoss > 0 && trx === 'PairtoToken' && priceSellToken_CEX < priceBuyToken_CEX ? '⚠️ PROFIT but SELL < BUY!' : 'Normal'
+  });
 
   const linkDEX = generateDexLink(
     dextype,
