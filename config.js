@@ -1,7 +1,7 @@
 
 const CONFIG_APP = {
     APP: {
-        NAME: "MULTIPLUS",
+        NAME: "MONITORING-KOIN",
         VERSION: "9.9",
         SCAN_LIMIT: false,
         AUTORUN: true,
