@@ -57,6 +57,11 @@
 
             <img class="icon" id="SettingConfig" data-feature="settings" title="CONFIG SCANNER" width="24px"
               src="https://cdn-icons-png.flaticon.com/512/771/771203.png" />
+
+            <!-- Calculator Icon - Always accessible -->
+            <img class="icon" id="openCalculatorModal" title="KALKULATOR CRYPTO (Ctrl+K)" width="24px"
+              src="https://cdn-icons-png.flaticon.com/512/342/342344.png" style="cursor: pointer;" />
+
             <!-- <img class="icon" id="reload" data-feature="reload" title="RESET PROSES" width="24px" src="https://cdn-icons-png.flaticon.com/256/10264/10264169.png" /> -->
 
             <a href="extra/modal.html" target="_blank" data-feature="assets"><img class="icon" title="PORTOFOLIO ASSET"
@@ -297,6 +302,8 @@
                     placeholder="0x..." aria-label="wallet address">
                 </div>
               </div>
+
+              <!-- ✅ 0x API key input removed - now managed in secrets.js -->
 
               <div class="uk-grid-small uk-margin-small-top" uk-grid>
                 <div class="uk-width-1-2">
@@ -1124,7 +1131,72 @@
     </div>
   </div>
 
+  <!-- Modal: Kalkulator Crypto -->
+  <div id="calculator-modal" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body uk-width-large">
+      <button class="uk-modal-close-default" type="button" uk-close></button>
 
+      <h3 class="uk-heading-divider uk-text-center uk-text-primary uk-margin-small-bottom">
+        <span uk-icon="icon: cog"></span> KALKULATOR CRYPTO
+      </h3>
+      <p class="uk-text-center uk-text-small uk-text-primary uk-margin-remove-top">
+        <span uk-icon="icon: info"></span> Konversi Harga Crypto Secara Realtime
+      </p>
+
+      <!-- Input Fields for Cryptocurrency Values -->
+      <div class="uk-grid-small uk-child-width-1-1" uk-grid>
+        <div>
+          <label class="uk-form-label uk-text-bold">USDT</label>
+          <input id="usdtprice" class="uk-input" type="number" step="any" placeholder="0.00">
+        </div>
+        <div>
+          <label class="uk-form-label uk-text-bold">IDR</label>
+          <input id="idrprice" class="uk-input" type="number" step="any" placeholder="0.00">
+        </div>
+        <div>
+          <label class="uk-form-label uk-text-bold">BTC</label>
+          <input id="btcprice" class="uk-input" type="number" step="any" placeholder="0.00">
+        </div>
+        <div>
+          <label class="uk-form-label uk-text-bold">ETH</label>
+          <input id="ethprice" class="uk-input" type="number" step="any" placeholder="0.00">
+        </div>
+        <div>
+          <label class="uk-form-label uk-text-bold">BNB</label>
+          <input id="bnbprice" class="uk-input" type="number" step="any" placeholder="0.00">
+        </div>
+
+        <!-- Custom Token -->
+        <div>
+          <label class="uk-form-label uk-text-bold uk-text-danger">CUSTOM TOKEN</label>
+          <div class="uk-grid-small" uk-grid>
+            <div class="uk-width-1-2">
+              <input type="text" class="uk-input" id="random1symbol" placeholder="Symbol (e.g., SOL)">
+            </div>
+            <div class="uk-width-1-2">
+              <input type="number" step="any" class="uk-input" id="random1price" placeholder="Harga" readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div>
+          <div class="uk-grid-small" uk-grid>
+            <div class="uk-width-1-2">
+              <button class="uk-button uk-button-danger uk-button-small uk-width-1-1" id="cekTokensBtn">
+                <span uk-icon="search"></span> Cek Token
+              </button>
+            </div>
+            <div class="uk-width-1-2">
+              <button class="uk-button uk-button-primary uk-button-small uk-width-1-1" id="updatePriceBtn">
+                <span uk-icon="refresh"></span> Update Price
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================================= -->
   <!-- SCRIPT LOADING ORDER - REFACTORED MODULAR ARCHITECTURE                  -->
@@ -1193,6 +1265,9 @@
   <!-- 11. LEGACY FILES (remaining code) -->
   <script src="scanner.js"></script><!-- Remaining scanner logic -->
   <script src="main.js"></script><!-- Remaining main logic -->
+
+  <!-- 12. CALCULATOR CRYPTO -->
+  <script src="calculator-crypto.js"></script><!-- Crypto calculator feature -->
 
   <!-- ========================================================================= -->
   <!-- END SCRIPT LOADING                                                       -->

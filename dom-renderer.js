@@ -1285,6 +1285,8 @@ function DisplayPNL(data) {
           ? lower(bestSubRes.dexTitle)  // Kirim ke card DEX spesifik jika hanya 1 provider
           : lower(dextype);              // Kirim ke card aggregator jika multi-provider
 
+        console.log(`✅ [Multi-DEX] Sending signal to: ${signalDexType}, Token: ${Name_in}->${Name_out}, PNL: ${bestPnl.toFixed(2)}`);
+
         // Kirim signal
         InfoSinyal(
           signalDexType,            // DEX type: provider spesifik atau aggregator
@@ -1302,6 +1304,11 @@ function DisplayPNL(data) {
           idPrefix,                 // ID prefix
           baseId                    // Base ID
         );
+      } else if (!shouldHighlight) {
+        // 🔍 DEBUG: Log why multi-DEX signal was filtered out
+        console.log(`⚠️ [Multi-DEX] Signal FILTERED OUT for ${Name_in}->${Name_out} on ${dextype}:`, {
+          bestPnl: bestPnl.toFixed(2), filterPNLValue, shouldHighlight
+        });
       }
 
       return; // Exit early - skip normal single-DEX rendering
@@ -1571,6 +1578,11 @@ function DisplayPNL(data) {
   const passSignal = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
   if (passSignal && typeof InfoSinyal === 'function') {
     InfoSinyal(lower(dextype), NameX, pnl, feeAll, upper(cex), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix, baseId);
+  } else if (!passSignal) {
+    // 🔍 DEBUG: Log why signal was filtered out
+    console.log(`⚠️ [DisplayPNL] Signal FILTERED OUT for ${upper(Name_in)}->${upper(Name_out)} on ${upper(dextype)}:`, {
+      passPNL, checkVol, volOK, pnl: pnl.toFixed(2), filterPNLValue, vol: n(vol), Modal: n(Modal)
+    });
   }
 
   // --- Ambil status WD/DP detail untuk TOKEN & PAIR (sekali saja)
@@ -1670,12 +1682,14 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   const signalItemId = `signal_${idPrefix}${baseId}`;
 
   // Item sinyal: kompak + border kanan (separator)
+  // ✅ FIX: Round modal value properly (no floating point errors)
+  const modalRounded = Number(modal) >= 100 ? Math.round(Number(modal)) : Number(modal).toFixed(2);
   const sLink = `
     <div id="${signalItemId}" class="signal-item uk-flex uk-flex-middle uk-flex-nowrap uk-text-small uk-padding-remove-vertical" >
       <a href="#${idPrefix}${baseId}" class="uk-link-reset " style="text-decoration:none; font-size:12px; margin-top:2px; margin-left:4px;">
         <span class="${Number(PNL) > filterPNLValue ? 'signal-highlight' : ''}" style="color:${warnaCEX}; ${highlightStyle}; display:inline-block; font-weight:bolder;">
           🔸 ${String(cex).slice(0, 3).toUpperCase()}X
-          <span class="uk-text-muted">:${modal}</span>
+          <span class="uk-text-muted">:${modalRounded}</span>
           <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}:
           <span class="uk-text-muted">${Number(PNL).toFixed(2)}$</span>
         </span>
@@ -1683,12 +1697,22 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     </div>`;
 
   // FIX: Cek apakah signal dengan ID ini sudah ada, jika sudah skip (prevent duplicate)
-  const $container = $("#sinyal" + DEXPLUS.toLowerCase());
+  const dexLowerKey = String(DEXPLUS).toLowerCase();
+  const $container = $("#sinyal" + dexLowerKey);
   const existingSignal = document.getElementById(signalItemId);
+
+  // ⚠️ CRITICAL FIX: Check if signal card container exists
+  if (!$container || $container.length === 0) {
+    console.warn(`❌ [InfoSinyal] Signal card container NOT FOUND for DEX: "${DEXPLUS}" (looking for #sinyal${dexLowerKey})`);
+    console.warn(`   Token: ${NameToken}->${NamePair}, CEX: ${cex}, PNL: ${Number(PNL).toFixed(2)}, Chain: ${nameChain}`);
+    console.warn(`   Available signal cards:`, Array.from(document.querySelectorAll('[id^="sinyal"]')).map(el => el.id));
+    return; // Exit early if container doesn't exist
+  }
 
   if (!existingSignal) {
     // Signal belum ada, tambahkan
     $container.append(sLink);
+    console.log(`✅ [InfoSinyal] Signal added to DEX: ${DEXPLUS}, Token: ${NameToken}->${NamePair}, PNL: ${Number(PNL).toFixed(2)}`);
   } else {
     // Signal sudah ada, update saja (optional: bisa skip update jika tidak perlu)
     // Untuk sekarang kita skip agar tidak duplicate
@@ -1697,7 +1721,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
 
   // Pastikan kartu sinyal DEX utama terlihat ketika ada item sinyal // REFACTORED
   if (typeof window !== 'undefined' && typeof window.showSignalCard === 'function') {
-    window.showSignalCard(DEXPLUS.toLowerCase());
+    window.showSignalCard(dexLowerKey);
   }
 
   const audio = new Audio('audio.mp3');
