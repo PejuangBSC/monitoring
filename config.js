@@ -1,7 +1,7 @@
 
 const CONFIG_APP = {
     APP: {
-        NAME: "MULTICHECKER-DEV",
+        NAME: "MONITORING-KOIN",
         VERSION: "26.01",
         SCAN_LIMIT: false,
         AUTORUN: true,
