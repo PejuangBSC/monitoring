@@ -267,6 +267,8 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
       const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-primary');
+       const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-secondary');
+     
       const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UNX', 'uk-text-success');
       const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-danger');
       // DZAP: Solana uses chain ID 7565164
@@ -275,6 +277,18 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       // Jumper (LIFI): Solana uses chain ID 1151111081099710
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
       const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-warning');
+
+      // Rango: Multi-chain aggregator (requires blockchain name mapping)
+      const rangoChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX_CCHAIN', 'solana': 'SOLANA' };
+      const rangoChain = rangoChainMap[String(data.chain || '').toLowerCase()] || String(data.chain || '').toUpperCase();
+      // Rango format: fromToken=SYMBOL for native, fromToken=SYMBOL--ADDRESS for tokens
+      const rangoFromToken = String(data.sc_in || '').toLowerCase() === chainConfig.NATIVE_TOKEN?.toLowerCase()
+        ? (data.symbol_in || '').toUpperCase()
+        : `${(data.symbol_in || '').toUpperCase()}--${data.sc_in}`;
+      const rangoToToken = String(data.sc_out || '').toLowerCase() === chainConfig.NATIVE_TOKEN?.toLowerCase()
+        ? (data.symbol_out || '').toUpperCase()
+        : `${(data.symbol_out || '').toUpperCase()}--${data.sc_out}`;
+      const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${rangoChain}&fromToken=${rangoFromToken}&toBlockchain=${rangoChain}&toToken=${rangoToToken}`, '#RGX', 'uk-text-warning');
 
       // Rubic: Multi-chain aggregator (requires chain name mapping)
       const rubicChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX' };
@@ -314,7 +328,8 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
                 <span class="detail-line uk-text-bolder">${WD_TOKEN}~ ${DP_TOKEN} | ${WD_PAIR}~ ${DP_PAIR}</span>
                 <span class="detail-line"><span class="uk-text-primary uk-text-bolder">${(data.symbol_in || '').toUpperCase()}</span> ${linkSCtoken} : ${linkStokToken}</span>
                 <span class="detail-line"><span class="uk-text-primary uk-text-bolder">${(data.symbol_out || '').toUpperCase()}</span> ${linkSCpair} : ${linkStokPair}</span>
-                <span class="detail-line">${linkUNIDEX} ${linkOKDEX} ${linkJumper} ${linkRBX} ${linkDEFIL} ${linkDZAP}</span>
+                <span class="detail-line"> ${linkDLX} ${linkDEFIL} ${linkOKDEX}  ${linkDZAP}</span>
+                <span class="detail-line"> ${linkRango} ${linkJumper} ${linkRBX}</span>
             </td>`;
 
       // refactor: render slot DEX kanan via helper
@@ -1736,23 +1751,30 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
       </a>
     </div>`;
 
-  // FIX: Cek apakah signal dengan ID ini sudah ada, jika sudah skip (prevent duplicate)
-  const dexLowerKey = String(DEXPLUS).toLowerCase();
+  // ✅ FIX: Alias mapping untuk menangani variasi nama DEX (0x <-> matcha)
+  const dexAliasMap = {
+    '0x': 'matcha',
+    'matcha': 'matcha'
+  };
+
+  const normalizedDex = String(DEXPLUS).toLowerCase();
+  const dexLowerKey = dexAliasMap[normalizedDex] || normalizedDex;
   const $container = $("#sinyal" + dexLowerKey);
   const existingSignal = document.getElementById(signalItemId);
 
   // ⚠️ CRITICAL FIX: Check if signal card container exists
   if (!$container || $container.length === 0) {
-    console.warn(`❌ [InfoSinyal] Signal card container NOT FOUND for DEX: "${DEXPLUS}" (looking for #sinyal${dexLowerKey})`);
-    console.warn(`   Token: ${NameToken}->${NamePair}, CEX: ${cex}, PNL: ${Number(PNL).toFixed(2)}, Chain: ${nameChain}`);
-    console.warn(`   Available signal cards:`, Array.from(document.querySelectorAll('[id^="sinyal"]')).map(el => el.id));
+    console.warn(`❌ [InfoSinyal] Signal card container NOT FOUND for DEX: "${DEXPLUS}"`);
+    console.warn(`   ∟ Original: ${DEXPLUS}, Normalized: ${dexLowerKey}, Container: #sinyal${dexLowerKey}`);
+    console.warn(`   ∟ Token: ${NameToken}->${NamePair}, CEX: ${cex}, PNL: ${Number(PNL).toFixed(2)}, Chain: ${nameChain}`);
+    console.warn(`   ∟ Available:`, Array.from(document.querySelectorAll('[id^="sinyal"]')).map(el => el.id));
     return; // Exit early if container doesn't exist
   }
 
   if (!existingSignal) {
     // Signal belum ada, tambahkan
     $container.append(sLink);
-    console.log(`✅ [InfoSinyal] Signal added to DEX: ${DEXPLUS}, Token: ${NameToken}->${NamePair}, PNL: ${Number(PNL).toFixed(2)}`);
+    console.log(`✅ [InfoSinyal] Signal added to DEX: ${DEXPLUS} (normalized: ${dexLowerKey}), Token: ${NameToken}->${NamePair}, PNL: ${Number(PNL).toFixed(2)}`);
   } else {
     // Signal sudah ada, update saja (optional: bisa skip update jika tidak perlu)
     // Untuk sekarang kita skip agar tidak duplicate

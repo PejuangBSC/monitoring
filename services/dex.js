@@ -597,6 +597,86 @@
         };
       }
     },
+    'delta-matcha': {
+      buildRequest: ({ chainName, sc_input_in, sc_output_in, amount_in_big, codeChain, SavedSettingData }) => {
+        /**
+         * 1Delta Matcha Proxy - Free alternative to official 0x API
+         * Endpoint: https://api.1delta.io/swap/allowance-holder/quote
+         * 
+         * Benefits:
+         * - No API key required (free tier)
+         * - Same response format as 0x API
+         * - Faster response time (optimized proxy)
+         * - Reduces load on official 0x API keys
+         * 
+         * Note: Falls back to official Matcha API if 1Delta fails
+         */
+
+        const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+
+        // 1Delta proxy endpoint (same format as 0x API)
+        const baseUrl = 'https://api.1delta.io/swap/allowance-holder/quote';
+
+        const params = new URLSearchParams({
+          chainId: String(codeChain),           // Chain ID as string
+          sellToken: sc_input_in,                // Sell token address
+          buyToken: sc_output_in,                // Buy token address
+          sellAmount: String(amount_in_big),     // Amount in base units
+          taker: userAddr,                       // Taker address
+          slippageBps: '30',                     // 0.3% slippage (lower than Matcha's 1%)
+          tradeSurplusRecipient: userAddr,       // Surplus recipient
+          aggregator: '0x'                       // Aggregator identifier
+        });
+
+        const url = `${baseUrl}?${params.toString()}`;
+
+        console.log(`[1Delta Matcha] Request: ${chainName} ${sc_input_in} -> ${sc_output_in}`);
+
+        // No API key needed for 1Delta
+        return { url, method: 'GET', headers: {} };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        /**
+         * Parse 1Delta response (same format as 0x API)
+         * Response structure identical to Matcha API
+         */
+
+        if (!response?.buyAmount) {
+          throw new Error("Invalid 1Delta response - missing buyAmount");
+        }
+
+        // Parse buyAmount from response
+        const buyAmount = parseFloat(response.buyAmount);
+        const amount_out = buyAmount / Math.pow(10, des_output);
+
+        // Calculate gas fee from response
+        let FeeSwap = getFeeSwap(chainName);
+        try {
+          if (response.fees && response.fees.gasFee) {
+            const gasFeeUsd = parseFloat(response.fees.gasFee.amount || 0);
+            if (Number.isFinite(gasFeeUsd) && gasFeeUsd > 0) {
+              FeeSwap = gasFeeUsd;
+            }
+          }
+        } catch (e) {
+          console.warn('[1Delta] Could not parse gas fee, using default');
+        }
+
+        console.log(`[1Delta Matcha] Response parsed:`, {
+          buyAmount: response.buyAmount,
+          amountOut: amount_out.toFixed(6),
+          feeSwap: FeeSwap.toFixed(4),
+          chainName
+        });
+
+        return {
+          amount_out,
+          FeeSwap,
+          dexTitle: 'MATCHA',
+          routeTool: '1DELTA'  // Track that this came from 1Delta proxy
+        };
+      }
+    },
     'unidex-matcha': {
       buildRequest: ({ codeChain, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
         const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
@@ -1123,6 +1203,89 @@
         dexTitle: 'LIFI',
         subResults: topN,
         isMultiDex: true
+      };
+    }
+  };
+
+  // =============================
+  // LIFI-ODOS Strategy - LIFI filtered for ODOS only (single-DEX style)
+  // =============================
+  // Digunakan sebagai alternative untuk ODOS - memanggil LIFI API dengan filter khusus ODOS
+  // Response dalam format single-DEX (bukan multi-provider)
+  dexStrategies['lifi-odos'] = {
+    buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
+      const apiKey = (typeof getRandomApiKeyLIFI === 'function') ? getRandomApiKeyLIFI() : '';
+
+      const chainConfig = (root.CONFIG_CHAINS || {})[String(chainName || '').toLowerCase()];
+      const lifiChainId = chainConfig?.LIFI_CHAIN_ID || Number(codeChain);
+      const isSolana = String(chainName || '').toLowerCase() === 'solana';
+
+      const fromToken = isSolana ? sc_input_in : sc_input.toLowerCase();
+      const toToken = isSolana ? sc_output_in : sc_output.toLowerCase();
+
+      const defaultEvmAddr = '0x0000000000000000000000000000000000000000';
+      const defaultSolAddr = 'So11111111111111111111111111111111111111112';
+      const userAddr = isSolana
+        ? (SavedSettingData?.walletSolana || defaultSolAddr)
+        : (SavedSettingData?.walletMeta || defaultEvmAddr);
+
+      // ✅ FILTER: Hanya ODOS provider
+      const options = {
+        slippage: 0.03,
+        order: 'RECOMMENDED',
+        allowSwitchChain: false,
+        exchanges: {
+          allow: ['odos']  // Filter khusus ODOS saja
+        }
+      };
+
+      const body = {
+        fromChainId: lifiChainId,
+        toChainId: lifiChainId,
+        fromTokenAddress: fromToken,
+        toTokenAddress: toToken,
+        fromAmount: amount_in_big.toString(),
+        fromAddress: userAddr,
+        toAddress: userAddr,
+        options: options
+      };
+
+      return {
+        url: 'https://li.quest/v1/advanced/routes',
+        method: 'POST',
+        data: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-lifi-api-key': apiKey
+        }
+      };
+    },
+    parseResponse: (response, { des_output, chainName }) => {
+      // Parse LIFI response dengan filter ODOS - return single-DEX style (bukan multi-provider)
+      const routes = response?.routes;
+
+      if (!routes || !Array.isArray(routes) || routes.length === 0) {
+        throw new Error("LIFI-ODOS: No ODOS routes found");
+      }
+
+      // Ambil route terbaik (pertama)
+      const bestRoute = routes[0];
+      if (!bestRoute || !bestRoute.toAmount) {
+        throw new Error("LIFI-ODOS: Invalid route structure");
+      }
+
+      const amount_out = parseFloat(bestRoute.toAmount) / Math.pow(10, des_output);
+      const gasCostUsd = parseFloat(bestRoute.gasCostUSD || 0);
+      const FeeSwap = (Number.isFinite(gasCostUsd) && gasCostUsd > 0) ? gasCostUsd : getFeeSwap(chainName);
+
+      console.log(`[LIFI-ODOS] Using ODOS via LIFI: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
+
+      // Return format single-DEX (BUKAN multi-provider seperti LIFI biasa)
+      return {
+        amount_out: amount_out,
+        FeeSwap: FeeSwap,
+        dexTitle: 'ODOS',
+        routeTool: 'via LIFI'  // Indicator bahwa ini dari LIFI API
       };
     }
   };
@@ -2068,24 +2231,15 @@
   function actionKey(a) { return String(a || '').toLowerCase() === 'pairtotoken' ? 'pairtotoken' : 'tokentopair'; }
   function resolveFetchPlan(dexType, action, chainName) {
     try {
-      const key = String(dexType || '').toLowerCase();
+      // Normalize DEX aliases to canonical keys
+      const aliases = { '0x': 'matcha', 'kyberswap': 'kyber', 'paraswap': 'velora' };
+      let key = String(dexType || '').toLowerCase();
+      key = aliases[key] || key; // Apply alias mapping
+
       const cfg = (root.CONFIG_DEXS || {})[key] || {};
       const map = cfg.fetchdex || {};
       const ak = actionKey(action);
       let primary = map.primary && map.primary[ak] ? String(map.primary[ak]).toLowerCase() : null;
-
-      // ========== MATCHA STRATEGY OVERRIDE ==========
-      // For ALL chains, Matcha (0x) should use direct endpoint first
-      // Config has primary='unidex-0x', but we want:
-      // - Primary: '0x' (direct matcha.xyz/api/swap/price or /quote/solana)
-      // - Alternative: 'unidex-0x' (fallback for EVM chains only)
-      const isSolana = chainName && String(chainName).toLowerCase() === 'solana';
-      const isMatcha = key === '0x' || key === 'matcha';
-
-      if (isMatcha && primary === 'unidex-0x') {
-        primary = '0x'; // Override: use direct Matcha endpoint
-        console.log(`[${chainName?.toUpperCase() || 'CHAIN'}] Matcha: Using direct 0x endpoint (not unidex-0x)`);
-      }
 
       // Gunakan alternative dari config DEX, atau fallback global dari CONFIG_APP.DEX_FALLBACK
       let alternative = map.alternative && map.alternative[ak] ? String(map.alternative[ak]).toLowerCase() : null;
@@ -2097,24 +2251,8 @@
         alternative = globalFallback !== 'none' ? globalFallback : null;
       }
 
-      // ========== MATCHA ALTERNATIVE OVERRIDE ==========
-      // For Matcha on ALL chains:
-      // - Solana: fallback to DZAP (Unidex doesn't support Solana)
-      // - EVM chains: fallback to unidex-0x
-      if (isMatcha) {
-        alternative = isSolana ? 'dzap' : 'unidex-0x';
-        console.log(`[${chainName?.toUpperCase() || 'CHAIN'}] Matcha alternative: ${alternative}`);
-      }
-
-      // ========== SOLANA CHAIN: FORCE DZAP AS ALTERNATIVE (for non-Matcha DEXs) ==========
-      // For Solana chain, DZAP is the ONLY alternative for ALL DEX types
-      // This overrides any configured alternative (swoop, etc.)
-      if (isSolana && !isMatcha) {
-        alternative = 'dzap';
-      }
-
-      return { primary, alternative };
-    } catch (_) { return { primary: null, alternative: null }; }
+      return { primary, alternative, normalizedKey: key };
+    } catch (_) { return { primary: null, alternative: null, normalizedKey: null }; }
   }
 
   // ========== REQUEST DEDUPLICATION & CACHING ==========
@@ -2330,6 +2468,11 @@
       const plan = resolveFetchPlan(dexType, action, chainName);
       const primary = plan.primary || String(dexType || '').toLowerCase();
       const alternative = plan.alternative || null;
+      const normalizedKey = plan.normalizedKey || String(dexType || '').toLowerCase();
+
+      // DEBUG: Log strategy selection
+      const displayDex = normalizedKey !== String(dexType || '').toLowerCase() ? `${dexType.toUpperCase()}→${normalizedKey.toUpperCase()}` : dexType.toUpperCase();
+      console.log(`[DEX STRATEGY] ${chainName?.toUpperCase() || 'CHAIN'} ${displayDex} ${action}: primary='${primary}', alt='${alternative}'`);
 
       // ========== CREATE INFLIGHT REQUEST PROMISE ==========
       // Create promise chain and store in inflight cache to prevent duplicate requests
@@ -2353,29 +2496,19 @@
           // ========== SOLANA CHAIN: ALWAYS FALLBACK ON TIMEOUT ==========
           // For Solana chain, ANY timeout/no-response should trigger fallback to DZAP
           // This ensures Matcha and other DEX timeouts will use DZAP as backup
-          const isSolanaChain = chainName && String(chainName).toLowerCase() === 'solana';
-          const isSolanaNoResp = isSolanaChain && noResp;
-
-          // ========== MATCHA EVM CHAINS: ALWAYS FALLBACK ON ERROR ==========
-          // For Matcha on EVM chains, ANY error should trigger fallback to unidex-0x
-          // This ensures we try Unidex proxy if direct Matcha endpoint fails
-          const isMatchaPrimary = primaryKey === '0x';
-          const isMatchaEVMError = isMatchaPrimary && !isSolanaChain;
-
           const computedAlt = alternative;
           // Fallback hanya untuk:
           // 1. Rate limit (429)
           // 2. Server error (500+)
           // 3. No response (timeout/network error) for specific DEX families
-          // 4. [SOLANA ONLY] ANY timeout/no-response (falls back to DZAP)
-          // 5. [MATCHA EVM] ANY error when using direct Matcha (falls back to unidex-0x)
           const shouldFallback = computedAlt && (
             (Number.isFinite(code) && (code === 429 || code >= 500)) || // Rate limit atau server error
-            isNoRespFallback || // Atau no response (timeout/network error) untuk ODOS/Kyber/1inch
-            isSolanaNoResp || // [SOLANA] Atau timeout pada chain Solana (fallback ke DZAP)
-            isMatchaEVMError // [MATCHA EVM] Atau error pada Matcha EVM chains (fallback ke unidex-0x)
+            isNoRespFallback // Atau no response (timeout/network error) untuk ODOS/Kyber/1inch
           );
           if (!shouldFallback) throw e1;
+
+          // DEBUG: Log fallback trigger
+          console.warn(`[DEX FALLBACK] ${chainName?.toUpperCase() || 'CHAIN'} ${dexType.toUpperCase()}: primary='${primary}' FAILED (${code || 'no-response'}), trying alt='${computedAlt}'`);
 
           // Try alternative strategy
           return runStrategy(computedAlt)
