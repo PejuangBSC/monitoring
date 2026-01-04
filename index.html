@@ -92,55 +92,64 @@
           <form id="FormScanner" class="uk-grid-small uk-flex-middle" uk-grid>
 
             <!-- KOLOM KIRI: semua kontrol kecuali Search -->
-            <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap" style="gap: 8px;">
+            <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap" style="gap: 6px;">
 
+              <!-- SCANNER Group -->
               <span class="uk-text-bolder scanner-label">
-                SCANNER [ <input class="uk-checkbox" type="checkbox" id="toggleScanLog"> Log ]:
+                SCANNER [ <input class="uk-checkbox" type="checkbox" id="toggleScanLog"> LOGGER
               </span>
 
               <label class="scanner-control">
-                <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
-                <span class="uk-text-success">Auto Run</span>
-              </label>
-
-              <label class="scanner-control">
-                <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
-                <span class="uk-text-warning">Auto Scroll</span>
-              </label>
-
-              <label class="scanner-control">
-                <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
-                <span class="uk-text-danger">Vol Check</span>
-              </label>
-
-
-              <label class="scanner-control">
                 <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
-                <span>KIRI</span>
+                <span class="uk-text-success uk-text-bold">KIRI</span>
               </label>
 
               <label class="scanner-control">
                 <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
-                <span>KANAN</span>
+                <span class="uk-text-danger uk-text-bold">KANAN</span>
+              </label>
+
+              <span class="uk-text-bolder scanner-label">]</span>
+
+              <!-- AUTO Controls Group -->
+               |
+
+              <span class="uk-text-bolder uk-text-secondary scanner-label">
+                AUTO [
+              </span>
+
+              <label class="scanner-control">
+                <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
+                <span class="uk-text-success uk-text-bold">START</span>
+              </label>
+
+              <label class="scanner-control">
+                <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
+                <span class="uk-text-danger uk-text-bold">VOL</span>
               </label>
 
               <label class="scanner-control">
                 <input class="uk-checkbox" id="checkWalletCEX" type="checkbox">
-                <span class="uk-text-primary">WALLET CEX</span>
+                <span class="uk-text-secondary uk-text-bold">WALLET</span>
               </label>
 
-              <!-- Search Input (moved from modal) -->
-              
+              <label class="scanner-control">
+                <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
+                <span class="uk-text-warning uk-text-bold">SCROLL</span>
+              </label>
 
               <label class="scanner-control">
                 <input class="uk-checkbox" id="autoVolToggle" type="checkbox">
-                <span class="uk-text-primary uk-text-bold">AUTO LEVEL</span>
+                <span class="uk-text-primary uk-text-bold">LEVEL</span>
               </label>
 
               <div class="scanner-control-inline" id="autoVolLevelInput" style="display:none;">
                 <input id="autoVolLevels" class="uk-input uk-form-small" type="number" min="1" max="4" value="1"
-                  placeholder="1-4" style="width:50px;">
+                  placeholder="1-4" style="width:50px; border: 2px solid #2563eb;">
               </div>
+
+              <span class="uk-text-bolder uk-text-secondary scanner-label">]</span>
+
 
               <div class="scanner-control-inline">
                 <span class="uk-text-success uk-text-bolder">PNL</span>

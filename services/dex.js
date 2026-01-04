@@ -2591,7 +2591,7 @@
             else coreMsg = `Error: ${textStatus || 'unknown'}`;
             const prefix = status > 0 ? (status === 200 ? '[XHR ERROR 200]' : `[HTTP ${status}]`) : '';
             const isDark = (typeof window !== 'undefined' && window.isDarkMode && window.isDarkMode()) || (typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode'));
-            const errColor = isDark ? '#7e3636' : '#ffcccc';
+            const errColor = isDark ? '#7e3636' : '#fce0e0';
             reject({ statusCode: status, pesanDEX: `SWOOP: ${prefix} ${coreMsg}`, color: errColor, DEX: dexType.toUpperCase(), textStatus });
           }
         });
@@ -2714,7 +2714,7 @@
             else coreMsg = `Error: ${textStatus || 'unknown'}`;
             const prefix = status > 0 ? (status === 200 ? '[XHR ERROR 200]' : `[HTTP ${status}]`) : '';
             const isDark = (typeof window !== 'undefined' && window.isDarkMode && window.isDarkMode()) || (typeof document !== 'undefined' && document.body && document.body.classList.contains('dark-mode'));
-            const errColor = isDark ? '#7e3636' : '#ffcccc';
+            const errColor = isDark ? '#7e3636' : '#fce0e0';
             reject({ statusCode: status, pesanDEX: `DZAP: ${prefix} ${coreMsg}`, color: errColor, DEX: dexType.toUpperCase(), textStatus });
           }
         });

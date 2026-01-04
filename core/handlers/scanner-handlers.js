@@ -105,6 +105,26 @@
     } catch (_) { }
 
     /**
+     * Vol Check toggle initialization and handler
+     * Controlled by CONFIG_APP.APP.VOL_CHECK
+     */
+    try {
+        const volCheckEnabled = (window.CONFIG_APP?.APP?.VOL_CHECK !== false);
+
+        if (!volCheckEnabled) {
+            // Hide vol check UI elements when disabled in config
+            $('#checkVOL').closest('label').hide();
+            window.VOL_CHECK_ENABLED = false;
+            window.VOL_CHECK_FEATURE_DISABLED = true;
+        } else {
+            // Show vol check UI elements when enabled
+            $('#checkVOL').closest('label').show();
+            window.VOL_CHECK_ENABLED = false;
+            window.VOL_CHECK_FEATURE_DISABLED = false;
+        }
+    } catch (_) { }
+
+    /**
      * Start scan button handler
      * Handles both single-chain and multi-chain scanning
      */

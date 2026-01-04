@@ -5,7 +5,8 @@ const CONFIG_APP = {
         VERSION: "26.26",
         SCAN_LIMIT: false,
         AUTORUN: true,
-        AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur autorun
+        AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur auto volume
+        VOL_CHECK: true,     // Set false untuk menyembunyikan & menonaktifkan fitur vol check
     },
     // Konfigurasi fallback DEX saat DEX utama gagal (rate limit, server error, timeout)
     // Pilihan: 'dzap' | 'swoop' | 'none'

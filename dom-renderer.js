@@ -252,6 +252,17 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const WD_PAIR = linkifyStatus(data.withdrawPair, 'WD', withdrawPairUrl);
       const DP_PAIR = linkifyStatus(data.depositPair, 'DP', depositPairUrl);
 
+      // Check if any wallet status is disabled (false) to change background
+      // IMPORTANT: This works regardless of "WALLET CEX" checkbox status
+      const hasDisabledWallet = (
+        data.withdrawToken === false ||
+        data.depositToken === false ||
+        data.withdrawPair === false ||
+        data.depositPair === false
+      );
+      const detailBgColor = hasDisabledWallet ? '#fce0e0' : ''; // Warning pink/red background if disabled
+      const detailBgStyle = hasDisabledWallet ? `background-color: ${detailBgColor} !important;` : '';
+
       const chainData = getChainData(data.chain);
       const walletObj = chainData?.CEXCHAIN?.[data.cex] || {};
       const linkStokToken = Object.entries(walletObj)
@@ -288,7 +299,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const rangoToToken = String(data.sc_out || '').toLowerCase() === chainConfig.NATIVE_TOKEN?.toLowerCase()
         ? (data.symbol_out || '').toUpperCase()
         : `${(data.symbol_out || '').toUpperCase()}--${data.sc_out}`;
-      const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${rangoChain}&fromToken=${rangoFromToken}&toBlockchain=${rangoChain}&toToken=${rangoToToken}`, '#RGX', 'uk-text-warning');
+      const linkRango = createHoverLink(`https://app.rango.exchange/bridge?fromBlockchain=${rangoChain}&fromToken=${rangoFromToken}&toBlockchain=${rangoChain}&toToken=${rangoToToken}`, '#RGX', 'uk-text-secondary');
 
       // Rubic: Multi-chain aggregator (requires chain name mapping)
       const rubicChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX' };
@@ -300,7 +311,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const chainShort = (data.chain || '').substring(0, 3).toUpperCase();
 
       rowHtml += `
-            <td id="${idPrefix}${rowId}" class="uk-text-center uk-background td-detail" style="text-align: center; border:1px solid black; padding:10px;">
+            <td id="${idPrefix}${rowId}" class="uk-text-center uk-background td-detail" style="text-align: center; border:1px solid black; padding:10px; ${detailBgStyle}">
              [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
     
             <span class="detail-line">
@@ -1379,7 +1390,9 @@ function DisplayPNL(data) {
   // Highlight hanya jika PNL positif dan di atas threshold
   const passPNL = pnl > 0 && (filterPNLValue === 0 || pnl > filterPNLValue);
 
-  const checkVol = (typeof $ === 'function') ? $('#checkVOL').is(':checked') : false;
+  // Check if Vol Check feature is enabled in config
+  const volCheckFeatureEnabled = (window.CONFIG_APP?.APP?.VOL_CHECK !== false);
+  const checkVol = volCheckFeatureEnabled && (typeof $ === 'function') ? $('#checkVOL').is(':checked') : false;
   const volOK = n(vol) >= n(Modal);
   const isHighlight = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
 
