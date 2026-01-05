@@ -2286,11 +2286,9 @@ async function deferredInit() {
     });
 
     // Token Management Form Handlers
-    // Export handler (delegated)
-    $(document).on('click', '#btnExportTokens', function () {
-        try { downloadTokenScannerCSV(); } catch (e) { console.error(e); }
-    });
-    // ❌ REMOVED DUPLICATE HANDLER (main.js:1819-1822)
+    // ❌ REMOVED DUPLICATE EXPORT HANDLER (caused multi-download issue)
+    // Export handler is registered in core/handlers/token-handlers.js:170-172
+    // ❌ REMOVED DUPLICATE IMPORT HANDLER (main.js:1819-1822)
     // Import handler is registered in core/handlers/token-handlers.js:177-180
     // Removed to fix double-click issue when uploading CSV file
     $(document).on('submit', '#multiTokenForm', function (e) {
@@ -5691,28 +5689,11 @@ $(document).on('click', '#histClearAll', async function () {
     } catch (e) { if (typeof toast !== 'undefined' && toast.error) toast.error('Error saat membersihkan riwayat.'); }
 });
 // No export/save from History per request
-$(document).on('click', '#btnBackupDb', async function () {
-    try {
-        const payload = await (window.exportIDB ? window.exportIDB() : Promise.resolve(null));
-        if (!payload || !payload.items) { if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal membuat backup.'); return; }
-        const filename = `${MAIN_APP_NAME_SAFE}_BACKUP_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-        const ok = window.downloadJSON ? window.downloadJSON(filename, payload) : false;
-        if (ok) {
-            if (typeof toast !== 'undefined' && toast.success) toast.success(`Backup berhasil. ${payload.count || payload.items.length} item disalin.`);
-            try { setLastAction('BACKUP DATABASE'); } catch (_) { }
-            try { $('#backupSummary').text(`Backup: ${payload.items.length} item pada ${new Date().toLocaleString('id-ID', { hour12: false })}`); } catch (_) { }
-        } else {
-            if (typeof toast !== 'undefined' && toast.error) toast.error('Gagal mengunduh file backup.');
-        }
-    } catch (e) {
-        // console.error('Backup error:', e);
-        if (typeof toast !== 'undefined' && toast.error) toast.error('Terjadi kesalahan saat backup.');
-        try { setLastAction('BACKUP DATABASE', 'error', { error: String(e && e.message || e) }); } catch (_) { }
-    }
-});
-// ❌ REMOVED DUPLICATE HANDLERS (main.js:5264-5304)
-// Backup/Restore handlers are registered in core/handlers/ui-handlers.js:150-239
-// Removed to fix double-click issue when uploading restore file
+// ❌ REMOVED DUPLICATE BACKUP HANDLER (caused multi-download issue)
+// Backup handler is registered in core/handlers/ui-handlers.js:184-197
+// ❌ REMOVED DUPLICATE RESTORE HANDLERS (main.js:5264-5304)
+// Restore handlers are registered in core/handlers/ui-handlers.js:199-239
+// Removed to fix double-download issue when backing up or restoring database
 
 // =================================================================================
 // BULK MODAL EDITOR - Edit modal DEX untuk semua token sekaligus (Single Chain Only)

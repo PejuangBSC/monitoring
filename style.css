@@ -254,13 +254,14 @@ a:hover, .uk-link:hover {
 }
 
 .dex-error {
-    background-color: rgba(244, 179, 179, 0.7) !important;
+    background-color: rgba(247, 160, 160, 0.7) !important;
     backdrop-filter: blur(8px);
 }
 
 .dex-skip {
-    background-color: #ffa7a766 !important;
+    background-color: #fce0e0 !important;
     backdrop-filter: blur(8px);
+    color: rgb(127, 2, 2);
 }
 
 .row-hidden { display: none !important; }

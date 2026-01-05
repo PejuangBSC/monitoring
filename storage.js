@@ -469,9 +469,10 @@ function downloadTokenScannerCSV() {
 // ============================
 /**
  * Merge imported tokens with existing tokens
- * - Match based on: symbol_in, symbol_out, chain, cex (all must match)
+ * - Match based on: symbol_in, symbol_out, chain (WITHOUT CEX)
  * - If match found: UPDATE existing token with new data
  * - If no match: ADD as new token
+ * - NOTE: CEX is NOT part of unique identifier because one token can trade on multiple CEX
  * @param {Array} existingTokens - Current tokens in storage
  * @param {Array} newTokens - Tokens from CSV import
  * @returns {Object} { merged: Array, stats: { updated: number, added: number, unchanged: number } }
@@ -487,12 +488,12 @@ function mergeTokens(existingTokens, newTokens) {
     // Create map of existing tokens for quick lookup
     const existingMap = new Map();
     existing.forEach((token, index) => {
-        // Key: symbol_in|symbol_out|chain|cex (case-insensitive)
+        // ✅ FIX: Key without CEX - one token can exist on multiple CEX
+        // Key: symbol_in|symbol_out|chain (case-insensitive)
         const key = [
             String(token.symbol_in || '').toUpperCase(),
             String(token.symbol_out || '').toUpperCase(),
-            String(token.chain || '').toLowerCase(),
-            String(token.cex || '').toUpperCase()
+            String(token.chain || '').toLowerCase()
         ].join('|');
         existingMap.set(key, { token, index });
     });
@@ -502,11 +503,11 @@ function mergeTokens(existingTokens, newTokens) {
 
     // Process each imported token
     imported.forEach(importedToken => {
+        // ✅ FIX: Key without CEX
         const key = [
             String(importedToken.symbol_in || '').toUpperCase(),
             String(importedToken.symbol_out || '').toUpperCase(),
-            String(importedToken.chain || '').toLowerCase(),
-            String(importedToken.cex || '').toUpperCase()
+            String(importedToken.chain || '').toLowerCase()
         ].join('|');
 
         const existingEntry = existingMap.get(key);
@@ -883,8 +884,9 @@ function uploadTokenScannerCSV(event) {
 
 /**
  * Handle REPLACE button click
+ * ✅ FIX: Made async to await processImport
  */
-$(document).on('click', '#btn-import-replace', function () {
+$(document).on('click', '#btn-import-replace', async function () {
     if (!window._importTempData) return;
 
     const { tokenData, targetKey, chainLabel, detectedChain } = window._importTempData;
@@ -916,8 +918,8 @@ $(document).on('click', '#btn-import-replace', function () {
             UIkit.modal('#import-confirm-modal').show();
         }
     } else {
-        // Tidak ada data lama, langsung proses
-        processImport();
+        // ✅ FIX: Await processImport to ensure data saves before reload
+        await processImport();
     }
 });
 
@@ -963,9 +965,10 @@ $(document).on('click', '#btn-import-merge', function () {
 
 /**
  * Handle konfirmasi import
+ * ✅ FIX: Made async to await processImport
  */
-$(document).on('click', '#btn-import-confirm', function () {
-    processImport();
+$(document).on('click', '#btn-import-confirm', async function () {
+    await processImport();
 });
 
 /**
@@ -988,8 +991,9 @@ $(document).on('click', '#btn-import-cancel', function () {
 
 /**
  * Process final import based on selected mode
+ * ✅ FIX: Made async to ensure IndexedDB write completes before reload
  */
-function processImport() {
+async function processImport() {
     if (!window._importTempData) return;
 
     const { tokenData, targetKey, chainLabel, detectedChain, mode, mergeResult, existingCount } = window._importTempData;
@@ -1022,8 +1026,23 @@ function processImport() {
         UIkit.modal('#import-confirm-modal').hide();
     }
 
-    // Simpan ke storage
-    saveToLocalStorage(targetKey, finalTokenData);
+    // ✅ FIX: Await save to ensure IndexedDB write completes before reload
+    const saveResult = await (window.saveToLocalStorageAsync ?
+        window.saveToLocalStorageAsync(targetKey, finalTokenData) :
+        Promise.resolve({ ok: true }));
+
+    if (!saveResult.ok) {
+        // Storage failed - show error
+        const errorMsg = window.LAST_STORAGE_ERROR || 'Gagal menyimpan data ke IndexedDB';
+        if (typeof toast !== 'undefined' && toast.error) {
+            toast.error(`Import gagal: ${errorMsg}`);
+        } else if (typeof UIkit !== 'undefined' && UIkit.notification) {
+            UIkit.notification(`Import gagal: ${errorMsg}`, { status: 'danger' });
+        }
+        // Clear temp data and return
+        window._importTempData = null;
+        return;
+    }
 
     // Clear temp data
     window._importTempData = null;
@@ -1051,7 +1070,7 @@ function processImport() {
         successMsg = `✅ REPLACE BERHASIL! ${jumlahToken} token baru menggantikan ${importStats.oldCount} token lama`;
     }
 
-    // Reload dengan notifikasi
+    // ✅ FIX: Reload after successful save (data already in IndexedDB)
     try {
         if (typeof reloadWithNotify === 'function') {
             reloadWithNotify('success', successMsg);

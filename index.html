@@ -94,29 +94,18 @@
             <!-- KOLOM KIRI: semua kontrol kecuali Search -->
             <div class="uk-width-expand uk-flex uk-flex-middle uk-flex-wrap" style="gap: 6px;">
 
-              <!-- SCANNER Group -->
-              <span class="uk-text-bolder scanner-label">
-                SCANNER [ <input class="uk-checkbox" type="checkbox" id="toggleScanLog"> LOGGER
-              </span>
-
-              <label class="scanner-control">
-                <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
-                <span class="uk-text-success uk-text-bold">KIRI</span>
-              </label>
-
-              <label class="scanner-control">
-                <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
-                <span class="uk-text-danger uk-text-bold">KANAN</span>
-              </label>
-
-              <span class="uk-text-bolder scanner-label">]</span>
 
               <!-- AUTO Controls Group -->
-               |
+               
 
               <span class="uk-text-bolder uk-text-secondary scanner-label">
                 AUTO [
               </span>
+            
+              <label class="scanner-control">
+                <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
+                <span class="uk-text-warning uk-text-bold">SCROLL</span>
+              </label>
 
               <label class="scanner-control">
                 <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
@@ -134,11 +123,6 @@
               </label>
 
               <label class="scanner-control">
-                <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
-                <span class="uk-text-warning uk-text-bold">SCROLL</span>
-              </label>
-
-              <label class="scanner-control">
                 <input class="uk-checkbox" id="autoVolToggle" type="checkbox">
                 <span class="uk-text-primary uk-text-bold">LEVEL</span>
               </label>
@@ -150,12 +134,26 @@
 
               <span class="uk-text-bolder uk-text-secondary scanner-label">]</span>
 
+              || 
 
-              <div class="scanner-control-inline">
-                <span class="uk-text-success uk-text-bolder">PNL</span>
-                <input id="pnlFilterInput" class="uk-input uk-form-small" type="number" step="0.01" min="0"
-                  placeholder="0" style="width:80px;">
-              </div>
+              <!-- SCANNER Group -->
+              <span class="uk-text-bolder scanner-label">
+                SCANNER [ 
+                
+              </span>
+              <label class="scanner-control"> 
+                    <input class="uk-checkbox" type="checkbox" id="toggleScanLog"> 
+                   <span class="uk-text-warning">LOGGER</span>
+              </label>
+              <label class="scanner-control">
+                <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
+                <span class="uk-text-success uk-text-bold">KIRI</span>
+              </label>
+
+              <label class="scanner-control">
+                <input class="uk-checkbox posisi-check" type="checkbox" value="ActionKanan" checked>
+                <span class="uk-text-danger uk-text-bold">KANAN</span>
+              </label>
 
               <div class="uk-button-group">
                 <label class="uk-button uk-button-small uk-button-default toggle-radio sort-toggle active"
@@ -166,6 +164,15 @@
                   <input class="uk-hidden" type="radio" name="toggle" value="opt_Z"> Z-A
                 </label>
               </div>
+
+              <div class="scanner-control-inline">
+                <span class="uk-text-success uk-text-bolder">PNL</span>
+                <input id="pnlFilterInput" class="uk-input uk-form-small" type="number" step="0.01" min="0"
+                  placeholder="0" style="width:80px;">
+              </div>
+
+              <span class="uk-text-bolder scanner-label">]</span>
+              
 
               <div class="uk-button-group scanner-actions">
                 <button type="button" id="startSCAN" data-feature="scan"
@@ -339,14 +346,14 @@
                 <div class="uk-width-1-2">
                   <label class="uk-form-label uk-text-small uk-text-bolder">JEDA / GRUP (ms)</label>
                   <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="jeda-time-group" type="number" value="2000" min="100">
+                    <input class="uk-input uk-form-small" id="jeda-time-group" type="number" value="2000" min="500">
                   </div>
                   <div class="uk-text-meta uk-text-small uk-text-muted">Waktu jeda antar grup</div>
                 </div>
                 <div class="uk-width-1-2">
                   <label class="uk-form-label uk-text-small uk-text-bolder">JEDA / KOIN (ms)</label>
                   <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="jeda-koin" type="number" value="500" min="100">
+                    <input class="uk-input uk-form-small" id="jeda-koin" type="number" value="900" min="300">
                   </div>
                   <div class="uk-text-meta uk-text-small uk-text-muted">Waktu jeda antar koin di grup</div>
                 </div>
@@ -972,39 +979,12 @@
       </div>
 
       <div class="uk-grid-small uk-child-width-1-2@s" uk-grid>
-        <!-- Replace Mode -->
+        <!-- Merge Mode - RECOMMENDED (moved to left) -->
         <div>
-          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small">
-            <div class="uk-text-center">
-              <span uk-icon="icon: trash; ratio: 2" class="uk-text-danger"></span>
-              <h4 class="uk-card-title uk-margin-small-top">REPLACE</h4>
-            </div>
-            <p class="uk-text-small uk-text-muted">
-              Hapus semua data lama dan ganti dengan data baru dari CSV.
-            </p>
-            <ul class="uk-list uk-list-divider uk-text-small">
-              <li><span uk-icon="icon: close; ratio: 0.8" class="uk-text-danger"></span> Data lama
-                <strong>dihapus</strong>
-              </li>
-              <li><span uk-icon="icon: check; ratio: 0.8" class="uk-text-success"></span> Data baru
-                <strong>ditambahkan</strong>
-              </li>
-            </ul>
-            <div class="uk-alert uk-alert-warning uk-text-small uk-padding-small" uk-alert>
-              <p class="uk-margin-remove" id="import-existing-count">Data lama: - token</p>
-            </div>
-            <button class="uk-button uk-button-danger uk-button-small uk-width-1-1" id="btn-import-replace">
-              <span uk-icon="trash"></span> Replace
-            </button>
-          </div>
-        </div>
-
-        <!-- Merge Mode -->
-        <div>
-          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small">
+          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small" style="border: 2px solid #28a745;">
             <div class="uk-text-center">
               <span uk-icon="icon: git-branch; ratio: 2" class="uk-text-success"></span>
-              <h4 class="uk-card-title uk-margin-small-top">MERGE</h4>
+              <h4 class="uk-card-title uk-margin-small-top">MERGE <span class="uk-badge uk-badge-success">RECOMMENDED</span></h4>
             </div>
             <p class="uk-text-small uk-text-muted">
               Gabungkan data lama dengan data baru dari CSV.
@@ -1021,11 +1001,39 @@
             </ul>
             <div class="uk-text-small uk-text-muted uk-padding-small" style="background: #f8f8f8; border-radius: 4px;">
               <strong>Patokan merge:</strong><br>
-              Token + Pair + Chain + CEX
+              Token + Pair + Chain
             </div>
-            <button class="uk-button uk-button-primary uk-button-small uk-width-1-1 uk-margin-small-top"
-              id="btn-import-merge">
-              <span uk-icon="git-branch"></span> Merge
+            <button class="uk-button uk-button-success uk-button-small uk-width-1-1 uk-margin-small-top"
+              id="btn-import-merge" style="font-weight: bold;">
+              <span uk-icon="git-branch"></span> MERGE (AMAN)
+            </button>
+          </div>
+        </div>
+
+        <!-- Replace Mode - DANGER -->
+        <div>
+          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small" style="border: 2px solid #dc3545;">
+            <div class="uk-text-center">
+              <span uk-icon="icon: trash; ratio: 2" class="uk-text-danger"></span>
+              <h4 class="uk-card-title uk-margin-small-top uk-text-danger">REPLACE</h4>
+            </div>
+            <p class="uk-text-small uk-text-danger">
+              ⚠️ BAHAYA! Hapus semua data lama dan ganti dengan data baru dari CSV.
+            </p>
+            <ul class="uk-list uk-list-divider uk-text-small">
+              <li><span uk-icon="icon: close; ratio: 0.8" class="uk-text-danger"></span> Data lama
+                <strong class="uk-text-danger">DIHAPUS PERMANEN</strong>
+              </li>
+              <li><span uk-icon="icon: check; ratio: 0.8" class="uk-text-success"></span> Data baru
+                <strong>ditambahkan</strong>
+              </li>
+            </ul>
+            <div class="uk-alert uk-alert-danger uk-text-small uk-padding-small" uk-alert>
+              <p class="uk-margin-remove uk-text-bold">⚠️ DATA LAMA AKAN HILANG!</p>
+              <p class="uk-margin-remove" id="import-existing-count">Data lama: - token</p>
+            </div>
+            <button class="uk-button uk-button-danger uk-button-small uk-width-1-1" id="btn-import-replace">
+              <span uk-icon="trash"></span> Replace (HAPUS SEMUA)
             </button>
           </div>
         </div>
