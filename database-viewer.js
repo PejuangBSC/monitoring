@@ -947,7 +947,15 @@
                     });
                     rpcHtml += '</div>';
                     html += `<tr><td><strong>${key}</strong></td><td>${rpcHtml}</td></tr>`;
-                } else {
+                }
+                // ✅ NEW: Special rendering for checkbox settings (autoRun, autoVol, walletCex, autoLevel)
+                else if (['autoRun', 'autoVol', 'walletCex', 'autoLevel'].includes(key) && typeof value === 'boolean') {
+                    const icon = value
+                        ? '<span style="color:#28a745;font-size:16px" title="Enabled">✓ ON</span>'
+                        : '<span style="color:#dc3545;font-size:16px" title="Disabled">✗ OFF</span>';
+                    html += `<tr><td><strong>${key}</strong></td><td>${icon}</td></tr>`;
+                }
+                else {
                     const valStr = (typeof value === 'object' && value !== null) ? JSON.stringify(value) : String(value);
                     html += `<tr><td><strong>${key}</strong></td><td class="uk-text-small uk-text-truncate" title="${valStr}">${valStr}</td></tr>`;
                 }

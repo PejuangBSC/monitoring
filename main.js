@@ -575,6 +575,23 @@ function renderSettingsForm() {
     $(`input[name=\"koin-group\"][value=\"${appSettings.scanPerKoin || 5}\"]`).prop('checked', true);
     $(`input[name=\"waktu-tunggu\"][value=\"${appSettings.speedScan || 2}\"]`).prop('checked', true);
 
+    // ✅ NEW: Restore checkbox scanner controls
+    if (appSettings.autoRun !== undefined) {
+        $('#autoRunToggle').prop('checked', appSettings.autoRun);
+    }
+    if (appSettings.autoVol !== undefined) {
+        $('#checkVOL').prop('checked', appSettings.autoVol);
+    }
+    if (appSettings.walletCex !== undefined) {
+        $('#checkWalletCEX').prop('checked', appSettings.walletCex);
+    }
+    if (appSettings.autoLevel !== undefined) {
+        $('#autoVolToggle').prop('checked', appSettings.autoLevel);
+    }
+    if (appSettings.autoLevelValue !== undefined) {
+        $('#autoVolLevels').val(appSettings.autoLevelValue);
+    }
+
     // Apply saved DEX delay values (CEX delay removed)
     const modalDexs = appSettings.JedaDexs || {};
     $('.dex-delay-input').each(function () {
@@ -696,6 +713,8 @@ function bootApp() {
     const appSettings = getFromLocalStorage('SETTING_SCANNER', {});
     const settingsMissing = !hasValidSettings();
     const nicknameInvalid = !appSettings.nickname || String(appSettings.nickname).trim().length < 6;
+
+    // Checkbox restore moved to app-init.js (AFTER DOM ready)
 
     if (settingsMissing) {
         // Jika pengaturan dasar (API keys, dll) tidak ada, paksa buka form setting.

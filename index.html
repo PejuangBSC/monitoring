@@ -96,33 +96,34 @@
 
 
               <!-- AUTO Controls Group -->
-               
+
 
               <span class="uk-text-bolder uk-text-secondary scanner-label">
                 AUTO [
               </span>
-            
-              <label class="scanner-control">
+
+              <label class="scanner-control" title="Auto-scroll ke baris yang di-highlight saat scan">
                 <input class="uk-checkbox" type="checkbox" id="autoScrollCheckbox">
                 <span class="uk-text-warning uk-text-bold">SCROLL</span>
               </label>
 
-              <label class="scanner-control">
+              <label class="scanner-control" title="Auto-run SCANNER setelah selesai (mode loop)">
                 <input class="uk-checkbox" type="checkbox" id="autoRunToggle">
                 <span class="uk-text-success uk-text-bold">START</span>
               </label>
 
-              <label class="scanner-control">
+              <label class="scanner-control" title="Validasi volume sederhana: Cek apakah volume order >= modal">
                 <input class="uk-checkbox vol-check" id="checkVOL" type="checkbox">
                 <span class="uk-text-danger uk-text-bold">VOL</span>
               </label>
 
-              <label class="scanner-control">
+              <label class="scanner-control" title="Cek status wallet CEX: Skip DEX jika withdrawal/deposit disabled">
                 <input class="uk-checkbox" id="checkWalletCEX" type="checkbox">
                 <span class="uk-text-secondary uk-text-bold">WALLET</span>
               </label>
 
-              <label class="scanner-control">
+              <label class="scanner-control"
+                title="Simulasi Aktual: Fetch orderbook dan hitung PNL dengan modal & harga actual">
                 <input class="uk-checkbox" id="autoVolToggle" type="checkbox">
                 <span class="uk-text-primary uk-text-bold">LEVEL</span>
               </label>
@@ -134,16 +135,16 @@
 
               <span class="uk-text-bolder uk-text-secondary scanner-label">]</span>
 
-              || 
+              ||
 
               <!-- SCANNER Group -->
               <span class="uk-text-bolder scanner-label">
-                SCANNER [ 
-                
+                SCANNER [
+
               </span>
-              <label class="scanner-control"> 
-                    <input class="uk-checkbox" type="checkbox" id="toggleScanLog"> 
-                   <span class="uk-text-warning">LOGGER</span>
+              <label class="scanner-control">
+                <input class="uk-checkbox" type="checkbox" id="toggleScanLog">
+                <span class="uk-text-warning">LOGGER</span>
               </label>
               <label class="scanner-control">
                 <input class="uk-checkbox posisi-check" type="checkbox" value="Actionkiri" checked>
@@ -172,7 +173,7 @@
               </div>
 
               <span class="uk-text-bolder scanner-label">]</span>
-              
+
 
               <div class="uk-button-group scanner-actions">
                 <button type="button" id="startSCAN" data-feature="scan"
@@ -190,10 +191,9 @@
                   style="min-width:64px; display:inline-block;"></span>
 
 
-               
+
                 <a href="#" id="ScannerFilterModal" title="SCANNER FILTER" style="margin-left: 8px;">
-                  <img class="icon" src="https://cdn-icons-png.flaticon.com/512/174/174315.png"
-                    width="24px" />
+                  <img class="icon" src="https://cdn-icons-png.flaticon.com/512/174/174315.png" width="24px" />
                 </a>
                 <a href="#" id="BulkModalScanner" title="PROFIL MODAL" uk-toggle="target: #bulk-modal-editor"
                   style="margin-left: 8px;">
@@ -201,7 +201,7 @@
                     src="https://png.pngtree.com/png-vector/20220821/ourmid/pngtree-capital-icon-dollars-business-currency-vector-png-image_19628836.png"
                     width="24px" />
                 </a>
-                 <a href="#" target="_blank" id="ManajemenKoin" data-feature="manage" style="margin-left: 12px;">
+                <a href="#" target="_blank" id="ManajemenKoin" data-feature="manage" style="margin-left: 12px;">
                   <img title="MANAJEMEN KOIN" class="icon" src="https://cdn-icons-png.flaticon.com/256/7782/7782334.png"
                     width="24px" />
                 </a>
@@ -211,10 +211,10 @@
 
               </div>
             </div>
-<div class="scanner-control-inline">
-                <input id="searchInput" class="uk-input uk-form-small" type="text" placeholder="🔍 Cari koin..."
-                  style="width:150px; padding:4px 8px; font-size:12px;">
-              </div>
+            <div class="scanner-control-inline">
+              <input id="searchInput" class="uk-input uk-form-small" type="text" placeholder="🔍 Cari koin..."
+                style="width:150px; padding:4px 8px; font-size:12px;">
+            </div>
 
           </form>
         </div>
@@ -981,10 +981,12 @@
       <div class="uk-grid-small uk-child-width-1-2@s" uk-grid>
         <!-- Merge Mode - RECOMMENDED (moved to left) -->
         <div>
-          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small" style="border: 2px solid #28a745;">
+          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small"
+            style="border: 2px solid #28a745;">
             <div class="uk-text-center">
               <span uk-icon="icon: git-branch; ratio: 2" class="uk-text-success"></span>
-              <h4 class="uk-card-title uk-margin-small-top">MERGE <span class="uk-badge uk-badge-success">RECOMMENDED</span></h4>
+              <h4 class="uk-card-title uk-margin-small-top">MERGE <span
+                  class="uk-badge uk-badge-success">RECOMMENDED</span></h4>
             </div>
             <p class="uk-text-small uk-text-muted">
               Gabungkan data lama dengan data baru dari CSV.
@@ -1012,7 +1014,8 @@
 
         <!-- Replace Mode - DANGER -->
         <div>
-          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small" style="border: 2px solid #dc3545;">
+          <div class="uk-card uk-card-default uk-card-hover uk-card-body uk-padding-small"
+            style="border: 2px solid #dc3545;">
             <div class="uk-text-center">
               <span uk-icon="icon: trash; ratio: 2" class="uk-text-danger"></span>
               <h4 class="uk-card-title uk-margin-small-top uk-text-danger">REPLACE</h4>
@@ -1131,7 +1134,8 @@
     <div class="uk-modal-dialog uk-width-auto uk-margin-auto-vertical" style="max-width: 600px; min-width: 450px;">
       <div class="uk-modal-header" style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h4 class="uk-margin-remove" style="font-size: 15px; font-weight: 600;"><span uk-icon="icon: settings; ratio: 0.8"></span> FILTER SCANNER</h4>
+          <h4 class="uk-margin-remove" style="font-size: 15px; font-weight: 600;"><span
+              uk-icon="icon: settings; ratio: 0.8"></span> FILTER SCANNER</h4>
           <button class="uk-modal-close-default" type="button" uk-close style="padding: 0;"></button>
         </div>
       </div>

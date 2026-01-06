@@ -59,6 +59,13 @@
         const scanPerKoin = $('input[name="koin-group"]:checked').val();
         const speedScan = $('input[name="waktu-tunggu"]:checked').val();
 
+        // ✅ NEW: Baca nilai checkbox scanner controls
+        const autoRun = $('#autoRunToggle').is(':checked');
+        const autoVol = $('#checkVOL').is(':checked');
+        const walletCex = $('#checkWalletCEX').is(':checked');
+        const autoLevel = $('#autoVolToggle').is(':checked');
+        const autoLevelValue = parseInt($('#autoVolLevels').val(), 10) || 1;
+
         if (!nickname || nickname.length < 6) return UIkit.notification({message: 'Nickname harus diisi (minimal 6 karakter)!', status: 'danger'});
         if (!/^[a-zA-Z\s]+$/.test(nickname)) return UIkit.notification({message: 'Nickname hanya boleh berisi huruf dan spasi!', status: 'danger'});
 
@@ -113,7 +120,13 @@
             scanPerKoin: parseInt(scanPerKoin, 10),
             speedScan: parseFloat(speedScan),
             JedaDexs,
-            userRPCs  // NEW: hanya simpan RPC yang diinput user (1 per chain)
+            userRPCs,  // NEW: hanya simpan RPC yang diinput user (1 per chain)
+            // ✅ NEW: Simpan status checkbox scanner controls
+            autoRun,
+            autoVol,
+            walletCex,
+            autoLevel,
+            autoLevelValue
         };
 
         saveToLocalStorage('SETTING_SCANNER', settingData);

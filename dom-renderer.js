@@ -278,8 +278,8 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const linkSCpair = createHoverLink(urlScOut, '[SC]', 'uk-text-primary');
 
       const linkOKDEX = createHoverLink(`https://www.okx.com/web3/dex-swap?inputChain=${chainConfig.Kode_Chain}&inputCurrency=${data.sc_in}&outputChain=${chainConfig.Kode_Chain}&outputCurrency=${data.sc_out}`, '#OKX', 'uk-text-primary');
-       const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-secondary');
-     
+      const linkDLX = createHoverLink(`https://app.1delta.io/swap?chain=${chainConfig.Nama_Chain}&inputCurrency=${data.sc_in}&outputCurrency=${data.sc_out}`, '#DLT', 'uk-text-secondary');
+
       const linkUNIDEX = createHoverLink(`https://app.unidex.exchange/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#UNX', 'uk-text-success');
       const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-danger');
       // DZAP: Solana uses chain ID 7565164
@@ -998,6 +998,15 @@ function DisplayPNL(data) {
     return;
   }
 
+  // ✅ FIX BUG #1: Cegah overwrite cell yang sudah di-SKIP
+  // Jika cell sudah finalized dengan status SKIP, jangan timpa dengan harga
+  try {
+    if (el.dataset && el.dataset.final === '1' && el.classList.contains('dex-skip')) {
+      console.warn(`⚠️ [DisplayPNL] Cell ${elementId} sudah di-SKIP, tidak akan ditimpa dengan harga`);
+      return; // Batalkan render harga
+    }
+  } catch (_) { }
+
   // Success log
   // console.log(`✅ [DisplayPNL] Cell FOUND & Updated:`, {
   //   elementId,
@@ -1007,7 +1016,11 @@ function DisplayPNL(data) {
   //   fallbackSource
   // });
   // REFACTORED: Clear any prior error background and finalize cell
-  try { el.classList.remove('dex-error'); } catch (_) { }
+  // ✅ FIX BUG #2: Hapus class dex-error DAN dex-skip
+  try {
+    el.classList.remove('dex-error');
+    el.classList.remove('dex-skip');
+  } catch (_) { }
   // REFACTORED: Finalize cell untuk mencegah overwrite oleh error lainnya
   try {
     if (el.dataset) {
@@ -1048,58 +1061,40 @@ function DisplayPNL(data) {
   let displayPriceBuyToken = priceBuyToken_CEX;
   let displayPriceSellToken = priceSellToken_CEX;
 
+  // ===== AUTO VOLUME: Modal Display Override =====
+  // ✅ SIMPLIFIED: Only show USER's configured modal, not actualModal
   if (data.autoVolResult && data.maxModal) {
-    // Update DEX name with modal format [$max]~actual$
     const actualModal = n(data.autoVolResult.actualModal || 0);
     const maxModal = n(data.maxModal || 0);
-
-    // 🔍 DEBUG: Auto Volume data received
     const isInsufficientVolume = actualModal < maxModal;
-    if (isInsufficientVolume) {
-      console.warn('⚠️  [DOM-RENDERER] INSUFFICIENT ORDERBOOK VOLUME!');
-      console.warn('  DEX:', dextype);
-      console.warn('  Max Modal:', maxModal);
-      console.warn('  Actual Modal:', actualModal);
-      console.warn('  Shortfall:', (maxModal - actualModal).toFixed(2));
-      console.warn('  ⚠️  PNL will be calculated using ACTUAL modal ($' + actualModal.toFixed(2) + '), not max modal!');
-    }
-    console.log('🖼️  [DOM-RENDERER] Auto Volume Data Received:', {
-      dex: dextype,
-      actualModal,
-      maxModal,
-      levelsUsed: data.autoVolResult.levelsUsed,
-      lastLevelPrice: data.autoVolResult.lastLevelPrice,
-      avgPrice: data.autoVolResult.avgPrice,
-      totalCoins: data.autoVolResult.totalCoins,
-      volumeStatus: isInsufficientVolume ? '⚠️ INSUFFICIENT' : '✅ SUFFICIENT'
-    });
 
-    if (actualModal > 0 && maxModal > 0) {
+    // 🔍 DEBUG: Auto Volume modal validation
+    if (isInsufficientVolume) {
+      console.warn('⚠️  [DOM-RENDERER] Auto Volume Insufficient:', {
+        maxModal,
+        actualModal,
+        shortfall: (maxModal - actualModal).toFixed(2)
+      });
+    }
+
+    // ✅ NEW: Only show user's modal with warning icon if insufficient
+    if (maxModal > 0) {
       try {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
           const baseName = String(dextype || '').toUpperCase().substring(0, 6);
+          const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
-          // ⚠️ Highlight if actualModal < maxModal (insufficient orderbook volume)
-          const isInsufficient = actualModal < maxModal;
-
-          let modalText;
-          if (isInsufficient) {
-            // Show actual modal with warning icon if insufficient
-            const warningIcon = '<span style="color:#ff6b35; font-size:10px;" title="Insufficient orderbook volume! Using partial modal.">⚠️</span>';
-            modalText = `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ${warningIcon}`;
-          } else {
-            // Show only checkmark if sufficient
-            const checkIcon = '<span style="color:#3fa9a7; font-size:11px;" title="Orderbook volume sufficient">✅</span>';
-            modalText = `[$${maxModal.toFixed(0)}] ${checkIcon}`;
-          }
-
+          // ✅ SIMPLIFIED: Only show user's configured modal
+          const modalText = `[$${maxModal.toFixed(0)}] ${warningIcon}`;
           dexNameStrong.html(`${baseName} ${modalText}`);
         }
-      } catch (_) { }
+      } catch (e) {
+        console.warn('[DOM-RENDERER] Failed to update modal display:', e);
+      }
 
-      // Use actualModal for calculation display
-      displayModal = actualModal;
+      // ✅ Use user's configured modal for display
+      displayModal = maxModal;
     }
 
     // Override CEX prices with lastLevelPrice for display
@@ -1286,6 +1281,26 @@ function DisplayPNL(data) {
       // Sinyal hanya tampil jika PNL > 0 (profit positif setelah fee)
       const hasSignal = bestPnl > 0;
 
+      // ✅ AUTO VOLUME: Check volume sufficiency for multi-DEX
+      let volumeSufficient = true;
+      if (data.autoVolResult && data.maxModal) {
+        const actualModal = data.autoVolResult.actualModal || 0;
+        const maxModal = data.maxModal || 0;
+        const tolerance = maxModal * 0.001;
+        volumeSufficient = (actualModal + tolerance) >= maxModal;
+
+        if (!volumeSufficient) {
+          console.warn(`⚠️  [Multi-DEX] Signal SUPPRESSED due to insufficient orderbook volume:`, {
+            dex: dextype,
+            token: `${Name_in}->${Name_out}`,
+            maxModal: maxModal.toFixed(2),
+            actualModal: actualModal.toFixed(2),
+            shortfall: (maxModal - actualModal).toFixed(2),
+            bestPnl: bestPnl.toFixed(2)
+          });
+        }
+      }
+
       // Highlight hanya jika PNL positif dan di atas threshold
       const shouldHighlight = bestPnl > 0 && (filterPNLValue === 0 || bestPnl > filterPNLValue);
 
@@ -1298,7 +1313,8 @@ function DisplayPNL(data) {
         el.classList.remove('dex-cell-highlight');
       }
 
-      // *** SIGNAL untuk DZAP/LIFI - kirim sinyal jika ada PNL ***
+      // *** SIGNAL untuk DZAP/LIFI - kirim sinyal jika ada PNL, dengan warning jika volume tidak cukup ***
+      // Always show signal if PNL > 0, pass volume flag for warning indicator
       if (hasSignal && typeof InfoSinyal === 'function') {
         // Hitung total fee untuk best provider
         const bestSubRes = subResults[0]; // Provider terbaik (sudah di-sort)
@@ -1317,9 +1333,18 @@ function DisplayPNL(data) {
           ? lower(bestSubRes.dexTitle)  // Kirim ke card DEX spesifik jika hanya 1 provider
           : lower(dextype);              // Kirim ke card aggregator jika multi-provider
 
-        console.log(`✅ [Multi-DEX] Sending signal to: ${signalDexType}, Token: ${Name_in}->${Name_out}, PNL: ${bestPnl.toFixed(2)}`);
+        // Log berbeda tergantung volume sufficiency
+        if (volumeSufficient) {
+          console.log(`✅ [Multi-DEX] Sending signal to: ${signalDexType}, Token: ${Name_in}->${Name_out}, PNL: ${bestPnl.toFixed(2)}`);
+        } else {
+          console.warn(`⚠️  [Multi-DEX] Sending signal WITH WARNING (insufficient volume) for ${Name_in}->${Name_out} on ${dextype}:`, {
+            bestPnl: bestPnl.toFixed(2),
+            maxModal: data.maxModal?.toFixed(2),
+            actualModal: data.autoVolResult?.actualModal?.toFixed(2)
+          });
+        }
 
-        // Kirim signal
+        // Kirim signal dengan volume flag
         InfoSinyal(
           signalDexType,            // DEX type: provider spesifik atau aggregator
           NameX,                    // Token pair name
@@ -1334,8 +1359,16 @@ function DisplayPNL(data) {
           codeChain,                // Chain code
           trx,                      // Direction
           idPrefix,                 // ID prefix
-          baseId                    // Base ID
+          baseId,                   // Base ID
+          volumeSufficient          // ✅ NEW: Pass volume sufficiency flag
         );
+      } else if (hasSignal && !volumeSufficient) {
+        // 🔍 DEBUG: Signal suppressed due to insufficient volume
+        console.log(`⚠️  [Multi-DEX] Signal NOT shown (insufficient volume) for ${Name_in}->${Name_out} on ${dextype}:`, {
+          bestPnl: bestPnl.toFixed(2),
+          maxModal: data.maxModal?.toFixed(2),
+          actualModal: data.autoVolResult?.actualModal?.toFixed(2)
+        });
       } else if (!hasSignal) {
         // 🔍 DEBUG: Log when no signal (PNL ≤ 0 - loss atau break-even)
         console.log(`⚠️ [Multi-DEX] No signal (PNL ≤ 0) for ${Name_in}->${Name_out} on ${dextype}:`, {
@@ -1390,7 +1423,44 @@ function DisplayPNL(data) {
   // Highlight hanya jika PNL positif dan di atas threshold
   const passPNL = pnl > 0 && (filterPNLValue === 0 || pnl > filterPNLValue);
 
-  // Check if Vol Check feature is enabled in config
+  // ===== AUTO VOLUME FEATURES VALIDATION =====
+  // Two separate validation methods:
+  // 1. AUTO VOL: Simple volume check (vol >= modal)
+  // 2. AUTO LEVEL: Orderbook-based check (actualModal >= maxModal)
+
+  let volumeSufficient = true;  // Default: no warning
+
+  // AUTO VOL: Simple validation (no orderbook required)
+  if (data.autoVolEnabled) {
+    const volOK = n(vol) >= n(Modal);
+    if (!volOK) {
+      volumeSufficient = false;
+      console.warn('⚠️  [AUTO VOL] Simple volume check failed:', {
+        vol: vol.toFixed(2),
+        modal: Modal.toFixed(2),
+        shortfall: (Modal - vol).toFixed(2)
+      });
+    }
+  }
+
+  // AUTO LEVEL: Orderbook-based validation
+  if (data.autoLevelEnabled && data.autoVolResult && data.maxModal) {
+    const actualModal = data.autoVolResult.actualModal || 0;
+    const maxModal = data.maxModal || 0;
+    const tolerance = maxModal * 0.001;
+
+    volumeSufficient = (actualModal + tolerance) >= maxModal;
+
+    if (!volumeSufficient) {
+      console.warn('⚠️  [AUTO LEVEL] Orderbook volume insufficient:', {
+        maxModal: maxModal.toFixed(2),
+        actualModal: actualModal.toFixed(2),
+        shortfall: (maxModal - actualModal).toFixed(2)
+      });
+    }
+  }
+
+  // Legacy checkVol for highlight logic (backward compatibility)
   const volCheckFeatureEnabled = (window.CONFIG_APP?.APP?.VOL_CHECK !== false);
   const checkVol = volCheckFeatureEnabled && (typeof $ === 'function') ? $('#checkVOL').is(':checked') : false;
   const volOK = n(vol) >= n(Modal);
@@ -1587,7 +1657,7 @@ function DisplayPNL(data) {
   const feeLine = (direction === 'tokentopair') ? wdLine : dpLine;
 
   // Highlight + UIkit
-  const netClass = (pnl >= 0) ? 'uk-text-success' : 'uk-text-danger';
+  const netClass = (pnl >= 0.02) ? 'uk-text-success' : 'uk-text-danger';
   const bracket = `[${bruto.toFixed(2)} ~ ${feeAll.toFixed(2)}]`;
 
   // ✅ FIXED: Pisahkan profit indication (background) dari highlight (border)
@@ -1632,10 +1702,27 @@ function DisplayPNL(data) {
   // passSignal: untuk highlight (PNL > filter dan volume OK jika dicentang)
   const passSignal = (!checkVol && passPNL) || (checkVol && passPNL && volOK);
 
-  // Kirim sinyal hanya jika PNL > 0 (profit positif)
+  // ✅ AUTO VOLUME: Always show signal if PNL > 0, but pass volume flag for warning indicator
+  // Kirim sinyal jika PNL > 0 (profit positif), dengan flag volume insufficiency
   if (hasSignal && typeof InfoSinyal === 'function') {
-    console.log(`✅ [DisplayPNL] Sending signal for ${upper(dextype)}: ${upper(Name_in)}->${upper(Name_out)}, PNL: ${pnl.toFixed(2)}$`);
-    InfoSinyal(lower(dextype), NameX, pnl, feeAll, upper(cex), Name_in, Name_out, profitLossPercent, Modal, nameChain, codeChain, trx, idPrefix, baseId);
+    // Log berbeda tergantung volume sufficiency
+    if (volumeSufficient) {
+      console.log(`✅ [DisplayPNL] Sending signal for ${upper(dextype)}: ${upper(Name_in)}->${upper(Name_out)}, PNL: ${pnl.toFixed(2)}$`);
+    } else {
+      console.warn(`⚠️  [DisplayPNL] Sending signal WITH WARNING (insufficient volume) for ${upper(Name_in)}->${upper(Name_out)} on ${upper(dextype)}:`, {
+        pnl: pnl.toFixed(2),
+        maxModal: data.maxModal?.toFixed(2),
+        actualModal: data.autoVolResult?.actualModal?.toFixed(2)
+      });
+    }
+
+    // Pass volumeSufficient flag to InfoSinyal for warning indicator
+    InfoSinyal(
+      lower(dextype), NameX, pnl, feeAll, upper(cex),
+      Name_in, Name_out, profitLossPercent, Modal,
+      nameChain, codeChain, trx, idPrefix, baseId,
+      volumeSufficient  // ✅ NEW: Pass volume sufficiency flag
+    );
   } else if (!hasSignal) {
     // 🔍 DEBUG: No signal (PNL ≤ 0 - loss atau break-even)
     console.log(`⚠️ [DisplayPNL] No signal (PNL ≤ 0) for ${upper(Name_in)}->${upper(Name_out)} on ${upper(dextype)}:`, {
@@ -1721,7 +1808,7 @@ function DisplayPNL(data) {
   } catch (_) { }
 }
 
-function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix, domIdOverride) {
+function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair, profitLossPercent, modal, nameChain, codeChain, trx, idPrefix, domIdOverride, volumeSufficient = true) {
   const chainData = getChainData(nameChain);
   const chainShort = String(chainData?.SHORT_NAME || chainData?.Nama_Chain || nameChain).toUpperCase();
   const warnaChain = String(chainData?.COLOR_CHAIN || chainData?.WARNA || '#94fa95');
@@ -1749,6 +1836,9 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
   // Generate unique ID untuk signal item (untuk mencegah duplicate)
   const signalItemId = `signal_${idPrefix}${baseId}`;
 
+  // ✅ NEW: Add warning indicator if volume insufficient
+  const volumeWarning = !volumeSufficient ? ' ⚠️' : '';
+
   // Item sinyal: kompak + border kanan (separator)
   // ✅ FIX: Round modal value properly (no floating point errors)
   const modalRounded = Number(modal) >= 100 ? Math.round(Number(modal)) : Number(modal).toFixed(2);
@@ -1756,7 +1846,7 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     <div id="${signalItemId}" class="signal-item uk-flex uk-flex-middle uk-flex-nowrap uk-text-small uk-padding-remove-vertical" >
       <a href="#${idPrefix}${baseId}" class="uk-link-reset " style="text-decoration:none; font-size:12px; margin-top:2px; margin-left:4px;">
         <span class="${Number(PNL) > filterPNLValue ? 'signal-highlight' : ''}" style="color:${warnaCEX}; ${highlightStyle}; display:inline-block; font-weight:bolder;">
-          🔸 ${String(cex).slice(0, 3).toUpperCase()}X
+          🔸 ${String(cex).slice(0, 3).toUpperCase()}X${volumeWarning}
           <span class="uk-text-muted">:${modalRounded}</span>
           <span class="${warnaTeksArah}"> ${NameToken}->${NamePair}</span>${chainPart}:
           <span class="uk-text-muted">${Number(PNL).toFixed(2)}$</span>

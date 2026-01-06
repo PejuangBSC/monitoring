@@ -80,6 +80,19 @@
                         $('.header-card a, .header-card .icon').css({ pointerEvents: 'auto', opacity: 1 });
                     } catch (_) { }
                 }
+
+                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                try {
+                    const settings = (typeof getFromLocalStorage === 'function')
+                        ? getFromLocalStorage('SETTING_SCANNER', {})
+                        : {};
+                    settings.autoRun = $(this).is(':checked');
+                    if (typeof saveToLocalStorage === 'function') {
+                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    }
+                } catch (e) {
+                    console.warn('[AUTO-SAVE] Failed to save autoRun:', e.message);
+                }
             });
         }
     } catch (_) { }
@@ -99,7 +112,41 @@
 
             // Toggle level input visibility
             $('#autoVolToggle').on('change', function () {
-                $('#autoVolLevelInput').toggle($(this).is(':checked'));
+                const isChecked = $(this).is(':checked');
+                $('#autoVolLevelInput').toggle(isChecked);
+
+                // ✅ MUTUALLY EXCLUSIVE: Uncheck AUTO VOL when AUTO LEVEL is checked
+                if (isChecked) {
+                    $('#checkVOL').prop('checked', false);
+                }
+
+                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                try {
+                    const settings = (typeof getFromLocalStorage === 'function')
+                        ? getFromLocalStorage('SETTING_SCANNER', {})
+                        : {};
+                    settings.autoLevel = isChecked;
+                    if (typeof saveToLocalStorage === 'function') {
+                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    }
+                } catch (e) {
+                    console.warn('[AUTO-SAVE] Failed to save autoLevel:', e.message);
+                }
+            });
+
+            // Auto-save level value when changed
+            $('#autoVolLevels').on('change', function () {
+                try {
+                    const settings = (typeof getFromLocalStorage === 'function')
+                        ? getFromLocalStorage('SETTING_SCANNER', {})
+                        : {};
+                    settings.autoLevelValue = parseInt($(this).val(), 10) || 1;
+                    if (typeof saveToLocalStorage === 'function') {
+                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    }
+                } catch (e) {
+                    console.warn('[AUTO-SAVE] Failed to save autoLevelValue:', e.message);
+                }
             });
         }
     } catch (_) { }
@@ -121,7 +168,51 @@
             $('#checkVOL').closest('label').show();
             window.VOL_CHECK_ENABLED = false;
             window.VOL_CHECK_FEATURE_DISABLED = false;
+
+            // ✅ MUTUALLY EXCLUSIVE: Uncheck AUTO LEVEL when AUTO VOL is checked
+            $('#checkVOL').on('change', function () {
+                const isChecked = $(this).is(':checked');
+
+                // Uncheck AUTO LEVEL if AUTO VOL is checked
+                if (isChecked) {
+                    $('#autoVolToggle').prop('checked', false);
+                    $('#autoVolLevelInput').hide();
+                }
+
+                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                try {
+                    const settings = (typeof getFromLocalStorage === 'function')
+                        ? getFromLocalStorage('SETTING_SCANNER', {})
+                        : {};
+                    settings.autoVol = isChecked;
+                    if (typeof saveToLocalStorage === 'function') {
+                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    }
+                } catch (e) {
+                    console.warn('[AUTO-SAVE] Failed to save autoVol:', e.message);
+                }
+            });
         }
+    } catch (_) { }
+
+    /**
+     * Wallet CEX Check toggle - AUTO-SAVE
+     */
+    try {
+        // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+        $('#checkWalletCEX').on('change', function () {
+            try {
+                const settings = (typeof getFromLocalStorage === 'function')
+                    ? getFromLocalStorage('SETTING_SCANNER', {})
+                    : {};
+                settings.walletCex = $(this).is(':checked');
+                if (typeof saveToLocalStorage === 'function') {
+                    saveToLocalStorage('SETTING_SCANNER', settings);
+                }
+            } catch (e) {
+                console.warn('[AUTO-SAVE] Failed to save walletCex:', e.message);
+            }
+        });
     } catch (_) { }
 
     /**

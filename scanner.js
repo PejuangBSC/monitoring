@@ -657,14 +657,22 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                 console.warn(`[AUTO SKIP] CEX ${token.cex} failed for ${token.symbol_in}, DEX will be skipped...`);
             }
 
-            // ===== AUTO VOLUME: Fetch Orderbook =====
-            // Check if Auto Volume is enabled
+            // ===== AUTO VOLUME FEATURES =====
+            // Two separate features:
+            // 1. AUTO VOL (checkVOL): Simple volume validation (vol >= modal)
+            // 2. AUTO LEVEL (autoVolToggle): Orderbook-based simulation
+
+            const autoVolEnabled = $('#checkVOL').is(':checked');      // AUTO VOL
+            const autoLevelEnabled = $('#autoVolToggle').is(':checked'); // AUTO LEVEL
+
             const autoVolSettings = {
-                enabled: $('#autoVolToggle').is(':checked'),
-                levels: parseInt($('#autoVolLevels').val()) || 3
+                autoVol: autoVolEnabled,
+                autoLevel: autoLevelEnabled,
+                levels: parseInt($('#autoVolLevels').val()) || 1
             };
 
-            if (autoVolSettings.enabled && cexResult.ok) {
+            // Only fetch orderbook if AUTO LEVEL is enabled
+            if (autoLevelEnabled && cexResult.ok) {
                 try {
                     const cexUpper = String(token.cex).toUpperCase();
                     const cexConfig = CONFIG_CEX[cexUpper];
@@ -683,7 +691,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                         }
                     }
                 } catch (err) {
-                    console.warn('[Auto Vol] Failed to fetch orderbook:', err);
+                    console.warn('[Auto Level] Failed to fetch orderbook:', err);
                     // Silently fallback to fixed modal
                 }
             }
@@ -757,77 +765,74 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             }
                         }
 
-                        // ===== AUTO VOLUME: Calculate Modal & Amount =====
+                        // ===== AUTO LEVEL: Calculate Modal & Amount =====
+                        // ✅ AUTO LEVEL CONCEPT:
+                        // - Fetch orderbook and calculate actual available volume
+                        // - Use ACTUAL modal and price from orderbook for simulation
+                        // - Show warning ⚠️ if orderbook insufficient
                         let modal, amountIn, avgPriceCEX, autoVolResult = null;
 
-                        if (autoVolSettings.enabled && DataCEX.orderbook && cexResult.ok) {
-                            // Use Auto Volume
+                        if (autoVolSettings.autoLevel && DataCEX.orderbook && cexResult.ok) {
+                            // Use Auto Level for actual simulation
                             const side = isKiri ? 'asks' : 'bids';
                             const maxModal = Number(isKiri ? modalKiri : modalKanan) || 0;
 
-                            // 🔍 DEBUG: Auto Volume settings and CEX data
-                            console.log('🎯 [SCANNER] Auto Volume Active');
+                            // 🔍 DEBUG: Auto Level settings and CEX data
+                            console.log('🎯 [SCANNER] Auto Level Active (Actual Simulation Mode)');
                             console.log('  Direction:', isKiri ? 'CEX→DEX (TokenToPair)' : 'DEX→CEX (PairToToken)');
                             console.log('  Side:', side);
-                            console.log('  Max Modal:', maxModal);
-                            console.log('  Auto Vol Levels:', autoVolSettings.levels);
-                            console.log('  CEX Orderbook Available:', !!DataCEX.orderbook);
-                            console.log('  CEX Buy Token Price:', DataCEX.priceBuyToken);
-                            console.log('  CEX Sell Token Price:', DataCEX.priceSellToken);
+                            console.log('  User Modal (Max):', maxModal);
+                            console.log('  Auto Level Levels:', autoVolSettings.levels);
 
                             autoVolResult = (typeof calculateAutoVolume === 'function')
                                 ? calculateAutoVolume(DataCEX.orderbook, maxModal, autoVolSettings.levels, side)
                                 : null;
 
-                            // 🔍 DEBUG: Auto Volume result
-                            console.log('📦 [SCANNER] Auto Volume Result:', autoVolResult);
+                            // 🔍 DEBUG: Auto Level result
+                            console.log('📦 [SCANNER] Auto Level Result:', autoVolResult);
 
                             if (autoVolResult && !autoVolResult.error && autoVolResult.totalCoins > 0) {
-                                // ✅ CRITICAL FIX: Use actualModal for PNL calculation, not maxModal!
-                                // If orderbook volume is insufficient, actualModal < maxModal
-                                // PNL must be calculated based on the actual amount of coins purchased/sold
-                                modal = autoVolResult.actualModal;  // ← Use ACTUAL modal that was used!
-                                avgPriceCEX = autoVolResult.avgPrice;
+                                // ✅ ACTUAL SIMULATION: Use actual values from orderbook
+                                modal = autoVolResult.actualModal;  // ← Use ACTUAL modal
+                                avgPriceCEX = autoVolResult.avgPrice;  // ← Use weighted average price
 
-                                // 🔍 DEBUG: Modal validation
-                                if (autoVolResult.actualModal < maxModal) {
-                                    console.warn('⚠️  [AUTO VOLUME] Insufficient orderbook volume!');
-                                    console.warn('  Max Modal:', maxModal);
-                                    console.warn('  Actual Modal:', autoVolResult.actualModal);
-                                    console.warn('  Shortfall:', (maxModal - autoVolResult.actualModal).toFixed(2));
-                                }
-
-                                // ✅ FIX: Different amountIn per direction
+                                // Calculate actual amount based on direction
                                 if (isKiri) {
                                     // CEX→DEX (tokentopair): Use totalCoins (TOKEN amount to swap)
                                     amountIn = autoVolResult.totalCoins;
                                 } else {
                                     // DEX→CEX (pairtotoken): Convert actualModal to PAIR amount
-                                    // DEX API needs "how much PAIR to spend" not "how many TOKEN to get"
                                     const pricePair = DataCEX.priceBuyPair || 1;
                                     amountIn = autoVolResult.actualModal / pricePair;
                                 }
 
+                                // Check if volume is sufficient (for warning only)
+                                if (autoVolResult.actualModal < maxModal) {
+                                    console.warn('⚠️  [AUTO LEVEL] Insufficient orderbook volume!');
+                                    console.warn('  User Modal (Max):', maxModal);
+                                    console.warn('  Actual Available:', autoVolResult.actualModal);
+                                    console.warn('  Shortfall:', (maxModal - autoVolResult.actualModal).toFixed(2));
+                                    console.warn('  ℹ️  Using ACTUAL modal for simulation');
+                                }
+
                                 // 🔍 DEBUG: Final values used
-                                console.log('✅ [SCANNER] Using Auto Volume:');
-                                console.log('  Modal (for PNL):', modal, '(ACTUAL, not max)');
-                                console.log('  Max Modal:', maxModal);
-                                console.log('  Amount In:', amountIn);
-                                console.log('  Avg Price CEX:', avgPriceCEX);
-                                console.log('  Last Level Price (for display):', autoVolResult.lastLevelPrice);
+                                console.log('✅ [SCANNER] Using Actual Modal (Simulation):');
+                                console.log('  Modal (for PNL):', modal, '(ACTUAL from orderbook)');
+                                console.log('  Amount In:', amountIn, '(ACTUAL)');
+                                console.log('  Avg Price CEX:', avgPriceCEX, '(weighted average)');
                             } else {
-                                // Fallback to fixed modal
-                                console.warn('⚠️  [SCANNER] Auto Volume fallback to fixed modal:', autoVolResult?.error || 'No valid result');
-                                modal = Number(isKiri ? modalKiri : modalKanan) || 0;
+                                // Fallback to user modal if orderbook calculation fails
+                                console.warn('⚠️  [SCANNER] Auto Level fallback to user modal:', autoVolResult?.error || 'No valid result');
+                                modal = maxModal;
                                 amountIn = isKiri ? amount_in_token : amount_in_pair;
                                 avgPriceCEX = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
                                 autoVolResult = null;
                             }
                         } else {
                             // Fixed modal (existing behavior)
-                            if (autoVolSettings.enabled) {
-                                console.log('⏭️  [SCANNER] Auto Volume skipped:');
-                                console.log('  Auto Vol Enabled:', autoVolSettings.enabled);
+                            if (autoVolSettings.autoLevel) {
+                                console.log('⏭️  [SCANNER] Auto Level skipped:');
+                                console.log('  Auto Level Enabled:', autoVolSettings.autoLevel);
                                 console.log('  Orderbook Available:', !!DataCEX.orderbook);
                                 console.log('  CEX Result OK:', cexResult.ok);
                             }
@@ -1043,7 +1048,13 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     direction, 0, finalDexRes
                                 );
 
-                                // ✅ AUTO VOLUME: Inject display data
+
+                                // ✅ AUTO VOLUME FEATURES: Inject display data and flags
+                                // Pass both AUTO VOL and AUTO LEVEL flags for validation logic
+                                update.autoVolEnabled = autoVolSettings.autoVol;
+                                update.autoLevelEnabled = autoVolSettings.autoLevel;
+
+                                // ✅ AUTO LEVEL: Inject orderbook result data
                                 if (autoVolResult && !autoVolResult.error) {
                                     update.autoVolResult = autoVolResult;
                                     update.maxModal = Number(isKiri ? modalKiri : modalKanan) || 0;
