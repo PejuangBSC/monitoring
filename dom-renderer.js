@@ -261,7 +261,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
         data.depositPair === false
       );
       const detailBgColor = hasDisabledWallet ? '#fce0e0' : ''; // Warning pink/red background if disabled
-      const detailBgStyle = hasDisabledWallet ? `font-size:13px; background-color: ${detailBgColor} !important;` : '';
+      const detailBgStyle = hasDisabledWallet ? `font-size:11px; background-color: ${detailBgColor} !important;` : '';
 
       const chainData = getChainData(data.chain);
       const walletObj = chainData?.CEXCHAIN?.[data.cex] || {};
@@ -312,10 +312,10 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
 
       rowHtml += `
             <td id="${idPrefix}${rowId}" class="uk-text-center uk-background td-detail" style="text-align: center; border:1px solid black; padding:10px; ${detailBgStyle}">
-             [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
+             [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder; font-size:medium;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${chainShort} </span>
     
             <span class="detail-line">
-                <span style="color: ${warnaChain}; font-weight:bolder; font-size:14px;"  >${linkToken} </span> ⇄ <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${linkPair} </span>
+                <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;"  >${linkToken} </span> ⇄ <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${linkPair} </span>
                 <span id="${idPrefix}EditMulti-${data.id}" data-id="${data.id}"
                 data-chain="${String(data.chain).toLowerCase()}"
                       data-cex="${String(data.cex).toUpperCase()}"
@@ -1089,8 +1089,10 @@ function DisplayPNL(data) {
           const baseName = String(dextype || '').toUpperCase().substring(0, 6);
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
-          // ✅ AUTO LEVEL: Show [USER] │ ACTUAL$ format
-          const modalText = `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ${warningIcon}`;
+          // ✅ NEW: Show checkmark if sufficient, actual modal + warning if insufficient
+          const modalText = isInsufficientVolume
+            ? `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ⚠️`
+            : `[$${maxModal.toFixed(0)}] ✅`;
           dexNameStrong.html(`${baseName} ${modalText}`);
         }
       } catch (e) {
@@ -1911,9 +1913,10 @@ function InfoSinyal(DEXPLUS, TokenPair, PNL, totalFee, cex, NameToken, NamePair,
     $container.append(sLink);
     console.log(`✅ [InfoSinyal] Signal added to DEX: ${DEXPLUS} (normalized: ${dexLowerKey}), Token: ${NameToken}->${NamePair}, PNL: ${Number(PNL).toFixed(2)}`);
   } else {
-    // Signal sudah ada, update saja (optional: bisa skip update jika tidak perlu)
-    // Untuk sekarang kita skip agar tidak duplicate
-    return;
+    // ✅ FIX: Update existing signal instead of skipping
+    // This ensures signals show latest data when AUTO LEVEL re-scans with different orderbook
+    $(existingSignal).replaceWith(sLink);
+    console.log(`🔄 [InfoSinyal] Signal updated for DEX: ${DEXPLUS}, Token: ${NameToken}->${NamePair}, PNL: ${Number(PNL).toFixed(2)}`);
   }
 
   // Pastikan kartu sinyal DEX utama terlihat ketika ada item sinyal // REFACTORED
