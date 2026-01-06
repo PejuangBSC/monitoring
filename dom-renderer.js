@@ -1061,23 +1061,27 @@ function DisplayPNL(data) {
   let displayPriceBuyToken = priceBuyToken_CEX;
   let displayPriceSellToken = priceSellToken_CEX;
 
-  // ===== AUTO VOLUME: Modal Display Override =====
-  // ✅ SIMPLIFIED: Only show USER's configured modal, not actualModal
-  if (data.autoVolResult && data.maxModal) {
+  // ===== AUTO VOLUME FEATURES: Modal Display =====
+  // Two different display modes:
+  // 1. AUTO VOL: Show user modal only with warning (no actual modal)
+  // 2. AUTO LEVEL: Show user modal AND actual modal with warning
+
+  if (data.autoLevelEnabled && data.autoVolResult && data.maxModal) {
+    // ✅ AUTO LEVEL: Show actual simulation values
     const actualModal = n(data.autoVolResult.actualModal || 0);
     const maxModal = n(data.maxModal || 0);
     const isInsufficientVolume = actualModal < maxModal;
 
-    // 🔍 DEBUG: Auto Volume modal validation
+    // 🔍 DEBUG: Auto Level modal validation
     if (isInsufficientVolume) {
-      console.warn('⚠️  [DOM-RENDERER] Auto Volume Insufficient:', {
+      console.warn('⚠️  [DOM-RENDERER] Auto Level Insufficient:', {
         maxModal,
         actualModal,
         shortfall: (maxModal - actualModal).toFixed(2)
       });
     }
 
-    // ✅ NEW: Only show user's modal with warning icon if insufficient
+    // ✅ AUTO LEVEL: Show both user modal and actual modal
     if (maxModal > 0) {
       try {
         const dexNameStrong = $mainCell.find('strong').first();
@@ -1085,19 +1089,19 @@ function DisplayPNL(data) {
           const baseName = String(dextype || '').toUpperCase().substring(0, 6);
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
-          // ✅ SIMPLIFIED: Only show user's configured modal
-          const modalText = `[$${maxModal.toFixed(0)}] ${warningIcon}`;
+          // ✅ AUTO LEVEL: Show [USER] │ ACTUAL$ format
+          const modalText = `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ${warningIcon}`;
           dexNameStrong.html(`${baseName} ${modalText}`);
         }
       } catch (e) {
         console.warn('[DOM-RENDERER] Failed to update modal display:', e);
       }
 
-      // ✅ Use user's configured modal for display
-      displayModal = maxModal;
+      // ✅ Use actual modal for display (simulation)
+      displayModal = actualModal;
     }
 
-    // Override CEX prices with lastLevelPrice for display
+    // Override CEX prices with lastLevelPrice for display (AUTO LEVEL only)
     if (data.cexBuyPriceDisplay) {
       console.log('💵 [DOM-RENDERER] Override CEX BUY Price:', {
         original: priceBuyToken_CEX,
@@ -1114,7 +1118,35 @@ function DisplayPNL(data) {
       });
       displayPriceSellToken = data.cexSellPriceDisplay;
     }
+  } else if (data.autoVolEnabled && data.maxModal) {
+    // ✅ AUTO VOL: Show user modal only with warning (no actual modal)
+    const maxModal = n(data.maxModal || 0);
+    const vol = n(data.vol || 0);
+    const isInsufficientVolume = vol < maxModal;
+
+    if (maxModal > 0) {
+      try {
+        const dexNameStrong = $mainCell.find('strong').first();
+        if (dexNameStrong.length) {
+          const baseName = String(dextype || '').toUpperCase().substring(0, 6);
+
+          // Check if volume sufficient for AUTO VOL
+          const warningIcon = isInsufficientVolume ? '⚠️' : '';
+
+          // ✅ AUTO VOL: Show only user modal (no actual modal)
+          const modalText = `[$${maxModal.toFixed(0)}] ${warningIcon}`;
+          dexNameStrong.html(`${baseName} ${modalText}`);
+        }
+      } catch (e) {
+        console.warn('[DOM-RENDERER] Failed to update modal display:', e);
+      }
+
+      // ✅ Use user modal for display (validation only)
+      displayModal = maxModal;
+    }
   }
+
+  // ===== MULTI-DEX RESULTS (DZAP/LIFI) =====
   if (isMultiDex && Array.isArray(subResults) && subResults.length > 0) {
     try {
       // Get DEX color from config

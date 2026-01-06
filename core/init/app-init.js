@@ -211,62 +211,82 @@ $(document).ready(function () {
     // applyThemeForMode already executed above to paint early
     setTimeout(deferredInit, 0);
 
-    // ✅ NEW: Restore checkbox scanner controls AFTER DOM is ready
+    // ✅ MIGRATION: Migrate old checkbox preferences to per-chain storage (one-time)
     setTimeout(function () {
         try {
-            const appSettings = (typeof getFromLocalStorage === 'function')
-                ? getFromLocalStorage('SETTING_SCANNER', {})
-                : {};
+            if (typeof migrateCheckboxPreferences === 'function') {
+                migrateCheckboxPreferences();
+            }
+        } catch (e) {
+            console.warn('[APP-INIT] Migration failed:', e.message);
+        }
+    }, 50);
+
+    // ✅ NEW: Restore checkbox scanner controls from per-chain filter AFTER DOM is ready
+    setTimeout(function () {
+        try {
+            const prefs = (typeof getCheckboxPreferences === 'function')
+                ? getCheckboxPreferences()
+                : {
+                    autoScroll: false,
+                    autoRun: false,
+                    autoVol: false,
+                    walletCex: false,
+                    autoLevel: false,
+                    autoLevelValue: 1
+                };
 
             // ✅ VALIDATION: Enforce mutually exclusive AUTO VOL and AUTO LEVEL
-            if (appSettings.autoVol && appSettings.autoLevel) {
+            if (prefs.autoVol && prefs.autoLevel) {
                 console.warn('[APP-INIT] ⚠️  Invalid state: both autoVol and autoLevel are true');
                 console.warn('[APP-INIT] Prioritizing AUTO VOL, disabling AUTO LEVEL');
-                appSettings.autoLevel = false;  // Prioritize AUTO VOL
+                prefs.autoLevel = false;
                 // Save corrected state
-                if (typeof saveToLocalStorage === 'function') {
-                    saveToLocalStorage('SETTING_SCANNER', appSettings);
+                if (typeof saveCheckboxPreference === 'function') {
+                    saveCheckboxPreference('autoLevel', false);
                 }
             }
 
-            if (appSettings.autoRun !== undefined) {
-                $('#autoRunToggle').prop('checked', appSettings.autoRun);
-                window.AUTORUN_ENABLED = appSettings.autoRun;
+            // Restore checkbox states
+            if (prefs.autoScroll !== undefined) {
+                $('#autoScrollCheckbox').prop('checked', prefs.autoScroll);
             }
-            if (appSettings.autoVol !== undefined) {
-                $('#checkVOL').prop('checked', appSettings.autoVol);
+            if (prefs.autoRun !== undefined) {
+                $('#autoRunToggle').prop('checked', prefs.autoRun);
+                window.AUTORUN_ENABLED = prefs.autoRun;
             }
-            if (appSettings.walletCex !== undefined) {
-                $('#checkWalletCEX').prop('checked', appSettings.walletCex);
+            if (prefs.autoVol !== undefined) {
+                $('#checkVOL').prop('checked', prefs.autoVol);
             }
-            if (appSettings.autoLevel !== undefined) {
-                $('#autoVolToggle').prop('checked', appSettings.autoLevel);
+            if (prefs.walletCex !== undefined) {
+                $('#checkWalletCEX').prop('checked', prefs.walletCex);
+            }
+            if (prefs.autoLevel !== undefined) {
+                $('#autoVolToggle').prop('checked', prefs.autoLevel);
                 // Show/hide level input based on toggle
-                if (appSettings.autoLevel) {
+                if (prefs.autoLevel) {
                     $('#autoVolLevelInput').show();
                 } else {
                     $('#autoVolLevelInput').hide();
                 }
             }
-            if (appSettings.autoLevelValue !== undefined) {
-                $('#autoVolLevels').val(appSettings.autoLevelValue);
+            if (prefs.autoLevelValue !== undefined) {
+                $('#autoVolLevels').val(prefs.autoLevelValue);
             }
 
             // ✅ TRIGGER CHANGE EVENTS: Enforce mutually exclusive after restore
             // This ensures event handlers run and uncheck the other if needed
-            if (appSettings.autoVol) {
+            if (prefs.autoVol) {
                 $('#checkVOL').trigger('change');
-            } else if (appSettings.autoLevel) {
+            } else if (prefs.autoLevel) {
                 $('#autoVolToggle').trigger('change');
             }
 
-            console.log('[APP-INIT] ✅ Checkbox controls restored from IndexedDB:', {
-                autoRun: appSettings.autoRun,
-                autoVol: appSettings.autoVol,
-                walletCex: appSettings.walletCex,
-                autoLevel: appSettings.autoLevel,
-                autoLevelValue: appSettings.autoLevelValue
-            });
+            const filterKey = (typeof getActiveFilterKey === 'function')
+                ? getActiveFilterKey()
+                : 'FILTER_MULTICHAIN';
+
+            console.log(`[APP-INIT] ✅ Checkbox controls restored from ${filterKey}:`, prefs);
         } catch (e) {
             console.warn('[APP-INIT] Failed to restore checkbox settings:', e.message);
         }

@@ -81,14 +81,11 @@
                     } catch (_) { }
                 }
 
-                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                // ✅ AUTO-SAVE: Save to per-chain filter storage
                 try {
-                    const settings = (typeof getFromLocalStorage === 'function')
-                        ? getFromLocalStorage('SETTING_SCANNER', {})
-                        : {};
-                    settings.autoRun = $(this).is(':checked');
-                    if (typeof saveToLocalStorage === 'function') {
-                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    const isChecked = $(this).is(':checked');
+                    if (typeof saveCheckboxPreference === 'function') {
+                        saveCheckboxPreference('autoRun', isChecked);
                     }
                 } catch (e) {
                     console.warn('[AUTO-SAVE] Failed to save autoRun:', e.message);
@@ -120,14 +117,10 @@
                     $('#checkVOL').prop('checked', false);
                 }
 
-                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                // ✅ AUTO-SAVE: Save to per-chain filter storage
                 try {
-                    const settings = (typeof getFromLocalStorage === 'function')
-                        ? getFromLocalStorage('SETTING_SCANNER', {})
-                        : {};
-                    settings.autoLevel = isChecked;
-                    if (typeof saveToLocalStorage === 'function') {
-                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    if (typeof saveCheckboxPreference === 'function') {
+                        saveCheckboxPreference('autoLevel', isChecked);
                     }
                 } catch (e) {
                     console.warn('[AUTO-SAVE] Failed to save autoLevel:', e.message);
@@ -137,12 +130,9 @@
             // Auto-save level value when changed
             $('#autoVolLevels').on('change', function () {
                 try {
-                    const settings = (typeof getFromLocalStorage === 'function')
-                        ? getFromLocalStorage('SETTING_SCANNER', {})
-                        : {};
-                    settings.autoLevelValue = parseInt($(this).val(), 10) || 1;
-                    if (typeof saveToLocalStorage === 'function') {
-                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    const value = parseInt($(this).val(), 10) || 1;
+                    if (typeof saveCheckboxPreference === 'function') {
+                        saveCheckboxPreference('autoLevelValue', value);
                     }
                 } catch (e) {
                     console.warn('[AUTO-SAVE] Failed to save autoLevelValue:', e.message);
@@ -179,14 +169,10 @@
                     $('#autoVolLevelInput').hide();
                 }
 
-                // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
+                // ✅ AUTO-SAVE: Save to per-chain filter storage
                 try {
-                    const settings = (typeof getFromLocalStorage === 'function')
-                        ? getFromLocalStorage('SETTING_SCANNER', {})
-                        : {};
-                    settings.autoVol = isChecked;
-                    if (typeof saveToLocalStorage === 'function') {
-                        saveToLocalStorage('SETTING_SCANNER', settings);
+                    if (typeof saveCheckboxPreference === 'function') {
+                        saveCheckboxPreference('autoVol', isChecked);
                     }
                 } catch (e) {
                     console.warn('[AUTO-SAVE] Failed to save autoVol:', e.message);
@@ -199,15 +185,11 @@
      * Wallet CEX Check toggle - AUTO-SAVE
      */
     try {
-        // ✅ AUTO-SAVE: Simpan status checkbox ke IndexedDB
         $('#checkWalletCEX').on('change', function () {
             try {
-                const settings = (typeof getFromLocalStorage === 'function')
-                    ? getFromLocalStorage('SETTING_SCANNER', {})
-                    : {};
-                settings.walletCex = $(this).is(':checked');
-                if (typeof saveToLocalStorage === 'function') {
-                    saveToLocalStorage('SETTING_SCANNER', settings);
+                const isChecked = $(this).is(':checked');
+                if (typeof saveCheckboxPreference === 'function') {
+                    saveCheckboxPreference('walletCex', isChecked);
                 }
             } catch (e) {
                 console.warn('[AUTO-SAVE] Failed to save walletCex:', e.message);

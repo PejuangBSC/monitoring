@@ -3449,21 +3449,22 @@ $(document).ready(function () {
         $('#dexSignals').hide(); // Sembunyikan elemen dexSignals
     });
 
-    // Inisialisasi nilai dari localStorage
-    const saved = localStorage.getItem('MULTIALL_SCROLL');
-    $('#autoScrollCheckbox').prop('checked', saved === 'true');
+    // ✅ REMOVED: Old localStorage-based auto scroll (now using per-chain storage)
+    // Auto scroll is now managed via checkbox-preferences.js and restored in app-init.js
 
-    // Simpan perubahan ke localStorage saat dicentang/ubah
+    // Simpan perubahan ke per-chain filter storage saat dicentang/ubah
     $('#autoScrollCheckbox').on('change', function () {
         const isChecked = $(this).is(':checked');
-        localStorage.setItem('MULTIALL_SCROLL', isChecked);
+
+        // Save to per-chain storage
+        if (typeof saveCheckboxPreference === 'function') {
+            saveCheckboxPreference('autoScroll', isChecked);
+        }
 
         // Tambahkan alert berdasarkan status
         if (isChecked) {
-            //alert('✅ Auto Scroll diaktifkan.');
             app.showAlert('✅  Auto Scroll AKTIF ...', 'success');
         } else {
-            //alert('⛔ Auto Scroll dimatikan.');
             app.showAlert('❌ Auto Scroll NON AKTIF...!', 'warning');
         }
     });
