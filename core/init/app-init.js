@@ -25,7 +25,7 @@
  * @module core/init/app-init
  */
 
-$(document).ready(function() {
+$(document).ready(function () {
     'use strict';
 
     // Database functions removed - snapshot-new.js will use alternative methods
@@ -36,29 +36,29 @@ $(document).ready(function() {
         if (sessionStorage.getItem('APP_FORCE_RUN_NO') === '1') {
             sessionStorage.removeItem('APP_FORCE_RUN_NO');
         }
-    } catch(_) {}
+    } catch (_) { }
 
     /**
      * Apply run UI based on running state
      * @param {boolean} isRunning - Whether scanning is currently running
      */
-    function applyRunUI(isRunning){
+    function applyRunUI(isRunning) {
         if (isRunning) {
-            try { form_off(); } catch(_) {}
-            $('#startSCAN').prop('disabled', true).attr('aria-busy','true').text('Running...').addClass('uk-button-disabled');
+            try { form_off(); } catch (_) { }
+            $('#startSCAN').prop('disabled', true).attr('aria-busy', 'true').text('Running...').addClass('uk-button-disabled');
             // Show standardized running banner: [ RUN SCANNING: <CHAINS> ]
-            try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch(_) {}
+            try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch (_) { }
             $('#stopSCAN').show().prop('disabled', false);
             $('#reload').prop('disabled', false);
             //$('#infoAPP').html('⚠️ Proses sebelumnya tidak selesai. Tekan tombol <b>RESET PROSES</b> untuk memulai ulang.').show();
 
-            try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch(_) {}
+            try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch (_) { }
         } else {
             $('#startSCAN').prop('disabled', false).removeAttr('aria-busy').text('Start').removeClass('uk-button-disabled');
             $('#stopSCAN').hide();
             // Clear banner when not running
-            try { $('#infoAPP').text('').hide(); } catch(_) {}
-            try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch(_) {}
+            try { $('#infoAPP').text('').hide(); } catch (_) { }
+            try { if (typeof setScanUIGating === 'function') setScanUIGating(false); } catch (_) { }
         }
     }
 
@@ -72,32 +72,32 @@ $(document).ready(function() {
      * @param {string} filterKey - The filter key (e.g., 'FILTER_MULTICHAIN' or 'FILTER_BSC')
      * @param {Object} val - The filter value object
      */
-    function updateRunStateCache(filterKey, val){
+    function updateRunStateCache(filterKey, val) {
         try {
-            const key = String(filterKey||'');
+            const key = String(filterKey || '');
             const up = key.toUpperCase();
             if (!up.startsWith('FILTER_')) return;
             const isMulti = (up === 'FILTER_MULTICHAIN');
-            const k = isMulti ? 'multichain' : key.replace(/^FILTER_/i,'').toLowerCase();
-            const runVal = (val && typeof val==='object' && Object.prototype.hasOwnProperty.call(val,'run')) ? val.run : (getFromLocalStorage(key, {})||{}).run;
-            const r = String(runVal||'NO').toUpperCase() === 'YES';
+            const k = isMulti ? 'multichain' : key.replace(/^FILTER_/i, '').toLowerCase();
+            const runVal = (val && typeof val === 'object' && Object.prototype.hasOwnProperty.call(val, 'run')) ? val.run : (getFromLocalStorage(key, {}) || {}).run;
+            const r = String(runVal || 'NO').toUpperCase() === 'YES';
             window.RUN_STATES[k] = r;
-        } catch(_) {}
+        } catch (_) { }
     }
-    try { window.updateRunStateCache = window.updateRunStateCache || updateRunStateCache; } catch(_) {}
+    try { window.updateRunStateCache = window.updateRunStateCache || updateRunStateCache; } catch (_) { }
 
     /**
      * Initialize run state cache for all filter keys
      */
-    function initRunStateCache(){
-        try { updateRunStateCache('FILTER_MULTICHAIN'); } catch(_) {}
-        try { Object.keys(CONFIG_CHAINS||{}).forEach(k => updateRunStateCache(`FILTER_${String(k).toUpperCase()}`)); } catch(_) {}
+    function initRunStateCache() {
+        try { updateRunStateCache('FILTER_MULTICHAIN'); } catch (_) { }
+        try { Object.keys(CONFIG_CHAINS || {}).forEach(k => updateRunStateCache(`FILTER_${String(k).toUpperCase()}`)); } catch (_) { }
     }
     try {
         if (window.whenStorageReady && typeof window.whenStorageReady.then === 'function') {
             window.whenStorageReady.then(initRunStateCache);
         } else { initRunStateCache(); }
-    } catch(_) { initRunStateCache(); }
+    } catch (_) { initRunStateCache(); }
 
     // Initialize app state from localStorage
     const appStateInit = getAppState();
@@ -115,10 +115,10 @@ $(document).ready(function() {
                     const st = getAppState();
                     applyRunUI(st && st.run === 'YES');
                     // REMOVED: Global lock re-check (multi-tab support enabled)
-                } catch(_) {}
+                } catch (_) { }
             });
         }
-    } catch(_) {}
+    } catch (_) { }
 
     // ========== PROTEKSI RELOAD LOOP ==========
     // Mencegah reload loop saat 2 tab dengan URL sama saling broadcast message
@@ -133,7 +133,7 @@ $(document).ready(function() {
      * Cross-tab run state sync via BroadcastChannel (per FILTER_* key)
      */
     if (window.__MC_BC) {
-        window.__MC_BC.addEventListener('message', function(ev){
+        window.__MC_BC.addEventListener('message', function (ev) {
             // ========== IGNORE MESSAGES SAAT BARU RELOAD ==========
             // Mencegah tab yang baru reload langsung reload lagi karena message dari tab lain
             if (Date.now() - pageLoadTime < IGNORE_MESSAGES_DURATION) {
@@ -158,11 +158,11 @@ $(document).ready(function() {
                     if (!keyUpper.startsWith('FILTER_')) return; // only react to FILTER_* changes
 
                     // Update in-memory cache first
-                    try { updateRunStateCache(keyUpper, msg.val || {}); } catch(_) {}
+                    try { updateRunStateCache(keyUpper, msg.val || {}); } catch (_) { }
 
                     // Refresh toolbar indicators and running banner for ANY filter change
-                    try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch(_) {}
-                    try { if (typeof window.updateToolbarRunIndicators === 'function') window.updateToolbarRunIndicators(); } catch(_) {}
+                    try { if (typeof window.updateRunningChainsBanner === 'function') window.updateRunningChainsBanner(); } catch (_) { }
+                    try { if (typeof window.updateToolbarRunIndicators === 'function') window.updateToolbarRunIndicators(); } catch (_) { }
 
                     // If this update is for the ACTIVE filter key, also apply run/theme locally
                     const activeKey = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : 'FILTER_MULTICHAIN';
@@ -183,7 +183,7 @@ $(document).ready(function() {
                                         if (window.App?.Scanner?.stopScannerSoft) window.App.Scanner.stopScannerSoft();
 
                                         // Set flag untuk mencegah broadcast saat reload
-                                        try { sessionStorage.setItem('APP_FORCE_RUN_NO', '1'); } catch(_) {}
+                                        try { sessionStorage.setItem('APP_FORCE_RUN_NO', '1'); } catch (_) { }
 
                                         // console.log('[CROSS-TAB] Reloading due to run:NO from another tab');
                                         location.reload();
@@ -197,11 +197,11 @@ $(document).ready(function() {
                             applyThemeForMode();
                         }
                     }
-                } catch(_) {}
+                } catch (_) { }
                 return;
             }
             if (msg.type === 'history' || msg.type === 'history_clear' || msg.type === 'history_delete') {
-                try { updateInfoFromHistory(); } catch(_) {}
+                try { updateInfoFromHistory(); } catch (_) { }
             }
         });
     }
@@ -212,11 +212,22 @@ $(document).ready(function() {
     setTimeout(deferredInit, 0);
 
     // ✅ NEW: Restore checkbox scanner controls AFTER DOM is ready
-    setTimeout(function() {
+    setTimeout(function () {
         try {
             const appSettings = (typeof getFromLocalStorage === 'function')
                 ? getFromLocalStorage('SETTING_SCANNER', {})
                 : {};
+
+            // ✅ VALIDATION: Enforce mutually exclusive AUTO VOL and AUTO LEVEL
+            if (appSettings.autoVol && appSettings.autoLevel) {
+                console.warn('[APP-INIT] ⚠️  Invalid state: both autoVol and autoLevel are true');
+                console.warn('[APP-INIT] Prioritizing AUTO VOL, disabling AUTO LEVEL');
+                appSettings.autoLevel = false;  // Prioritize AUTO VOL
+                // Save corrected state
+                if (typeof saveToLocalStorage === 'function') {
+                    saveToLocalStorage('SETTING_SCANNER', appSettings);
+                }
+            }
 
             if (appSettings.autoRun !== undefined) {
                 $('#autoRunToggle').prop('checked', appSettings.autoRun);
@@ -240,6 +251,15 @@ $(document).ready(function() {
             if (appSettings.autoLevelValue !== undefined) {
                 $('#autoVolLevels').val(appSettings.autoLevelValue);
             }
+
+            // ✅ TRIGGER CHANGE EVENTS: Enforce mutually exclusive after restore
+            // This ensures event handlers run and uncheck the other if needed
+            if (appSettings.autoVol) {
+                $('#checkVOL').trigger('change');
+            } else if (appSettings.autoLevel) {
+                $('#autoVolToggle').trigger('change');
+            }
+
             console.log('[APP-INIT] ✅ Checkbox controls restored from IndexedDB:', {
                 autoRun: appSettings.autoRun,
                 autoVol: appSettings.autoVol,
@@ -256,7 +276,7 @@ $(document).ready(function() {
      * --- Report Database Status (IndexedDB) ---
      * REFACTORED
      */
-    async function reportDatabaseStatus(){
+    async function reportDatabaseStatus() {
         const payload = await (window.exportIDB ? window.exportIDB() : Promise.resolve(null));
         if (!payload || !Array.isArray(payload.items)) {
             if (typeof toast !== 'undefined' && toast.warning) toast.warning('Database belum tersedia atau tidak dapat diakses.');
@@ -293,7 +313,7 @@ $(document).ready(function() {
         if ($sync.length) {
             if (isSingle) { $sync.show(); } else { $sync.remove(); }
         }
-    } catch(e) { /* noop */ }
+    } catch (e) { /* noop */ }
 
     /**
      * URL-based mode switching (multichain vs per-chain)
@@ -325,17 +345,17 @@ $(document).ready(function() {
             showMainSection('scanner');
             activeSingleChainKey = null;
             // Clear AppMode cache to force re-evaluation
-            try { delete window.AppMode; } catch(_) {}
+            try { delete window.AppMode; } catch (_) { }
             // Filter card handles UI
             const st = getAppState();
             setHomeHref(st.lastChain || getDefaultChain());
-            try { applySortToggleState(); } catch(_) {}
-            try { syncPnlInputFromStorage(); } catch(_) {}
+            try { applySortToggleState(); } catch (_) { }
+            try { syncPnlInputFromStorage(); } catch (_) { }
             // Re-apply controls based on multichain state
             try {
                 const state = computeAppReadiness();
                 applyControlsFor(state);
-            } catch(e) { console.error('applyControlsFor error', e); }
+            } catch (e) { console.error('applyControlsFor error', e); }
             return;
         }
 
@@ -348,17 +368,17 @@ $(document).ready(function() {
         // Per-chain view (unified table): keep main table visible and render single-chain data into it
         activeSingleChainKey = requested;
         // Clear AppMode cache to force re-evaluation for this specific chain
-        try { delete window.AppMode; } catch(_) {}
+        try { delete window.AppMode; } catch (_) { }
         showMainSection('scanner');
         setHomeHref(requested);
-        try { loadAndDisplaySingleChainTokens(); } catch(e) { console.error('single-chain init error', e); }
-        try { applySortToggleState(); } catch(_) {}
-        try { syncPnlInputFromStorage(); } catch(_) {}
+        try { loadAndDisplaySingleChainTokens(); } catch (e) { console.error('single-chain init error', e); }
+        try { applySortToggleState(); } catch (_) { }
+        try { syncPnlInputFromStorage(); } catch (_) { }
         // Re-apply controls based on current chain state (check if tokens exist for this chain)
         try {
             const state = computeAppReadiness();
             applyControlsFor(state);
-        } catch(e) { console.error('applyControlsFor error', e); }
+        } catch (e) { console.error('applyControlsFor error', e); }
     }
 
     try {
@@ -367,7 +387,7 @@ $(document).ready(function() {
         } else {
             applyModeFromURL();
         }
-    } catch(_) { applyModeFromURL(); }
+    } catch (_) { applyModeFromURL(); }
 
     // Apply gating again after mode/layout switches
     try {
@@ -375,7 +395,7 @@ $(document).ready(function() {
         if (st2 && st2.run === 'YES' && typeof setScanUIGating === 'function') {
             setScanUIGating(true);
         }
-    } catch(_) {}
+    } catch (_) { }
 
     /**
      * Build chain icon links based on CONFIG_CHAINS
@@ -399,7 +419,7 @@ $(document).ready(function() {
             try {
                 const f = getFromLocalStorage(`FILTER_${String(chainKey).toUpperCase()}`, {}) || {};
                 running = String(f.run || 'NO').toUpperCase() === 'YES';
-            } catch(_) {}
+            } catch (_) { }
             // Do not apply ring or enlargement; small dot indicator handled elsewhere
             const ring = '';
             const linkHTML = `
@@ -410,13 +430,13 @@ $(document).ready(function() {
                 </span>`;
             $wrap.append(linkHTML);
         });
-        try { updateToolbarRunIndicators(); } catch(_) {}
+        try { updateToolbarRunIndicators(); } catch (_) { }
     }
 
     /**
      * Update toolbar indicators (multichain + per-chain) based on current FILTER_* run states
      */
-    function updateToolbarRunIndicators(){
+    function updateToolbarRunIndicators() {
         try {
             // Multichain icon reflect multi run
             const runMulti = !!(window.RUN_STATES && window.RUN_STATES.multichain);
@@ -455,8 +475,8 @@ $(document).ready(function() {
                     if ($dot.length) $dot.remove();
                 }
             });
-        } catch(_) {}
+        } catch (_) { }
     }
-    try { window.updateToolbarRunIndicators = window.updateToolbarRunIndicators || updateToolbarRunIndicators; } catch(_) {}
+    try { window.updateToolbarRunIndicators = window.updateToolbarRunIndicators || updateToolbarRunIndicators; } catch (_) { }
 
 });

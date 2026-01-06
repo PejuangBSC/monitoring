@@ -261,7 +261,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
         data.depositPair === false
       );
       const detailBgColor = hasDisabledWallet ? '#fce0e0' : ''; // Warning pink/red background if disabled
-      const detailBgStyle = hasDisabledWallet ? `background-color: ${detailBgColor} !important;` : '';
+      const detailBgStyle = hasDisabledWallet ? `font-size:13px; background-color: ${detailBgColor} !important;` : '';
 
       const chainData = getChainData(data.chain);
       const walletObj = chainData?.CEXCHAIN?.[data.cex] || {};
@@ -315,7 +315,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
              [${index + 1}]<span style="color: ${warnaCex}; font-weight:bolder;"> ${data.cex} </span> on <span style="color: ${warnaChain}; font-weight:bolder;">${chainShort} </span>
     
             <span class="detail-line">
-                <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;"  >${linkToken} </span> ⇄ <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${linkPair} </span>
+                <span style="color: ${warnaChain}; font-weight:bolder; font-size:14px;"  >${linkToken} </span> ⇄ <span style="color: ${warnaChain}; font-weight:bolder; font-size:medium;">${linkPair} </span>
                 <span id="${idPrefix}EditMulti-${data.id}" data-id="${data.id}"
                 data-chain="${String(data.chain).toLowerCase()}"
                       data-cex="${String(data.cex).toUpperCase()}"
