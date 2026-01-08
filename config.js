@@ -10,7 +10,7 @@ const CONFIG_APP = {
     },
     // Konfigurasi fallback DEX saat DEX utama gagal (rate limit, server error, timeout)
     // Pilihan: 'dzap' | 'swoop' | 'none'
-    DEX_FALLBACK: 'none'
+    DEX_FALLBACK: 'swoop'
     // ✅ DEX API Keys moved to secrets.js for centralized management
 };
 
@@ -64,9 +64,7 @@ const CONFIG_CEX = {
             deposit: ({ pair }) => `https://www.mexc.com/assets/deposit/${String(pair || '').toUpperCase()}`
         },
         ORDERBOOK: {
-                        urlTpl: ({ symbol }) => `${CONFIG_PROXY.PREFIX}https://api.mexc.com/api/v3/depth?symbol=${String(symbol || '')}USDT&limit=5`,
-
-          //  urlTpl: ({ symbol }) => `https://proxykiri.awokawok.workers.dev/?https://api.mexc.com/api/v3/depth?symbol=${String(symbol || '')}USDT&limit=5`,
+            urlTpl: ({ symbol }) => `${CONFIG_PROXY.PREFIX}https://api.mexc.com/api/v3/depth?symbol=${String(symbol || '')}USDT&limit=5`,
             parser: 'standard'
         }
     },

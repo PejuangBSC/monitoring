@@ -2608,21 +2608,32 @@
     }
     const DexAPI = {
       register(name, def) {
-        const key = norm(name);
-        if (!key) return;
+        const originalKey = String(name || '').toLowerCase();
+        const normalizedKey = norm(name);
+        if (!normalizedKey) return;
         const entry = {
           builder: def?.builder,
           allowFallback: !!def?.allowFallback,
           strategy: def?.strategy || null,
           proxy: !!def?.proxy,
         };
-        REG.set(key, entry);
+        REG.set(normalizedKey, entry);
         // keep CONFIG_DEXS in sync for existing callers
         root.CONFIG_DEXS = root.CONFIG_DEXS || {};
-        root.CONFIG_DEXS[key] = root.CONFIG_DEXS[key] || {};
-        if (typeof entry.builder === 'function') root.CONFIG_DEXS[key].builder = entry.builder;
-        if ('allowFallback' in entry) root.CONFIG_DEXS[key].allowFallback = entry.allowFallback;
-        if ('proxy' in entry) root.CONFIG_DEXS[key].proxy = entry.proxy;
+
+        // ✅ FIX: Store config under BOTH original and normalized keys
+        // This ensures lookups work with either 'matcha' or '0x'
+        const keysToUpdate = [normalizedKey];
+        if (originalKey && originalKey !== normalizedKey) {
+          keysToUpdate.push(originalKey);
+        }
+
+        keysToUpdate.forEach(k => {
+          root.CONFIG_DEXS[k] = root.CONFIG_DEXS[k] || {};
+          if (typeof entry.builder === 'function') root.CONFIG_DEXS[k].builder = entry.builder;
+          if ('allowFallback' in entry) root.CONFIG_DEXS[k].allowFallback = entry.allowFallback;
+          if ('proxy' in entry) root.CONFIG_DEXS[k].proxy = entry.proxy;
+        });
       },
       get(name) { return REG.get(norm(name)) || null; },
       list() { return Array.from(REG.keys()); },

@@ -225,6 +225,13 @@ $(document).ready(function () {
     // ✅ NEW: Restore checkbox scanner controls from per-chain filter AFTER DOM is ready
     setTimeout(function () {
         try {
+            // ✅ DEBUG: Log current mode and filter key
+            const currentMode = (typeof getAppMode === 'function') ? getAppMode() : { type: 'unknown' };
+            const currentFilterKey = (typeof getActiveFilterKey === 'function') ? getActiveFilterKey() : 'UNKNOWN';
+            console.log('[APP-INIT] 🔍 Restoring checkboxes...');
+            console.log('[APP-INIT]   ∟ Current mode:', currentMode);
+            console.log('[APP-INIT]   ∟ Filter key:', currentFilterKey);
+
             const prefs = (typeof getCheckboxPreferences === 'function')
                 ? getCheckboxPreferences()
                 : {
@@ -235,6 +242,8 @@ $(document).ready(function () {
                     autoLevel: false,
                     autoLevelValue: 1
                 };
+
+            console.log('[APP-INIT]   ∟ Loaded preferences:', prefs);
 
             // ✅ VALIDATION: Enforce mutually exclusive AUTO VOL and AUTO LEVEL
             if (prefs.autoVol && prefs.autoLevel) {

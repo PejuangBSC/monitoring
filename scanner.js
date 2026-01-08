@@ -380,8 +380,17 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
     // Update tampilan tombol dan banner.
     $('#startSCAN').prop('disabled', true).text('Running...').addClass('uk-button-disabled');
-    // Bersihkan kartu sinyal dari scan sebelumnya.
-    $('#sinyal-container [id^="sinyal"]').empty();
+
+    // ✅ FIX: Only clear signals on MANUAL scan, not on auto-run
+    // This prevents signals from being replaced when AUTO LEVEL re-scans with different orderbook data
+    const isAutoRun = (typeof window.AUTORUN_ENABLED !== 'undefined') ? window.AUTORUN_ENABLED : false;
+    if (!isAutoRun) {
+        // Bersihkan kartu sinyal hanya pada scan manual
+        $('#sinyal-container [id^="sinyal"]').empty();
+        console.log('[SCANNER] 🗑️  Signals cleared (manual scan)');
+    } else {
+        console.log('[SCANNER] ♻️  Signals preserved (auto-run)');
+    }
     if (typeof window.hideEmptySignalCards === 'function') window.hideEmptySignalCards();
 
     // Nonaktifkan sebagian besar kontrol UI untuk mencegah perubahan konfigurasi saat scan.
@@ -792,34 +801,52 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             console.log('📦 [SCANNER] Auto Level Result:', autoVolResult);
 
                             if (autoVolResult && !autoVolResult.error && autoVolResult.totalCoins > 0) {
-                                // ✅ ACTUAL SIMULATION: Use actual values from orderbook
-                                modal = autoVolResult.actualModal;  // ← Use ACTUAL modal
-                                avgPriceCEX = autoVolResult.avgPrice;  // ← Use weighted average price
+                                // ✅ AUTO LEVEL: Check if actualModal meets $4 threshold
+                                const MIN_MODAL_THRESHOLD = 4; // Minimum $4 to use actual modal
+                                const useActualModal = autoVolResult.actualModal >= MIN_MODAL_THRESHOLD;
 
-                                // Calculate actual amount based on direction
-                                if (isKiri) {
-                                    // CEX→DEX (tokentopair): Use totalCoins (TOKEN amount to swap)
-                                    amountIn = autoVolResult.totalCoins;
+                                if (useActualModal) {
+                                    // ✅ actualModal >= $4: Use ACTUAL modal and price from orderbook
+                                    modal = autoVolResult.actualModal;
+                                    avgPriceCEX = autoVolResult.avgPrice;
+
+                                    // Calculate actual amount based on direction
+                                    if (isKiri) {
+                                        // CEX→DEX (tokentopair): Use totalCoins (TOKEN amount to swap)
+                                        amountIn = autoVolResult.totalCoins;
+                                    } else {
+                                        // DEX→CEX (pairtotoken): Convert actualModal to PAIR amount
+                                        const pricePair = DataCEX.priceBuyPair || 1;
+                                        amountIn = autoVolResult.actualModal / pricePair;
+                                    }
+
+                                    console.log('✅ [AUTO LEVEL] Using ACTUAL modal (>= $4 threshold):');
+                                    console.log('  Modal (for PNL):', modal, '(ACTUAL from orderbook)');
+                                    console.log('  Amount In:', amountIn, '(ACTUAL)');
+                                    console.log('  Avg Price CEX:', avgPriceCEX, '(weighted average)');
                                 } else {
-                                    // DEX→CEX (pairtotoken): Convert actualModal to PAIR amount
-                                    const pricePair = DataCEX.priceBuyPair || 1;
-                                    amountIn = autoVolResult.actualModal / pricePair;
+                                    // ⚠️ actualModal < $4: Use USER-DEFINED modal instead
+                                    modal = maxModal;
+                                    amountIn = isKiri ? amount_in_token : amount_in_pair;
+                                    avgPriceCEX = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
+
+                                    console.warn('⚠️  [AUTO LEVEL] actualModal < $4 threshold!');
+                                    console.warn('  Actual Available:', autoVolResult.actualModal.toFixed(2));
+                                    console.warn('  Threshold:', MIN_MODAL_THRESHOLD);
+                                    console.warn('  ℹ️  Using USER-DEFINED modal for PNL calculation');
+                                    console.log('✅ [AUTO LEVEL] Using USER modal (< $4 threshold):');
+                                    console.log('  Modal (for PNL):', modal, '(USER-DEFINED)');
+                                    console.log('  Amount In:', amountIn, '(USER-DEFINED)');
+                                    console.log('  Avg Price CEX:', avgPriceCEX, '(standard price)');
                                 }
 
-                                // Check if volume is sufficient (for warning only)
+                                // Check if volume is sufficient (for info only)
                                 if (autoVolResult.actualModal < maxModal) {
-                                    console.warn('⚠️  [AUTO LEVEL] Insufficient orderbook volume!');
+                                    console.warn('📊 [AUTO LEVEL] Orderbook volume info:');
                                     console.warn('  User Modal (Max):', maxModal);
                                     console.warn('  Actual Available:', autoVolResult.actualModal);
                                     console.warn('  Shortfall:', (maxModal - autoVolResult.actualModal).toFixed(2));
-                                    console.warn('  ℹ️  Using ACTUAL modal for simulation');
                                 }
-
-                                // 🔍 DEBUG: Final values used
-                                console.log('✅ [SCANNER] Using Actual Modal (Simulation):');
-                                console.log('  Modal (for PNL):', modal, '(ACTUAL from orderbook)');
-                                console.log('  Amount In:', amountIn, '(ACTUAL)');
-                                console.log('  Avg Price CEX:', avgPriceCEX, '(weighted average)');
                             } else {
                                 // Fallback to user modal if orderbook calculation fails
                                 console.warn('⚠️  [SCANNER] Auto Level fallback to user modal:', autoVolResult?.error || 'No valid result');
@@ -1564,7 +1591,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                     const depositPair = (cexDataForSkip && cexDataForSkip.depositPair !== undefined) ? cexDataForSkip.depositPair : token.depositPair;
 
                     const shouldSkipTokenToPair = !cexResult.ok ||
-                        (isWalletCEXChecked && (withdrawToken !== true || depositPair !== true));
+                        (isWalletCEXChecked && (withdrawToken === false || depositPair === false));
                     if (!shouldSkipTokenToPair) {
                         callDex('TokentoPair');
                     } else {
@@ -1584,14 +1611,14 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             if (cexResult.ok) {
                                 // CEX→DEX butuh: WD TOKEN dan DP PAIR
                                 const missing = [];
-                                if (withdrawToken !== true) missing.push(`WD ${sym1}`);
-                                if (depositPair !== true) missing.push(`DP ${sym2}`);
+                                if (withdrawToken === false) missing.push(`WD ${sym1}`);
+                                if (depositPair === false) missing.push(`DP ${sym2}`);
 
                                 if (missing.length === 2) {
                                     skipReason = `${missing.join(' & ')} OFF - Complete cycle tidak viable`;
-                                } else if (token.withdrawToken !== true) {
+                                } else if (withdrawToken === false) {
                                     skipReason = `WD ${sym1} OFF - Tidak bisa withdraw Token dari CEX`;
-                                } else if (token.depositPair !== true) {
+                                } else if (depositPair === false) {
                                     skipReason = `DP ${sym2} OFF - Tidak bisa deposit Pair hasil swap ke CEX`;
                                 }
                             }
@@ -1607,7 +1634,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                     const depositToken = (cexDataForSkip && cexDataForSkip.depositToken !== undefined) ? cexDataForSkip.depositToken : token.depositToken;
 
                     const shouldSkipPairToToken = !cexResult.ok ||
-                        (isWalletCEXChecked && (withdrawPair !== true || depositToken !== true));
+                        (isWalletCEXChecked && (withdrawPair === false || depositToken === false));
                     if (!shouldSkipPairToToken) {
                         callDex('PairtoToken');
                     } else {
@@ -1629,14 +1656,14 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             if (cexResult.ok) {
                                 // DEX→CEX butuh: WD PAIR dan DP TOKEN
                                 const missing = [];
-                                if (withdrawPair !== true) missing.push(`WD ${sym1Out}`);
-                                if (depositToken !== true) missing.push(`DP ${sym2In}`);
+                                if (withdrawPair === false) missing.push(`WD ${sym1Out}`);
+                                if (depositToken === false) missing.push(`DP ${sym2In}`);
 
                                 if (missing.length === 2) {
                                     skipReason = `${missing.join(' & ')} OFF - Complete cycle tidak viable`;
-                                } else if (token.withdrawPair !== true) {
+                                } else if (withdrawPair === false) {
                                     skipReason = `WD ${sym1Out} OFF - Tidak bisa withdraw Pair dari CEX`;
-                                } else if (token.depositToken !== true) {
+                                } else if (depositToken === false) {
                                     skipReason = `DP ${sym2In} OFF - Tidak bisa deposit Token hasil swap ke CEX`;
                                 }
                             }
