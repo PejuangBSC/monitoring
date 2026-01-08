@@ -801,51 +801,32 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             console.log('📦 [SCANNER] Auto Level Result:', autoVolResult);
 
                             if (autoVolResult && !autoVolResult.error && autoVolResult.totalCoins > 0) {
-                                // ✅ AUTO LEVEL: Check if actualModal meets $4 threshold
-                                const MIN_MODAL_THRESHOLD = 4; // Minimum $4 to use actual modal
-                                const useActualModal = autoVolResult.actualModal >= MIN_MODAL_THRESHOLD;
+                                // ✅ AUTO LEVEL: ALWAYS use actual values from orderbook for realistic PNL
+                                modal = autoVolResult.actualModal;  // ← Always use ACTUAL modal
+                                avgPriceCEX = autoVolResult.avgPrice;  // ← Always use weighted average price
 
-                                if (useActualModal) {
-                                    // ✅ actualModal >= $4: Use ACTUAL modal and price from orderbook
-                                    modal = autoVolResult.actualModal;
-                                    avgPriceCEX = autoVolResult.avgPrice;
-
-                                    // Calculate actual amount based on direction
-                                    if (isKiri) {
-                                        // CEX→DEX (tokentopair): Use totalCoins (TOKEN amount to swap)
-                                        amountIn = autoVolResult.totalCoins;
-                                    } else {
-                                        // DEX→CEX (pairtotoken): Convert actualModal to PAIR amount
-                                        const pricePair = DataCEX.priceBuyPair || 1;
-                                        amountIn = autoVolResult.actualModal / pricePair;
-                                    }
-
-                                    console.log('✅ [AUTO LEVEL] Using ACTUAL modal (>= $4 threshold):');
-                                    console.log('  Modal (for PNL):', modal, '(ACTUAL from orderbook)');
-                                    console.log('  Amount In:', amountIn, '(ACTUAL)');
-                                    console.log('  Avg Price CEX:', avgPriceCEX, '(weighted average)');
+                                // Calculate actual amount based on direction
+                                if (isKiri) {
+                                    // CEX→DEX (tokentopair): Use totalCoins (TOKEN amount to swap)
+                                    amountIn = autoVolResult.totalCoins;
                                 } else {
-                                    // ⚠️ actualModal < $4: Use USER-DEFINED modal instead
-                                    modal = maxModal;
-                                    amountIn = isKiri ? amount_in_token : amount_in_pair;
-                                    avgPriceCEX = isKiri ? DataCEX.priceBuyToken : DataCEX.priceBuyPair;
-
-                                    console.warn('⚠️  [AUTO LEVEL] actualModal < $4 threshold!');
-                                    console.warn('  Actual Available:', autoVolResult.actualModal.toFixed(2));
-                                    console.warn('  Threshold:', MIN_MODAL_THRESHOLD);
-                                    console.warn('  ℹ️  Using USER-DEFINED modal for PNL calculation');
-                                    console.log('✅ [AUTO LEVEL] Using USER modal (< $4 threshold):');
-                                    console.log('  Modal (for PNL):', modal, '(USER-DEFINED)');
-                                    console.log('  Amount In:', amountIn, '(USER-DEFINED)');
-                                    console.log('  Avg Price CEX:', avgPriceCEX, '(standard price)');
+                                    // DEX→CEX (pairtotoken): Convert actualModal to PAIR amount
+                                    const pricePair = DataCEX.priceBuyPair || 1;
+                                    amountIn = autoVolResult.actualModal / pricePair;
                                 }
 
-                                // Check if volume is sufficient (for info only)
+                                // 🔍 DEBUG: Final values used
+                                console.log('✅ [AUTO LEVEL] Using ACTUAL modal from orderbook:');
+                                console.log('  Modal (for PNL):', modal, '(ACTUAL from orderbook)');
+                                console.log('  Amount In:', amountIn, '(ACTUAL)');
+                                console.log('  Avg Price CEX:', avgPriceCEX, '(weighted average)');
+
+                                // Show info if actual modal is less than user modal
                                 if (autoVolResult.actualModal < maxModal) {
-                                    console.warn('📊 [AUTO LEVEL] Orderbook volume info:');
+                                    console.warn('📊 [AUTO LEVEL] Orderbook has less volume than user modal:');
                                     console.warn('  User Modal (Max):', maxModal);
                                     console.warn('  Actual Available:', autoVolResult.actualModal);
-                                    console.warn('  Shortfall:', (maxModal - autoVolResult.actualModal).toFixed(2));
+                                    console.warn('  Using actual modal for realistic PNL calculation');
                                 }
                             } else {
                                 // Fallback to user modal if orderbook calculation fails
