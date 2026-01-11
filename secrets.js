@@ -13,8 +13,8 @@ const CEX_SECRETS = {
         ApiSecret: "bBq5FCpuCghA0hJuil7gCObTqDzYaLaVdsZVsdfSzv4MZ2rDBK6cpN590eXAwfod",
     },
     MEXC: {
-        ApiKey: "mx0vgl6hr4AgqcFAd8", // Ganti dengan ApiKey asli
-        ApiSecret: "61426ded5d804f97a828eb35ff3c26f6", // Ganti dengan ApiSecret asli
+        ApiKey: "mx0vglNkKpxcAAEbtk", // Ganti dengan ApiKey asli
+        ApiSecret: "54a488c04cdf4afabf44dd07915731c6", // Ganti dengan ApiSecret asli
     },
     INDODAX: {
         ApiKey: "HRKOX8GL-KD9ANNF5-T7OKENAH-LHL5PBYQ-NW8GQICL", // Ganti dengan ApiKey asli
