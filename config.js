@@ -1,8 +1,8 @@
 
 const CONFIG_APP = {
     APP: {
-        NAME: "APP_DEV",
-        VERSION: "2026.01.11",
+        NAME: "MONITORING-KOIN",
+        VERSION: "2026.01.13",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur auto volume
