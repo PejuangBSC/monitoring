@@ -800,11 +800,11 @@ const CONFIG_DEXS = {
         fetchdex: {  // ✅ FIX: Added missing fetchdex wrapper
             primary: {
                 tokentopair: 'odos3',        // CEX→DEX: Official ODOS v3 API
-                pairtotoken: 'lifi-odos'     // DEX→CEX: LIFI filtered for ODOS
+                pairtotoken: 'hinkal-odos'     // DEX→CEX: LIFI filtered for ODOS
             },
             alternative: {
-                tokentopair: 'swoop-odos',   // CEX→DEX: SWOOP filtered (rotation)
-                pairtotoken: 'odos3'         // DEX→CEX: Official ODOS v3 API
+                tokentopair: 'lifi-odos',   // CEX→DEX: SWOOP filtered (rotation)
+                pairtotoken: 'swing-odos'         // DEX→CEX: Official ODOS v3 API
             }
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
