@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MULTICHECKER-PLUS</title>
+  <title>SCANNER PRICE</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.6.22/css/uikit.min.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
     crossorigin="anonymous"></script>
@@ -319,7 +319,20 @@
                 </div>
               </div>
 
-              <!-- ✅ 0x API key input removed - now managed in secrets.js -->
+              <!-- Matcha (0x) API Keys Input (Multiple) -->
+              <div class="uk-margin-small">
+                <label class="uk-form-label uk-text-small uk-text-danger uk-text-bolder">
+                  MATCHA API KEYS (Required) ⚠️
+                </label>
+                <div class="uk-form-controls">
+                  <textarea class="uk-textarea uk-form-small" id="matchaApiKeys" name="matchaApiKeys" rows="14"
+                    placeholder="key1,key2,key3 atau pisahkan dengan enter&#10; daftar di: https://dashboard.0x.org"
+                    aria-label="Matcha API Keys"></textarea>
+                </div>
+                <div class="uk-text-meta uk-text-small uk-text-warning">
+                  ⚠️ WAJIB diisi! Pisahkan dengan koma (,) atau Enter untuk multiple keys
+                </div>
+              </div>
 
               <div class="uk-grid-small uk-margin-small-top" uk-grid>
                 <div class="uk-width-1-2">
@@ -745,7 +758,7 @@
               <h6 class="uk-heading-bullet uk-margin-small  uk-text-bolder">4. DEX &amp; Modal <span
                   class="uk-text-meta"></span></h6>
               <div id="sync-dex-config" class="uk-flex uk-flex-column"
-                style="gap:6px; max-height:300px; overflow:auto;"></div>
+                style="gap:6px; max-height:500px; overflow-y:auto; overflow-x:hidden;"></div>
             </div>
           </div>
 

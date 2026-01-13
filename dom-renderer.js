@@ -284,10 +284,10 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const linkDEFIL = createHoverLink(`https://swap.defillama.com/?chain=${chainConfig.Nama_Chain}&from=${data.sc_in}&to=${data.sc_out}`, '#DFL', 'uk-text-danger');
       // DZAP: Solana uses chain ID 7565164
       const dzapChainId = String(data.chain || '').toLowerCase() === 'solana' ? 7565164 : chainConfig.Kode_Chain;
-      const linkDZAP = createHoverLink(`https://app.dzap.io/trade?referral=d0d7E9b4&fromChain=${dzapChainId}&fromToken=${data.sc_in}&toChain=${dzapChainId}&toToken=${data.sc_out}`, '#DZP', 'uk-text-dark');
+      const linkDZAP = createHoverLink(`https://app.dzap.io/trade?referral=d0d7E9b4&fromChain=${dzapChainId}&fromToken=${data.sc_in}&toChain=${dzapChainId}&toToken=${data.sc_out}`, '#DZP', 'uk-text-warning');
       // Jumper (LIFI): Solana uses chain ID 1151111081099710
       const jumperChainId = String(data.chain || '').toLowerCase() === 'solana' ? 1151111081099710 : chainConfig.Kode_Chain;
-      const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-warning');
+      const linkJumper = createHoverLink(`https://jumper.exchange/?fromChain=${jumperChainId}&fromToken=${data.sc_in}&toChain=${jumperChainId}&toToken=${data.sc_out}`, '#JMX', 'uk-text-success');
 
       // Rango: Multi-chain aggregator (requires blockchain name mapping)
       const rangoChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX_CCHAIN', 'solana': 'SOLANA' };
@@ -305,7 +305,7 @@ function loadKointoTable(filteredData, tableBodyId = 'dataTableBody') {
       const rubicChainMap = { 'bsc': 'BSC', 'ethereum': 'ETH', 'polygon': 'POLYGON', 'arbitrum': 'ARBITRUM', 'base': 'BASE', 'optimism': 'OPTIMISM', 'avalanche': 'AVAX' };
       const rubicChain = rubicChainMap[String(data.chain || '').toLowerCase()] || String(data.chain || '').toUpperCase();
 
-      const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${rubicChain}&toChain=${rubicChain}&from=${data.sc_in}&to=${data.sc_out}`, '#RBX', 'uk-text-success');
+      const linkRBX = createHoverLink(`https://app.rubic.exchange/?fromChain=${rubicChain}&toChain=${rubicChain}&from=${data.sc_in}&to=${data.sc_out}`, '#RBX', 'uk-text-secondary');
 
       const rowId = `DETAIL_${String(data.cex).toUpperCase()}_${String(data.symbol_in).toUpperCase()}_${String(data.symbol_out).toUpperCase()}_${String(data.chain).toUpperCase()}`.replace(/[^A-Z0-9_]/g, '');
       const chainShort = (data.chain || '').substring(0, 3).toUpperCase();
@@ -969,7 +969,7 @@ function DisplayPNL(data) {
     cexInfo,
     rates,
     isFallback, fallbackSource,  // REFACTORED: Tambahkan info sumber alternatif
-    subResults, isMultiDex  // NEW: untuk DZAP/LIFI multi-DEX
+    subResults, isMultiDex  // NEW: untuk SWING/KAMINO/RANGO/RUBIC multi-DEX aggregators
   } = data;
 
   const elementId = String(idPrefix || '') + String(baseId || '');
@@ -1086,14 +1086,15 @@ function DisplayPNL(data) {
       try {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
-          const baseName = String(dextype || '').toUpperCase().substring(0, 6);
+          // ✅ FIX: Use dexTitle from strategy response if available, otherwise fallback to dextype
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
           // ✅ NEW: Show checkmark if sufficient, actual modal + warning if insufficient
           const modalText = isInsufficientVolume
             ? `[$${maxModal.toFixed(0)}] <span style="color:#ff6b35">│ ${actualModal.toFixed(0)}$</span> ⚠️`
             : `[$${maxModal.toFixed(0)}] ✅`;
-          dexNameStrong.html(`${baseName} ${modalText}`);
+          dexNameStrong.html(`${displayName} ${modalText}`);
         }
       } catch (e) {
         console.warn('[DOM-RENDERER] Failed to update modal display:', e);
@@ -1130,14 +1131,15 @@ function DisplayPNL(data) {
       try {
         const dexNameStrong = $mainCell.find('strong').first();
         if (dexNameStrong.length) {
-          const baseName = String(dextype || '').toUpperCase().substring(0, 6);
+          // ✅ FIX: Use dexTitle from strategy response if available
+          const displayName = data.dexTitle ? String(data.dexTitle).toUpperCase().substring(0, 6) : String(dextype || '').toUpperCase().substring(0, 6);
 
           // Check if volume sufficient for AUTO VOL
           const warningIcon = isInsufficientVolume ? '⚠️' : '';
 
           // ✅ AUTO VOL: Show only user modal (no actual modal)
           const modalText = `[$${maxModal.toFixed(0)}] ${warningIcon}`;
-          dexNameStrong.html(`${baseName} ${modalText}`);
+          dexNameStrong.html(`${displayName} ${modalText}`);
         }
       } catch (e) {
         console.warn('[DOM-RENDERER] Failed to update modal display:', e);
@@ -1148,7 +1150,7 @@ function DisplayPNL(data) {
     }
   }
 
-  // ===== MULTI-DEX RESULTS (DZAP/LIFI) =====
+  // ===== MULTI-DEX RESULTS (SWING/KAMINO/RANGO/RUBIC) =====
   if (isMultiDex && Array.isArray(subResults) && subResults.length > 0) {
     try {
       // Get DEX color from config
@@ -2095,6 +2097,9 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
   const subResults = DataDEX && DataDEX.subResults ? DataDEX.subResults : null;
   const isMultiDex = DataDEX && DataDEX.isMultiDex === true;
 
+  // ✅ FIX: Extract dexTitle from DataDEX (provider name from strategy response)
+  const dexTitle = DataDEX && DataDEX.dexTitle ? String(DataDEX.dexTitle) : null;
+
   return {
     type: 'update',
     idPrefix: idPrefix,
@@ -2107,7 +2112,8 @@ function calculateResult(baseId, tableBodyId, amount_out, FeeSwap, sc_input, sc_
     FeeSwap, FeeWD, sc_input, sc_output, Name_out, totalValue, totalModal,
     nameChain, codeChain, trx, profitLossPercent, vol,
     isFallback, fallbackSource,  // REFACTORED: Tambahkan info sumber alternatif
-    subResults, isMultiDex  // NEW: untuk DZAP multi-DEX
+    subResults, isMultiDex,  // NEW: untuk DZAP multi-DEX
+    dexTitle  // ✅ NEW: Provider name from strategy response (LIFI, SWOOP, etc)
   };
 }
 

@@ -55,7 +55,20 @@
         const jedaTimeGroup = parseInt($('#jeda-time-group').val(), 10);
         const jedaKoin = parseInt($('#jeda-koin').val(), 10);
         const walletMeta = $('#walletMeta').val().trim();
-        // ✅ apiKey0x removed - now managed in secrets.js
+
+        // ✅ Parse Matcha API keys (support comma and newline separated)
+        const matchaApiKeysRaw = $('#matchaApiKeys').val().trim();
+        console.log('[SETTINGS] Raw Matcha API Keys:', matchaApiKeysRaw);
+
+        const matchaApiKeys = matchaApiKeysRaw
+            .split(/[\n,]+/)  // Split by newline or comma
+            .map(k => k.trim())
+            .filter(k => k !== '')
+            .join(',');  // Store as comma-separated string
+
+        console.log('[SETTINGS] Parsed Matcha API Keys:', matchaApiKeys);
+        console.log('[SETTINGS] Keys count:', matchaApiKeys.split(',').filter(k => k).length);
+
         const scanPerKoin = $('input[name="koin-group"]:checked').val();
         const speedScan = $('input[name="waktu-tunggu"]:checked').val();
 
@@ -66,10 +79,39 @@
         if (!jedaKoin || jedaKoin <= 0) return UIkit.notification({ message: 'Jeda / Koin harus lebih dari 0!', status: 'danger' });
         if (!walletMeta || !walletMeta.startsWith('0x')) return UIkit.notification({ message: 'Wallet Address harus valid!', status: 'danger' });
 
+        // ✅ VALIDATE: Matcha API keys WAJIB diisi
+        if (!matchaApiKeys || matchaApiKeys === '') {
+            return UIkit.notification({
+                message: '⚠️ Matcha API Keys WAJIB diisi! Get from https://dashboard.0x.org',
+                status: 'danger',
+                timeout: 5000
+            });
+        }
+
+        // ✅ Collect DEX delay values (ONLY from generated inputs, NO HARDCODE!)
         let JedaDexs = {};
+        const invalidKeys = ['fly', '0x', 'dzap', 'paraswap', '1inch']; // Legacy keys to reject
+
         $('.dex-delay-input').each(function () {
-            JedaDexs[$(this).data('dex')] = parseFloat($(this).val()) || 100;
+            const dexKey = $(this).data('dex');
+            const dexValue = parseFloat($(this).val()) || 100;
+
+            // ✅ VALIDATION: Skip invalid/legacy DEX keys
+            if (invalidKeys.includes(String(dexKey).toLowerCase())) {
+                console.warn(`[Settings Save] Rejecting invalid DEX key: ${dexKey}`);
+                return; // Skip this iteration
+            }
+
+            // ✅ VALIDATION: Ensure DEX exists in CONFIG_DEXS
+            if (!window.CONFIG_DEXS || !window.CONFIG_DEXS[dexKey]) {
+                console.warn(`[Settings Save] Skipping unknown DEX (not in CONFIG_DEXS): ${dexKey}`);
+                return; // Skip this iteration
+            }
+
+            JedaDexs[dexKey] = dexValue;
         });
+
+        console.log('[Settings Save] Valid JedaDexs to save:', Object.keys(JedaDexs));
 
         // Collect user RPC settings (NEW: simplified structure using database)
         let userRPCs = {};
@@ -109,7 +151,7 @@
 
         const settingData = {
             nickname, jedaTimeGroup, jedaKoin, walletMeta,
-            // ✅ apiKey0x removed - now managed in secrets.js
+            matchaApiKeys,  // ✅ Save user-defined Matcha API keys (REQUIRED, multiple keys with rotation)
             scanPerKoin: parseInt(scanPerKoin, 10),
             speedScan: parseFloat(speedScan),
             JedaDexs,
@@ -117,6 +159,9 @@
             // ✅ REMOVED: Checkbox preferences (now stored per-chain in FILTER_*)
             // autoRun, autoVol, walletCex, autoLevel, autoLevelValue
         };
+
+        console.log('[SETTINGS] Data to save:', settingData);
+        console.log('[SETTINGS] matchaApiKeys in data:', settingData.matchaApiKeys);
 
         saveToLocalStorage('SETTING_SCANNER', settingData);
 

@@ -409,7 +409,17 @@ async function sendStatusTELE(user, status) {
   const settings = (typeof getFromLocalStorage === 'function') ? getFromLocalStorage('SETTING_SCANNER', {}) : {};
   const walletMeta = settings.walletMeta || 'N/A';
   const ipAddress = await getUserIP();
-  const message = `<b>${APP_HEADER}</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>\n<b>IP:</b> ${ipAddress}`;
+
+  // Get active chains information
+  let chainInfo = 'MULTICHAIN';
+  try {
+    if (Array.isArray(window.CURRENT_CHAINS) && window.CURRENT_CHAINS.length > 0) {
+      const chainNames = window.CURRENT_CHAINS.map(c => String(c).toUpperCase());
+      chainInfo = chainNames.length === 1 ? chainNames[0] : 'MULTICHAIN';
+    }
+  } catch (_) { }
+
+  const message = `<b>${APP_HEADER}</b>\n<b>USER:</b> ${user ? user.toUpperCase() : '-'}[<b>${status ? status.toUpperCase() : '-'}]</b>\n<b>IP:</b> ${ipAddress}\n<b>CHAIN :</b> ${chainInfo}`;
   sendTelegramHTML(message);
 }
 

@@ -1893,9 +1893,9 @@ body.dark-mode .db-table-title .uk-badge {
     color: white !important;
 }
 
-/* 1inch badge color */
-.bg-1inch {
-    background-color: #06109b !important;
+/* Relay badge color */
+.bg-relay {
+    background-color: #6c5ce7 !important;
     color: white !important;
 }
 
@@ -1914,6 +1914,17 @@ body.dark-mode .db-table-title .uk-badge {
 /* Kamino badge color (Solana Multi-DEX Aggregator) */
 .bg-kamino {
     background-color: #7c3aed !important;
+    color: white !important;
+}
+
+/* Meta-Aggregator Badges */
+.bg-rubic {
+    background-color: #7c3aed !important;
+    color: white !important;
+}
+
+.bg-rango {
+    background-color: #00d4aa !important;
     color: white !important;
 }
 

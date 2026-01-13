@@ -238,7 +238,7 @@ function setAppState(patch) {
     }
 })();
 
-// Storage helpers moved to utils.js for modular use across app.
+// Storage helpers are available in utils/helpers/ modules (loaded separately in index.html)
 
 /**
  * Refreshes the main token table from localStorage data.
@@ -502,17 +502,25 @@ function hasValidTokens() {
  * and preloads saved values from storage.
  */
 function renderSettingsForm() {
-    // ✅ CLEANUP: Remove deleted DEX from saved settings before rendering
+    // ✅ CLEANUP: Remove deleted DEX and Meta-DEX from saved settings before rendering
     try {
         const s = getFromLocalStorage('SETTING_SCANNER', {});
         if (s && typeof s === 'object' && s.JedaDexs) {
-            const forceRemoveDexs = ['fly', 'flytrade', 'rubic', 'dzap'];
-            const activeDexKeys = Object.keys(CONFIG_DEXS || {}).filter(key => !CONFIG_DEXS[key].disabled);
+            // Force remove legacy/deleted DEX keys that no longer exist
+            // ✅ FIXED: 'fly' is NOT a DEX name (it's internal LIFI slug), must be removed from settings
+            const forceRemoveDexs = ['0x', 'dzap', 'fly', '1inch'];
+
+            // Get list of active DEX (not disabled, not Meta-DEX)
+            const activeDexKeys = Object.keys(CONFIG_DEXS || {}).filter(key => {
+                const dexConfig = CONFIG_DEXS[key];
+                return !dexConfig.disabled && !dexConfig.isMetaDex;
+            });
 
             let hasChanges = false;
             Object.keys(s.JedaDexs).forEach(dexKey => {
+                // Remove if: not in active list OR in force remove list
                 if (!activeDexKeys.includes(dexKey) || forceRemoveDexs.includes(dexKey.toLowerCase())) {
-                    console.log(`[Settings Cleanup] Removing deleted DEX: ${dexKey}`);
+                    console.log(`[Settings Cleanup] Removing deleted/meta DEX: ${dexKey}`);
                     delete s.JedaDexs[dexKey];
                     hasChanges = true;
                 }
@@ -526,15 +534,29 @@ function renderSettingsForm() {
         console.warn('[Settings Cleanup] Failed:', e.message);
     }
 
-    // ✅ Generate DEX delay inputs - Ambil semua DEX dari CONFIG_DEXS yang tidak disabled
-    // Filter berdasarkan property 'disabled' di CONFIG_DEXS
+    // ✅ Generate DEX delay inputs - 100% dari CONFIG_DEXS (NO HARDCODE!)
+    // Filter: disabled=false AND isMetaDex=false
+    // Exclude: lifi, rubic, rango, kamino (Meta-DEX)
+    // ⚠️ NOTE: 'fly' bukan DEX name! Hanya ada 'flytrade' di CONFIG_DEXS
     const activeDexList = Object.keys(CONFIG_DEXS || {})
         .filter(dexKey => {
             const dexConfig = CONFIG_DEXS[dexKey];
-            // Include jika tidak ada property disabled atau disabled === false
-            return !dexConfig.disabled;
+            const isActive = !dexConfig.disabled && !dexConfig.isMetaDex;
+
+            // ✅ EXTRA VALIDATION: Block legacy/invalid keys
+            const invalidKeys = ['fly', '0x', 'dzap', 'paraswap', '1inch'];
+            if (invalidKeys.includes(dexKey.toLowerCase())) {
+                console.warn(`[Settings] Skipping invalid DEX key: ${dexKey}`);
+                return false;
+            }
+
+            return isActive;
         })
         .sort();
+
+    // ✅ DEBUG: Log active DEX list untuk troubleshooting
+    console.log('[Settings] Active DEX list from CONFIG_DEXS:', activeDexList);
+    console.log('[Settings] Total active DEX count:', activeDexList.length);
 
     let dexDelayHtml = '';
 
@@ -553,7 +575,7 @@ function renderSettingsForm() {
                         <div class="uk-flex uk-flex-middle" style="gap: 4px;">
                             <input type="number" class="uk-input uk-form-small dex-delay-input"
                                    data-dex="${dexKey}"
-                                   value="100"
+                                   value="${dexConfig.delay || 100}"
                                    style="width:70px; text-align:center; border-color: ${dexColor}40;"
                                    min="0">
                             <span class="uk-text-meta uk-text-small">ms</span>
@@ -567,11 +589,28 @@ function renderSettingsForm() {
 
     // Load existing settings
     const appSettings = getFromLocalStorage('SETTING_SCANNER') || {};
+    console.log('[SETTINGS LOAD] Full settings:', appSettings);
+    console.log('[SETTINGS LOAD] matchaApiKeys:', appSettings.matchaApiKeys);
+
     $('#user').val(appSettings.nickname || '');
     $('#jeda-time-group').val(appSettings.jedaTimeGroup || 2000);
     $('#jeda-koin').val(appSettings.jedaKoin || 500);
     $('#walletMeta').val(appSettings.walletMeta || '');
-    // ✅ apiKey0x UI input removed - now managed in secrets.js
+
+    // ✅ Load Matcha API keys (convert comma-separated to newline for better readability)
+    if (appSettings.matchaApiKeys) {
+        const keysForDisplay = appSettings.matchaApiKeys.split(',').join('\n');
+        console.log('[SETTINGS LOAD] Keys to display:', keysForDisplay);
+        $('#matchaApiKeys').val(keysForDisplay);
+        console.log('[SETTINGS LOAD] Field value after set:', $('#matchaApiKeys').val());
+    } else {
+        console.log('[SETTINGS LOAD] No matchaApiKeys found, setting empty');
+        $('#matchaApiKeys').val('');
+    }
+
+    // ✅ Verify field exists in DOM
+    console.log('[SETTINGS LOAD] matchaApiKeys field exists:', $('#matchaApiKeys').length > 0);
+
     $(`input[name=\"koin-group\"][value=\"${appSettings.scanPerKoin || 5}\"]`).prop('checked', true);
     $(`input[name=\"waktu-tunggu\"][value=\"${appSettings.speedScan || 2}\"]`).prop('checked', true);
 
@@ -672,26 +711,56 @@ function bootApp() {
         }
     } catch (_) { }
 
-    // ✅ CLEANUP: Remove disabled/inactive DEX from JedaDexs (e.g., fly, rubic, etc.)
+    // ✅ ONE-TIME CLEANUP: Remove 'fly' from existing JedaDexs (it's not a DEX, just an internal LIFI slug)
     try {
         const s = getFromLocalStorage('SETTING_SCANNER', {});
         if (s && typeof s === 'object' && s.JedaDexs) {
-            // Hardcoded list of DEX to force remove (deleted from codebase)
-            const forceRemoveDexs = ['fly', 'flytrade', 'rubic', 'dzap'];
+            const beforeKeys = Object.keys(s.JedaDexs);
+            if (s.JedaDexs['fly']) {
+                console.warn('[Cleanup] ⚠️ Found legacy "fly" key in JedaDexs - REMOVING...');
+                delete s.JedaDexs['fly'];
+                saveToLocalStorage('SETTING_SCANNER', s);
+                console.log('[Cleanup] ✅ "fly" removed successfully');
+            }
+            console.log('[Cleanup] JedaDexs keys before:', beforeKeys);
+            console.log('[Cleanup] JedaDexs keys after:', Object.keys(s.JedaDexs));
+        }
+    } catch (e) {
+        console.error('[Cleanup] Error removing fly:', e);
+    }
 
-            // Get list of active DEX from CONFIG_DEXS (not disabled)
+    // ✅ CLEANUP: Remove disabled/inactive DEX and Meta-DEX from JedaDexs
+    try {
+        const s = getFromLocalStorage('SETTING_SCANNER', {});
+        if (s && typeof s === 'object' && s.JedaDexs) {
+            // Legacy/invalid DEX keys yang harus di-remove (tidak ada di CONFIG_DEXS)
+            // ✅ 'fly' = internal LIFI slug (bukan DEX standalone)
+            // ✅ '0x' = diganti jadi 'matcha'
+            // ✅ 'dzap' = removed (jadi provider internal saja)
+            // ✅ '1inch' = removed (diganti jadi 'relay')
+            const forceRemoveDexs = ['fly', '0x', 'dzap', 'paraswap', '1inch'];
+
+            // Get list of active DEX from CONFIG_DEXS (disabled=false AND isMetaDex=false)
             const activeDexKeys = Object.keys(CONFIG_DEXS || {}).filter(key => {
                 const cfg = CONFIG_DEXS[key];
-                return !cfg.disabled;
+                return !cfg.disabled && !cfg.isMetaDex;
             });
 
-            // Remove DEX keys that are no longer active OR in force remove list
+            console.log('[Cleanup] Active DEX from CONFIG_DEXS:', activeDexKeys);
+            console.log('[Cleanup] Current JedaDexs keys:', Object.keys(s.JedaDexs));
+
+            // Remove invalid/inactive DEX keys
             let hasChanges = false;
+            const removedKeys = [];
+
             Object.keys(s.JedaDexs).forEach(dexKey => {
-                const shouldRemove = !activeDexKeys.includes(dexKey) || forceRemoveDexs.includes(dexKey.toLowerCase());
-                if (shouldRemove) {
-                    console.log(`[Cleanup] Removing inactive DEX from settings: ${dexKey}`);
+                const isInvalid = forceRemoveDexs.includes(dexKey.toLowerCase());
+                const isInactive = !activeDexKeys.includes(dexKey);
+
+                if (isInvalid || isInactive) {
+                    console.warn(`[Cleanup] ⚠️ Removing ${isInvalid ? 'INVALID' : 'INACTIVE'} DEX: ${dexKey}`);
                     delete s.JedaDexs[dexKey];
+                    removedKeys.push(dexKey);
                     hasChanges = true;
                 }
             });
@@ -699,7 +768,10 @@ function bootApp() {
             // Save if changes were made
             if (hasChanges) {
                 saveToLocalStorage('SETTING_SCANNER', s);
-                console.log('[Cleanup] ✅ Inactive DEX removed from settings');
+                console.log(`[Cleanup] ✅ Removed ${removedKeys.length} invalid DEX:`, removedKeys);
+                console.log('[Cleanup] ✅ Final JedaDexs keys:', Object.keys(s.JedaDexs));
+            } else {
+                console.log('[Cleanup] ✅ No cleanup needed - all DEX keys are valid');
             }
         }
     } catch (e) {
@@ -1002,10 +1074,19 @@ async function deferredInit() {
                 $secCex.append(chipHtml('fc-cex', id, cx, CONFIG_CEX[cx].WARNA, cnt, checked, cx, false));
             });
             const $secDex = $('<div class="uk-flex uk-flex-middle" style="gap:8px;flex-wrap:wrap;"><span class="uk-text-bolder uk-text-danger">DEX:</span></div>');
+            // ✅ Filter: Hanya tampilkan DEX asli (not disabled, not Meta-DEX)
+            // Meta-DEX hanya muncul jika CONFIG_APP.APP.META_DEX === true
+            const metaDexEnabled = (CONFIG_APP && CONFIG_APP.APP && CONFIG_APP.APP.META_DEX === true);
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
+                const dexConfig = CONFIG_DEXS[dx];
+                // Skip jika disabled
+                if (dexConfig.disabled) return;
+                // Skip Meta-DEX jika META_DEX disabled
+                if (dexConfig.isMetaDex && !metaDexEnabled) return;
+
                 const key = String(dx).toLowerCase();
                 const id = `fc-dex-${key}`; const cnt = byDex[key] || 0; if (cnt === 0) return; const checked = dexSel.includes(key);
-                const col = (CONFIG_DEXS[key] && (CONFIG_DEXS[key].warna || CONFIG_DEXS[key].WARNA)) || '#333';
+                const col = (dexConfig.warna || dexConfig.WARNA) || '#333';
                 $secDex.append(chipHtml('fc-dex', id, dx.toUpperCase(), col, cnt, checked, key, false));
             });
             if ($headLabels.length)
@@ -1332,10 +1413,19 @@ async function deferredInit() {
             const $dexSection = $('<div style="margin-bottom:25px;"></div>');
             $dexSection.append($('<h5 style="margin:0 0 12px 0; font-size:15px; font-weight:600; color:#333;"><span style="color:#999; margin-right:8px;">■</span>3. DEX</h5>'));
             const $dexGrid = $('<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;"></div>');
+            // ✅ Filter: Hanya tampilkan DEX asli (not disabled, not Meta-DEX)
+            // Meta-DEX hanya muncul jika CONFIG_APP.APP.META_DEX === true
+            const metaDexEnabled = (CONFIG_APP && CONFIG_APP.APP && CONFIG_APP.APP.META_DEX === true);
             Object.keys(CONFIG_DEXS || {}).forEach(dx => {
+                const dexConfig = CONFIG_DEXS[dx];
+                // Skip jika disabled
+                if (dexConfig.disabled) return;
+                // Skip Meta-DEX jika META_DEX disabled
+                if (dexConfig.isMetaDex && !metaDexEnabled) return;
+
                 const key = String(dx).toLowerCase();
                 const id = `modal-fc-dex-${key}`; const cnt = byDex[key] || 0; if (cnt === 0) return; const checked = dexSel.includes(key);
-                const col = (CONFIG_DEXS[key] && (CONFIG_DEXS[key].warna || CONFIG_DEXS[key].WARNA)) || '#333';
+                const col = (dexConfig.warna || dexConfig.WARNA) || '#333';
                 $dexGrid.append(chipHtml('fc-dex', id, dx.toUpperCase(), col, cnt, checked, key, false));
             });
             $dexSection.append($dexGrid);
@@ -1727,80 +1817,9 @@ async function deferredInit() {
         } catch (_) { }
     });
 
-    $('#btn-save-setting').on('click', async function () {
-        const nickname = $('#user').val().trim();
-        const jedaTimeGroup = parseInt($('#jeda-time-group').val(), 10);
-        const jedaKoin = parseInt($('#jeda-koin').val(), 10);
-        const walletMeta = $('#walletMeta').val().trim();
-        const scanPerKoin = $('input[name="koin-group"]:checked').val();
-        const speedScan = $('input[name="waktu-tunggu"]:checked').val();
-
-        if (!nickname || nickname.length < 6) return UIkit.notification({ message: 'Nickname harus diisi (minimal 6 karakter)!', status: 'danger' });
-        if (!/^[a-zA-Z\s]+$/.test(nickname)) return UIkit.notification({ message: 'Nickname hanya boleh berisi huruf dan spasi!', status: 'danger' });
-
-        if (!jedaTimeGroup || jedaTimeGroup <= 0) return UIkit.notification({ message: 'Jeda / Group harus lebih dari 0!', status: 'danger' });
-        if (!jedaKoin || jedaKoin <= 0) return UIkit.notification({ message: 'Jeda / Koin harus lebih dari 0!', status: 'danger' });
-        if (!walletMeta || !walletMeta.startsWith('0x')) return UIkit.notification({ message: 'Wallet Address harus valid!', status: 'danger' });
-
-        let JedaDexs = {};
-        $('.dex-delay-input').each(function () {
-            JedaDexs[$(this).data('dex')] = parseFloat($(this).val()) || 100;
-        });
-
-        // Collect user RPC settings (NEW: simplified structure using database)
-        let userRPCs = {};
-        // Get initial values from database migrator (not hardcoded anymore)
-        const getInitialRPC = (chain) => {
-            if (window.RPCDatabaseMigrator && window.RPCDatabaseMigrator.INITIAL_RPC_VALUES) {
-                return window.RPCDatabaseMigrator.INITIAL_RPC_VALUES[chain] || '';
-            }
-            return '';
-        };
-
-        $('.rpc-input').each(function () {
-            const chain = $(this).data('chain');
-            const rpc = $(this).val().trim();
-
-            // Simpan RPC yang diinput user, atau gunakan initial value dari migrator jika kosong
-            if (rpc) {
-                userRPCs[chain] = rpc;
-            } else {
-                const initialRPC = getInitialRPC(chain);
-                if (initialRPC) {
-                    userRPCs[chain] = initialRPC;
-                }
-            }
-        });
-
-        // Validasi: pastikan semua chain punya RPC
-        const missingRPCs = Object.keys(CONFIG_CHAINS).filter(chain => !userRPCs[chain]);
-        if (missingRPCs.length > 0) {
-            UIkit.notification({
-                message: `RPC untuk chain berikut harus diisi: ${missingRPCs.join(', ')}`,
-                status: 'danger',
-                timeout: 5000
-            });
-            return;
-        }
-
-        const settingData = {
-            nickname, jedaTimeGroup, jedaKoin, walletMeta,
-            scanPerKoin: parseInt(scanPerKoin, 10),
-            speedScan: parseFloat(speedScan),
-            JedaDexs,
-            userRPCs  // NEW: hanya simpan RPC yang diinput user (1 per chain)
-        };
-
-        saveToLocalStorage('SETTING_SCANNER', settingData);
-
-        try { setLastAction("SIMPAN SETTING"); } catch (_) { }
-        if (typeof UIkit !== 'undefined' && UIkit.notification) {
-            UIkit.notification("✅ SETTING SCANNER BERHASIL DISIMPAN", { status: 'success' });
-        } else if (typeof toast !== 'undefined' && toast.success) {
-            toast.success("✅ SETTING SCANNER BERHASIL DISIMPAN");
-        }
-        setTimeout(() => location.reload(), 500);
-    });
+    // ❌ REMOVED: Duplicate save handler (already handled in core/handlers/settings-handlers.js)
+    // This duplicate handler was causing matchaApiKeys to be lost on save
+    // The proper handler with matchaApiKeys support is in settings-handlers.js
 
     // Deprecated modal handler removed; settings now inline
 
@@ -2158,151 +2177,8 @@ async function deferredInit() {
         try { checkAllCEXWallets(); } catch (e) { console.error(e); }
     });
 
-    $("#startSCAN").click(function () {
-        // Rebuild monitoring header to reflect current active DEXs before scanning
-        try {
-            const dexList = (window.computeActiveDexList ? window.computeActiveDexList() : Object.keys(window.CONFIG_DEXS || {}));
-            if (window.renderMonitoringHeader) window.renderMonitoringHeader(dexList);
-        } catch (_) { }
-
-        // === GLOBAL SCAN LOCK CHECK ===
-        try {
-            const lockCheck = typeof checkCanStartScan === 'function' ? checkCanStartScan() : { canScan: true };
-
-            if (!lockCheck.canScan) {
-                // console.warn('[START BUTTON] Cannot start scan - locked by another tab:', lockCheck.lockInfo);
-
-                // Show user-friendly notification
-                if (typeof toast !== 'undefined' && toast.warning) {
-                    const lockInfo = lockCheck.lockInfo || {};
-                    const mode = lockInfo.mode || 'UNKNOWN';
-                    const ageMin = Math.floor((lockInfo.age || 0) / 60000);
-                    const ageSec = Math.floor(((lockInfo.age || 0) % 60000) / 1000);
-                    const timeStr = ageMin > 0 ? `${ageMin}m ${ageSec}s` : `${ageSec}s`;
-
-                    toast.warning(
-                        `⚠️ SCAN SEDANG BERJALAN!\n\n` +
-                        `Mode: ${mode}\n` +
-                        `Durasi: ${timeStr}\n\n` +
-                        `Tunggu scan selesai atau tutup tab lain yang sedang scanning.`,
-                        { timeOut: 5000 }
-                    );
-                }
-
-                return; // Exit early - don't start scan
-            }
-        } catch (e) {
-            // console.error('[START BUTTON] Error checking global scan lock:', e);
-            // On error checking lock, allow scan to proceed
-        }
-
-        // Prevent starting if app state indicates a run is already active (per-tab check)
-        try {
-            const stClick = getAppState();
-            if (stClick && stClick.run === 'YES') {
-                $('#startSCAN').prop('disabled', true).attr('aria-busy', 'true').text('Running...').addClass('uk-button-disabled');
-                $('#stopSCAN').show().prop('disabled', false);
-                try { if (typeof setScanUIGating === 'function') setScanUIGating(true); } catch (_) { }
-                return; // do not start twice
-            }
-        } catch (_) { }
-
-        const settings = getFromLocalStorage('SETTING_SCANNER', {}) || {};
-
-        const mode = getAppMode();
-        if (mode.type === 'single') {
-            // Build flat tokens for the active chain and apply per‑chain filters (CEX ∩ PAIR)
-            const chainKey = mode.chain;
-            let tokens = getTokensChain(chainKey);
-            let flatTokens = flattenDataKoin(tokens);
-
-            try {
-                const rawSaved = getFromLocalStorage(`FILTER_${String(chainKey).toUpperCase()}`, null);
-                const filters = getFilterChain(chainKey);
-                const selCex = (filters.cex || []).map(x => String(x).toUpperCase());
-                const selPair = (filters.pair || []).map(x => String(x).toUpperCase());
-                if (!rawSaved) {
-                    // No saved filter yet: scan all tokens for this chain
-                } else if (selCex.length > 0 && selPair.length > 0) {
-                    flatTokens = flatTokens.filter(t => selCex.includes(String(t.cex).toUpperCase()));
-                    flatTokens = flatTokens.filter(t => {
-                        const chainCfg = CONFIG_CHAINS[(t.chain || '').toLowerCase()] || {};
-                        const pairDefs = chainCfg.PAIRDEXS || {};
-                        const p = String(t.symbol_out || '').toUpperCase();
-                        const mapped = pairDefs[p] ? p : 'NON';
-                        return selPair.includes(mapped);
-                    });
-                } else {
-                    flatTokens = [];
-                }
-            } catch (_) { }
-
-            // Apply single-chain sort preference to scanning order (from FILTER_<CHAIN>.sort)
-            try {
-                const rawSavedSort = getFromLocalStorage(`FILTER_${String(chainKey).toUpperCase()}`, null);
-                const sortPref = (rawSavedSort && (rawSavedSort.sort === 'A' || rawSavedSort.sort === 'Z')) ? rawSavedSort.sort : 'A';
-                flatTokens = flatTokens.sort((a, b) => {
-                    const A = (a.symbol_in || '').toUpperCase();
-                    const B = (b.symbol_in || '').toUpperCase();
-                    if (A < B) return sortPref === 'A' ? -1 : 1;
-                    if (A > B) return sortPref === 'A' ? 1 : -1;
-                    return 0;
-                });
-            } catch (_) { }
-
-            // If user searched, limit scan to visible (search-filtered) tokens
-            try {
-                const q = ($('#searchInput').val() || '').trim();
-                if (q) {
-                    const cand = Array.isArray(window.scanCandidateTokens) ? window.scanCandidateTokens : [];
-                    flatTokens = cand;
-                }
-            } catch (_) { }
-
-            if (!Array.isArray(flatTokens) || flatTokens.length === 0) {
-                if (typeof toast !== 'undefined' && toast.info) toast.info('Tidak ada token pada filter per‑chain untuk dipindai.');
-                return;
-            }
-            // Re-render monitoring table to initial state for these tokens
-            try {
-                loadKointoTable(flatTokens, 'dataTableBody');
-                // console.log('[START] Table skeleton rendered, waiting for DOM to settle...');
-            } catch (e) {
-                // console.error('[START] Failed to render table:', e);
-            }
-            // Wait for DOM to settle before starting scanner (increased to 250ms for safety)
-            setTimeout(() => {
-                // console.log('[START] Starting scanner now...');
-                if (window.App?.Scanner?.startScanner) window.App.Scanner.startScanner(flatTokens, settings, 'dataTableBody');
-            }, 250);
-            return;
-        }
-
-        // Multi‑chain: use visible (search-filtered) tokens if search active; else use the current list order (CHAIN ∩ CEX)
-        let toScan = Array.isArray(window.currentListOrderMulti) ? window.currentListOrderMulti : (Array.isArray(filteredTokens) ? filteredTokens : []);
-        try {
-            const q = ($('#searchInput').val() || '').trim();
-            if (q) {
-                toScan = Array.isArray(window.scanCandidateTokens) ? window.scanCandidateTokens : [];
-            }
-        } catch (_) { }
-        if (!Array.isArray(toScan) || toScan.length === 0) {
-            if (typeof toast !== 'undefined' && toast.info) toast.info('Tidak ada token yang cocok dengan hasil pencarian/fitur filter untuk dipindai.');
-            return;
-        }
-        // Re-render monitoring table to initial state for these tokens
-        try {
-            loadKointoTable(toScan, 'dataTableBody');
-            // console.log('[START] Table skeleton rendered, waiting for DOM to settle...');
-        } catch (e) {
-            // console.error('[START] Failed to render table:', e);
-        }
-        // Wait for DOM to settle before starting scanner (increased to 250ms for safety)
-        setTimeout(() => {
-            // console.log('[START] Starting scanner now...');
-            if (window.App?.Scanner?.startScanner) window.App.Scanner.startScanner(toScan, settings, 'dataTableBody');
-        }, 250);
-    });
+    // ❌ REMOVED DUPLICATE START BUTTON HANDLER (caused duplicate Telegram notifications)
+    // Start button handler is registered in core/handlers/scanner-handlers.js:204-348
 
     // Token Management Form Handlers
     // ❌ REMOVED DUPLICATE EXPORT HANDLER (caused multi-download issue)
@@ -4471,7 +4347,7 @@ $(document).ready(function () {
 
     // === CHECK GLOBAL SCAN LOCK ON PAGE LOAD (DISABLED FOR MULTI-TAB) ===
     // REMOVED: Global lock check on page load
-    // Multi-tab scanning is now supported via Tab Manager (tab-manager.js)
+    // Multi-tab scanning is now supported (managed via localStorage sync)
 
     // Re-apply once IndexedDB cache is fully warmed to avoid false negatives
     try {
@@ -5629,7 +5505,7 @@ function setLastAction(action, statusOrMeta, maybeMeta) {
     try { updateInfoFromHistory(); } catch (_) { }
 }
 
-// getManagedChains is defined in utils.js (deduplicated)
+// getManagedChains is defined in utils/helpers/chain-helpers.js (deduplicated)
 
 /**
  * Calculates the result of a swap and returns a data object for the UI queue.

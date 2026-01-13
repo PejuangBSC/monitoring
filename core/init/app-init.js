@@ -105,7 +105,7 @@ $(document).ready(function () {
 
     // === CHECK GLOBAL SCAN LOCK ON PAGE LOAD (DISABLED FOR MULTI-TAB) ===
     // REMOVED: Global lock check on page load
-    // Multi-tab scanning is now supported via Tab Manager (tab-manager.js)
+    // Multi-tab scanning is now supported (managed via localStorage sync)
 
     // Re-apply once IndexedDB cache is fully warmed to avoid false negatives
     try {

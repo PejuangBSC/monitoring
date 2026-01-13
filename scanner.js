@@ -227,6 +227,39 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
     window.__autoRunInterval = null;
     $('#autoRunCountdown').text('');
 
+    // ✅ VALIDATE: Check Matcha API keys before starting scan
+    try {
+        if (typeof get0xApiKey === 'function') {
+            const testKey = get0xApiKey();
+            if (!testKey || testKey === null) {
+                // No API keys found - block scan and show error
+                if (typeof UIkit !== 'undefined' && UIkit.notification) {
+                    UIkit.notification({
+                        message: '⚠️ MATCHA API KEYS WAJIB DIISI!<br><br>' +
+                            'Aplikasi tidak dapat scan tanpa API key.<br>' +
+                            'Silakan tambahkan di menu Settings.<br><br>' +
+                            'Get API keys from: <a href="https://dashboard.0x.org" target="_blank">dashboard.0x.org</a>',
+                        status: 'danger',
+                        timeout: 8000
+                    });
+                } else if (typeof toast !== 'undefined' && toast.error) {
+                    toast.error('⚠️ MATCHA API KEYS WAJIB DIISI! Tambahkan di Settings.', { duration: 5000 });
+                }
+
+                console.error('[SCANNER] ⚠️ Cannot start scan - No Matcha API keys configured!');
+                console.error('[SCANNER] Get API keys from: https://dashboard.0x.org');
+
+                // Highlight settings button
+                $('#SettingConfig').addClass('icon-wrapper');
+
+                return; // Exit - don't start scan
+            }
+            console.log('[SCANNER] ✅ Matcha API keys validated - scan can proceed');
+        }
+    } catch (error) {
+        console.error('[SCANNER] Error validating Matcha API keys:', error);
+    }
+
     // Ambil konfigurasi scan dari argumen.
     const ConfigScan = settings;
     // Dapatkan mode aplikasi saat ini (multi-chain atau single-chain).
@@ -1187,22 +1220,55 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const viaName = (function () {
                                         try {
-                                            if (isFallback === true) {
-                                                const routeTool = String(finalDexRes?.routeTool || '').toUpperCase();
-                                                if (routeTool) {
-                                                    if (/DZAP|PARASWAP|1INCH|0X|KYBER/i.test(routeTool)) {
-                                                        return `DZAP (${routeTool})`;
-                                                    }
-                                                    return routeTool;
+                                            // ✅ FIX: Always check routeTool first (for provider transparency)
+                                            const routeTool = String(finalDexRes?.routeTool || '').trim();
+
+                                            // ✅ DEBUG: Log routeTool untuk transparansi
+                                            console.log(`[SCANNER VIA] DEX: ${dx}, routeTool: "${routeTool}", dexTitle: "${finalDexRes?.dexTitle}"`);
+
+                                            if (routeTool && routeTool.length > 0) {
+                                                // Extract provider name after "via" keyword
+                                                // "FLYTRADE via LIFI" → "LIFI"
+                                                // "MATCHA via SWOOP" → "SWOOP"
+                                                // "MATCHA via 1DELTA" → "1DELTA"
+                                                // "ODOS-V3" → "ODOS-V3" (no "via" found, use as-is)
+                                                // "MATCHA" → "MATCHA" (official API, no aggregator)
+                                                const viaMatch = routeTool.match(/via\s+(.+)/i);
+                                                if (viaMatch && viaMatch[1]) {
+                                                    // ✅ Has "via" keyword - extract provider name after "via"
+                                                    const provider = viaMatch[1].trim().toUpperCase();
+                                                    console.log(`[SCANNER VIA] Extracted provider from "${routeTool}": "${provider}"`);
+                                                    return provider;
+                                                } else {
+                                                    // ✅ No "via" keyword - routeTool is the provider itself
+                                                    // This handles cases like "ODOS-V3", "MATCHA", "KYBER", etc.
+                                                    const provider = routeTool.toUpperCase();
+                                                    console.log(`[SCANNER VIA] No 'via' found, using routeTool as provider: "${provider}"`);
+                                                    return provider;
                                                 }
-                                                return 'SWOOP';
                                             }
-                                        } catch (_) { }
-                                        return dx;
+                                            // Fallback compatibility: Check isFallback flag
+                                            if (isFallback === true) {
+                                                console.log(`[SCANNER VIA] isFallback=true, returning SWOOP`);
+                                                return 'SWOOP';  // Legacy fallback indicator
+                                            }
+                                        } catch (err) {
+                                            console.error(`[SCANNER VIA] Error extracting routeTool:`, err);
+                                        }
+                                        // ✅ Last resort fallback: use DEX name
+                                        console.log(`[SCANNER VIA] No routeTool found, using DEX name: ${dx}`);
+                                        return dx;  // Default: show DEX name if no routeTool
                                     })();
+                                    // ✅ DEBUG: Log final viaName value
+                                    console.log(`[SCANNER VIA] Final viaName for tooltip: "${viaName}"`);
+
                                     const prosesLine = isKiri
                                         ? `PROSES : ${ce} => ${dx} (VIA ${viaName})`
                                         : `PROSES : ${dx} => ${ce} (VIA ${viaName})`;
+
+                                    // ✅ DEBUG: Log prosesLine
+                                    console.log(`[SCANNER VIA] prosesLine: "${prosesLine}"`);
+
                                     // REFACTORED: Jika fallback berhasil, statusnya TETAP "OK"
                                     // Tidak perlu menampilkan error dari primary DEX karena sudah berhasil via fallback
                                     let statusLine = 'STATUS DEX : OK';
@@ -1313,134 +1379,108 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             } catch (_) { }
                             // Periksa apakah DEX ini dikonfigurasi untuk menggunakan fallback.
                             if (dexConfig && dexConfig.allowFallback) {
-                                // REFACTORED: Tidak update UI dengan error dari primary DEX
-                                // Langsung tampilkan status fallback (SWOOP) tanpa menampilkan error primary
-                                // console.log(`[FALLBACK] Primary DEX ${dex.toUpperCase()} error, trying fallback...`, { idCELL, error: msg });
-                                updateDexCellStatus('fallback', dex, '');
-                                // Mulai countdown untuk SWOOP fallback (menggunakan speedScan dari setting user)
-                                try {
-                                    // Hapus ticker lama dan mulai ticker baru untuk fallback.
-                                    clearDexTickerById(idCELL);
-                                    // FIXED: Gunakan speedScan dari user setting, bukan hardcoded 5000ms
-                                    const fallbackTimeout = Math.max(speedScan, 2000); // minimum 2 detik untuk fallback
-                                    const endAtFB = Date.now() + fallbackTimeout;
-                                    // Use shared ticker helper
-                                    const renderFB = (secs, cell) => {
-                                        const span = ensureDexStatusSpan(cell);
-                                        span.innerHTML = `<span class=\\"uk-margin-small-right\\" uk-spinner=\\"ratio: 0.5\\"></span>SWOOP (${secs}s)`;
-                                        try { if (window.UIkit && UIkit.update) UIkit.update(cell); } catch (_) { }
-                                    };
-                                    const onEndFB = () => {
-                                        // REFACTORED: Tidak menampilkan error dari primary, hanya info timeout fallback
-                                        const rawMsg = 'Fallback Timeout';
-                                        if (!(typeof document !== 'undefined' && document.hidden)) {
-                                            try { updateDexCellStatus('fallback_error', dex, rawMsg); } catch (_) { }
-                                        }
-                                    };
-                                    // Define lightweight helper locally (no global pollution)
-                                    const startTicker = (endAt, render, onEnd) => {
-                                        try {
-                                            window._DEX_TICKERS = window._DEX_TICKERS || new Map();
-                                            const key = idCELL + ':ticker';
-                                            if (window._DEX_TICKERS.has(key)) { clearInterval(window._DEX_TICKERS.get(key)); window._DEX_TICKERS.delete(key); }
-                                            const tick = () => {
-                                                const rem = endAt - Date.now();
-                                                const secs = Math.max(0, Math.ceil(rem / 1000));
-                                                const cell = document.getElementById(idCELL);
-                                                if (!cell) { clearDexTickerById(idCELL); return; }
-                                                if (cell.dataset && cell.dataset.final === '1') { clearDexTickerById(idCELL); return; }
-                                                render(secs, cell);
-                                                if (rem <= 0) { clearDexTickerById(idCELL); /*if (typeof onEnd === 'function') onEnd();*/ }
-                                            };
-                                            const intId = setInterval(tick, 1000);
-                                            window._DEX_TICKERS.set(key, intId);
-                                            tick();
-                                        } catch (_) { }
-                                    };
-                                    startTicker(endAtFB, renderFB, onEndFB);
-                                } catch (_) { }
-                                // REMOVED: Watchdog for fallback removed
-                                // Panggil API fallback.
-                                getPriceAltDEX(
-                                    isKiri ? token.sc_in : token.sc_out, isKiri ? token.des_in : token.des_out,
-                                    isKiri ? token.sc_out : token.sc_in, isKiri ? token.des_out : token.des_in,
-                                    amountIn,  // ✅ FIX: Use amountIn (from Auto Volume OR fixed modal)
-                                    DataCEX.priceBuyPair, dex,
-                                    isKiri ? token.symbol_in : token.symbol_out, isKiri ? token.symbol_out : token.symbol_in,
-                                    token.cex, token.chain, CONFIG_CHAINS[token.chain.toLowerCase()].Kode_Chain, direction
-                                )
-                                    // Jika fallback berhasil, panggil `handleSuccess`.
-                                    .then((fallbackRes) => {
-                                        // REMOVED: clearDexWatchdog(wdKeyFallback)
-                                        try { clearDexTickerById(idCELL); } catch (_) { }
-                                        // REFACTORED: Deteksi sumber fallback dari response
-                                        const routeTool = String(fallbackRes?.routeTool || '').toUpperCase();
-                                        let source = 'SWOOP'; // Default
-                                        if (routeTool) {
-                                            if (/DZAP|PARASWAP|1INCH|0X|KYBER/i.test(routeTool)) {
-                                                source = `DZAP (${routeTool})`;
-                                            } else {
-                                                source = routeTool;
-                                            }
-                                        }
-                                        // console.log(`[FALLBACK SUCCESS] ${dex.toUpperCase()} fallback succeeded via ${source}`, { idCELL, amount_out: fallbackRes.amount_out });
-                                        handleSuccess(fallbackRes, true, source);
-                                    })
-                                    // Jika fallback juga gagal, tampilkan error final.
-                                    .catch((fallbackErr) => {
-                                        try {
-                                            // REMOVED: watchdog cleanup
-                                            // REFACTORED: Gunakan error dari fallback, bukan dari primary
-                                            let finalMessage = (fallbackErr && fallbackErr.pesanDEX) ? fallbackErr.pesanDEX : 'Fallback Error';
-                                            try {
-                                                const sc = Number(fallbackErr && fallbackErr.statusCode);
-                                                if (Number.isFinite(sc) && sc > 0) {
-                                                    const prefix = (sc === 200) ? '[XHR ERROR 200] ' : `[HTTP ${sc}] `;
-                                                    // Only add prefix if not already present
-                                                    if (finalMessage.indexOf(prefix) !== 0) finalMessage = prefix + finalMessage;
-                                                }
-                                            } catch (_) { }
-                                            try { clearDexTickerById(idCELL); } catch (_) { }
-                                            // REFACTORED: Tampilkan error dari alternatif, bukan error dari primary
-                                            //console.log(`[FALLBACK ERROR] ${dex.toUpperCase()} fallback also failed`, { idCELL, error: finalMessage });
-                                            updateDexCellStatus('fallback_error', dex, finalMessage);
-                                            try {
-                                                // Align console info with requested orderbook logic
-                                                const amtIn = isKiri ? amount_in_token : amount_in_pair;
-                                                const rate = Number(amtIn) ? (Number(fallbackRes?.amount_out || 0) / Number(amtIn)) : 0;
-                                                let dexUsd = null;
-                                                try {
-                                                    const stable = (typeof getStableSymbols === 'function') ? getStableSymbols() : ['USDT', 'USDC', 'DAI'];
-                                                    const baseSym = (typeof getBaseTokenSymbol === 'function') ? getBaseTokenSymbol(token.chain) : '';
-                                                    const baseUsd = (typeof getBaseTokenUSD === 'function') ? getBaseTokenUSD(token.chain) : 0;
-                                                    const inSym = String(isKiri ? token.symbol_in : token.symbol_out).toUpperCase();
-                                                    const outSym = String(isKiri ? token.symbol_out : token.symbol_in).toUpperCase();
-                                                    if (isKiri) {
-                                                        if (stable.includes(outSym)) dexUsd = rate; else if (baseSym && outSym === baseSym && baseUsd > 0) dexUsd = rate * baseUsd; else dexUsd = rate * (Number(DataCEX.priceBuyPair) || 0);
-                                                    } else {
-                                                        if (stable.includes(inSym) && rate > 0) dexUsd = 1 / rate; else if (baseSym && inSym === baseSym && baseUsd > 0 && rate > 0) dexUsd = baseUsd / rate; else dexUsd = Number(DataCEX.priceSellToken) || 0;
-                                                    }
-                                                } catch (_) { dexUsd = null; }
-                                                // refactor: removed unused local debug variables (buy/sell/pnl lines)
+                                // ✅ REFACTORED: Fallback is now handled internally by getPriceDEX
+                                // It will use the alternative specified in CONFIG_DEXS (e.g., lifi-odos for ODOS)
+                                // No need to call getPriceAltDEX (legacy global fallback)
+                                console.log(`[FALLBACK] ${dex.toUpperCase()} has allowFallback=true, but fallback is handled internally by getPriceDEX`);
 
-                                            } catch (_) { }
-                                        } finally {
-                                            markDexRequestEnd();
-                                        }
-                                    });
-                            } else {
-                                // Jika tidak ada fallback, langsung tampilkan error.
-                                // Use formatted message with HTTP code when available (avoid duplicate prefix)
+                                // Display error since fallback already failed internally
                                 updateDexCellStatus('error', dex, msg);
-                                // Tambahkan header block ke tooltip + console (jika Log ON)
+
+                                // ✅ ENHANCEMENT: Add detailed error info with provider/strategy details
                                 try {
                                     const nowStr = (new Date()).toLocaleTimeString();
                                     const dxName = String(dex || '').toUpperCase();
                                     const ceName = String(token.cex || '').toUpperCase();
+
+                                    // ✅ Detect if both primary and fallback failed
+                                    const bothFailed = initialError && initialError.bothFailed === true;
+                                    let providerInfo = '';
+
+                                    if (bothFailed) {
+                                        // Both strategies failed - show detailed breakdown
+                                        const primaryProv = String(initialError.primaryProvider || 'PRIMARY');
+                                        const fallbackProv = String(initialError.fallbackProvider || 'FALLBACK');
+                                        const primaryCode = initialError.primaryCode || 'NA';
+                                        const fallbackCode = initialError.fallbackCode || 'NA';
+                                        providerInfo = `Primary: ${primaryProv} (${primaryCode}) | Fallback: ${fallbackProv} (${fallbackCode})`;
+                                    } else if (initialError && initialError.providerName) {
+                                        // Single strategy failed
+                                        providerInfo = String(initialError.providerName);
+                                    } else if (initialError && initialError.strategyUsed) {
+                                        // Fallback: use strategy key
+                                        providerInfo = String(initialError.strategyUsed).toUpperCase();
+                                    } else {
+                                        // Last resort: use DEX name
+                                        providerInfo = dxName;
+                                    }
+
+                                    const prosesLine = (direction === 'TokentoPair')
+                                        ? `PROSES : ${ceName} => ${dxName} (VIA ${providerInfo})`
+                                        : `PROSES : ${dxName} => ${ceName} (VIA ${providerInfo})`;
+
+                                    let s = 'FAILED';
+                                    try {
+                                        const ts = String(initialError && initialError.textStatus || '').toLowerCase();
+                                        if (ts === 'timeout' || /timeout/i.test(String(initialError && initialError.pesanDEX || ''))) s = 'TIMEOUT';
+                                    } catch (_) { s = 'FAILED'; }
+
+                                    const codeNum = Number(initialError && initialError.statusCode);
+                                    const statusLine = `STATUS DEX : ${s} (KODE ERROR : ${Number.isFinite(codeNum) ? codeNum : 'NA'})`;
+
+                                    // ✅ Build detailed error breakdown
+                                    const errorDetails = [];
+                                    if (bothFailed) {
+                                        errorDetails.push('======================================');
+                                        errorDetails.push('⚠️  BOTH STRATEGIES FAILED');
+                                        errorDetails.push('======================================');
+                                        errorDetails.push(`PRIMARY STRATEGY: ${initialError.primaryStrategy || 'unknown'}`);
+                                        errorDetails.push(`  Provider: ${initialError.primaryProvider || 'unknown'}`);
+                                        errorDetails.push(`  Error Code: ${initialError.primaryCode || 'NA'}`);
+                                        errorDetails.push(`  Error: ${initialError.primaryError || 'unknown'}`);
+                                        errorDetails.push('');
+                                        errorDetails.push(`FALLBACK STRATEGY: ${initialError.fallbackStrategy || 'unknown'}`);
+                                        errorDetails.push(`  Provider: ${initialError.fallbackProvider || 'unknown'}`);
+                                        errorDetails.push(`  Error Code: ${initialError.fallbackCode || 'NA'}`);
+                                        errorDetails.push(`  Error: ${initialError.fallbackError || 'unknown'}`);
+                                    }
+
+                                    const headerBlock = [
+                                        '======================================',
+                                        `Time: ${nowStr}`,
+                                        prosesLine,
+                                        statusLine,
+                                        ...errorDetails
+                                    ].join('\n');
+                                    setCellTitleById(idCELL, headerBlock);
+                                    try { if (window.SCAN_LOG_ENABLED) console.log(headerBlock); } catch (_) { }
+                                } catch (_) { }
+                                markDexRequestEnd();
+                            } else {
+                                // Jika tidak ada fallback, langsung tampilkan error.
+                                // Use formatted message with HTTP code when available (avoid duplicate prefix)
+                                updateDexCellStatus('error', dex, msg);
+                                // ✅ ENHANCEMENT: Add detailed error info with provider/strategy details
+                                try {
+                                    const nowStr = (new Date()).toLocaleTimeString();
+                                    const dxName = String(dex || '').toUpperCase();
+                                    const ceName = String(token.cex || '').toUpperCase();
+
+                                    // ✅ Extract provider/strategy info
+                                    let providerInfo = '';
+                                    if (initialError && initialError.providerName) {
+                                        providerInfo = String(initialError.providerName);
+                                    } else if (initialError && initialError.strategyUsed) {
+                                        providerInfo = String(initialError.strategyUsed).toUpperCase();
+                                    } else {
+                                        providerInfo = dxName;
+                                    }
+
                                     // PROSES mengikuti arah
                                     const prosesLine = (direction === 'TokentoPair')
-                                        ? `PROSES : ${ceName} => ${dxName} (VIA ${dxName})`
-                                        : `PROSES : ${dxName} => ${ceName} (VIA ${dxName})`;
+                                        ? `PROSES : ${ceName} => ${dxName} (VIA ${providerInfo})`
+                                        : `PROSES : ${dxName} => ${ceName} (VIA ${providerInfo})`;
+
                                     // STATUS
                                     let s = 'FAILED';
                                     try {
@@ -1449,12 +1489,21 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                                     } catch (_) { s = 'FAILED'; }
                                     const codeNum = Number(initialError && initialError.statusCode);
                                     const statusLine = `STATUS DEX : ${s} (KODE ERROR : ${Number.isFinite(codeNum) ? codeNum : 'NA'})`;
+
+                                    // ✅ Add provider details if available
+                                    const providerDetails = [];
+                                    if (initialError && initialError.strategyUsed) {
+                                        providerDetails.push('');
+                                        providerDetails.push(`STRATEGY: ${initialError.strategyUsed}`);
+                                        providerDetails.push(`PROVIDER: ${providerInfo}`);
+                                    }
+
                                     const headerBlock = [
                                         '======================================',
                                         `Time: ${nowStr}`,
-                                        // `ID CELL: ${idCELL}`,
                                         prosesLine,
-                                        statusLine
+                                        statusLine,
+                                        ...providerDetails
                                     ].join('\n');
                                     // FIX: Gunakan setCellTitleById untuk replace (bukan append) agar tidak ada header [LOG...]
                                     setCellTitleById(idCELL, headerBlock);
@@ -1480,7 +1529,8 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                         // - Other DEX: API timeout speedScan → scanner window (speedScan + 1.5s buffer)
                         const dexLower = String(dex).toLowerCase();
                         const isOdos = dexLower === 'odos';
-                        const isMultiAggregator = ['lifi', 'swing', 'dzap'].includes(dexLower);
+                        // ✅ REMOVED: dzap is now REST API provider (single-quote), no longer multi-aggregator
+                        const isMultiAggregator = ['swing'].includes(dexLower); // Only SWING still uses multi-aggregator
 
                         let dexTimeoutWindow;
                         if (isOdos) {
@@ -1488,7 +1538,7 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                             dexTimeoutWindow = 5500;  // 5.5s for ODOS (was 10s - too slow!)
                         } else if (isMultiAggregator) {
                             // ✅ FIX: Multi-aggregators need extended timeout (API 8s + 1.5s buffer)
-                            dexTimeoutWindow = 9500;  // 9.5s for LIFI/SWING/DZAP
+                            dexTimeoutWindow = 9500;  // 9.5s for SWING only
                             console.log(`⏱️ [${dexLower.toUpperCase()} SCANNER WINDOW] Using extended deadline: ${dexTimeoutWindow}ms`);
                         } else {
                             // Use speedScan setting + buffer (not hardcoded!)
@@ -1754,7 +1804,10 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
 
         // REFACTORED: Tunggu semua request DEX (termasuk fallback) benar-benar selesai.
         //('[FINAL] Waiting for pending DEX requests to settle...');
-        await waitForPendingDexRequests(8000);
+        // ✅ FIX: Increased timeout from 8000ms to 30000ms to accommodate fallback strategies
+        // Primary request can take up to 10s, fallback another 10s = 20s minimum needed
+        // 30s provides buffer for delays and multiple concurrent fallback requests
+        await waitForPendingDexRequests(30000);
         if (activeDexRequests > 0) {
             // console.warn(`[FINAL] Continuing with ${activeDexRequests} pending DEX request(s) after timeout window.`);
         }
