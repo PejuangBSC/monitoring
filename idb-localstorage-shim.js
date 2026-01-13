@@ -35,7 +35,7 @@
 
   function openDB() {
     return new Promise((resolve, reject) => {
-      try{
+      try {
         // Open without explicit version to avoid VersionError when DB already upgraded
         const req = indexedDB.open(DB_NAME);
         req.onupgradeneeded = () => {
@@ -46,7 +46,7 @@
         };
         req.onsuccess = () => {
           const d = req.result;
-          if (!d.objectStoreNames.contains(STORE_NAME)){
+          if (!d.objectStoreNames.contains(STORE_NAME)) {
             const next = (d.version || 1) + 1;
             d.close();
             const up = indexedDB.open(DB_NAME, next);
@@ -61,7 +61,7 @@
           }
         };
         req.onerror = () => reject(req.error);
-      }catch(e){ reject(e); }
+      } catch (e) { reject(e); }
     });
   }
 
@@ -77,13 +77,13 @@
       try {
         pendingWrites.add(key);
         const req = tx(STORE_NAME, 'readwrite').put({ key, value });
-        req.onsuccess = function() {
+        req.onsuccess = function () {
           pendingWrites.delete(key);
           pendingPromises.delete(key);
           // console.log('[IDB] ✅ Saved:', key);
           resolve();
         };
-        req.onerror = function(e) {
+        req.onerror = function (e) {
           pendingWrites.delete(key);
           pendingPromises.delete(key);
           console.error('[IDB] ❌ Failed to save key:', key, e.target.error);
@@ -113,14 +113,14 @@
     if (!db) return;
     try {
       tx(STORE_NAME, 'readwrite').delete(key);
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function idbClear() {
     if (!db) return;
     try {
       tx(STORE_NAME, 'readwrite').clear();
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function idbLoadAll() {
@@ -170,7 +170,7 @@
         }
         if (key) nativeKeysAtInit.push(key);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function clearNativeMigratedKeys() {
@@ -179,10 +179,10 @@
     try {
       for (const k of nativeKeysAtInit) {
         if (cache.has(k)) {
-          try { nativeRemove(k); } catch (_) {}
+          try { nativeRemove(k); } catch (_) { }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Request persistent storage permission to prevent browser from clearing data
@@ -279,7 +279,7 @@
   }
 
   // Auto-flush pending writes before page unload
-  window.addEventListener('beforeunload', function(e) {
+  window.addEventListener('beforeunload', function (e) {
     if (pendingWrites.size > 0) {
       console.warn('[IDB] ⚠️ Attempting to flush pending writes before unload...');
       console.warn('[IDB] Pending writes:', Array.from(pendingWrites));
@@ -297,14 +297,26 @@
   });
 
   // Periodic auto-flush every 5 seconds to reduce data loss risk
-  setInterval(function() {
-    if (pendingWrites.size > 0) {
-      console.log('[IDB] 🔄 Auto-flushing', pendingWrites.size, 'pending writes...');
-      flushPendingWrites().catch(function(e) {
-        console.error('[IDB] ❌ Auto-flush failed:', e);
-      });
+  // ✅ PERF: Use TimerManager if available for centralized timer control
+  function startAutoFlush() {
+    const autoFlushFn = function () {
+      if (pendingWrites.size > 0) {
+        console.log('[IDB] 🔄 Auto-flushing', pendingWrites.size, 'pending writes...');
+        flushPendingWrites().catch(function (e) {
+          console.error('[IDB] ❌ Auto-flush failed:', e);
+        });
+      }
+    };
+
+    if (typeof TimerManager !== 'undefined') {
+      TimerManager.setInterval('idb-auto-flush', autoFlushFn, 5000, 'sync');
+    } else {
+      setInterval(autoFlushFn, 5000);
     }
-  }, 5000);
+  }
+
+  // Start auto-flush after a brief delay to ensure TimerManager is loaded
+  setTimeout(startAutoFlush, 100);
 
   // Diagnostic function to check storage status
   async function checkStorageStatus() {

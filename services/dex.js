@@ -1091,6 +1091,7 @@
   // =============================
   // Digunakan sebagai alternative untuk ODOS - memanggil LIFI API dengan filter khusus ODOS
   // Response dalam format single-DEX (bukan multi-provider)
+  // ✅ FIX: Using /v1/quote endpoint with allowExchanges query parameter (per LIFI docs)
   dexStrategies['lifi-odos'] = {
     buildRequest: ({ codeChain, sc_input, sc_output, sc_input_in, sc_output_in, amount_in_big, SavedSettingData, chainName }) => {
       const apiKey = (typeof getRandomApiKeyLIFI === 'function') ? getRandomApiKeyLIFI() : '';
@@ -1108,56 +1109,47 @@
         ? (SavedSettingData?.walletSolana || defaultSolAddr)
         : (SavedSettingData?.walletMeta || defaultEvmAddr);
 
-      // ✅ FILTER: Hanya ODOS provider
-      const options = {
-        slippage: 0.03,
-        order: 'RECOMMENDED',
-        allowSwitchChain: false,
-        exchanges: {
-          allow: ['odos']  // Filter khusus ODOS saja
-        }
-      };
-
-      const body = {
-        fromChainId: lifiChainId,
-        toChainId: lifiChainId,
-        fromTokenAddress: fromToken,
-        toTokenAddress: toToken,
+      // ✅ FIX: Use /v1/quote with allowExchanges query param (per LIFI documentation)
+      const params = new URLSearchParams({
+        fromChain: lifiChainId.toString(),
+        toChain: lifiChainId.toString(),
+        fromToken: fromToken,
+        toToken: toToken,
         fromAmount: amount_in_big.toString(),
         fromAddress: userAddr,
-        toAddress: userAddr,
-        options: options
-      };
+        allowExchanges: 'odos',  // ✅ Filter for ODOS only
+        slippage: '0.03',
+        order: 'RECOMMENDED'
+      });
 
       return {
-        url: 'https://li.quest/v1/advanced/routes',
-        method: 'POST',
-        data: JSON.stringify(body),
+        url: `https://li.quest/v1/quote?${params.toString()}`,
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'x-lifi-api-key': apiKey
         }
       };
     },
     parseResponse: (response, { des_output, chainName }) => {
-      // Parse LIFI response dengan filter ODOS - return single-DEX style (bukan multi-provider)
-      const routes = response?.routes;
-
-      if (!routes || !Array.isArray(routes) || routes.length === 0) {
-        throw new Error("LIFI-ODOS: No ODOS routes found");
+      // /v1/quote returns a single Step object, not routes array
+      if (!response || !response.estimate || !response.estimate.toAmount) {
+        throw new Error("LIFI-ODOS: No valid quote received");
       }
 
-      // Ambil route terbaik (pertama)
-      const bestRoute = routes[0];
-      if (!bestRoute || !bestRoute.toAmount) {
-        throw new Error("LIFI-ODOS: Invalid route structure");
-      }
+      const estimate = response.estimate;
+      const amount_out = parseFloat(estimate.toAmount) / Math.pow(10, des_output);
 
-      const amount_out = parseFloat(bestRoute.toAmount) / Math.pow(10, des_output);
-      const gasCostUsd = parseFloat(bestRoute.gasCostUSD || 0);
+      // Get gas cost from estimate
+      let gasCostUsd = 0;
+      if (estimate.gasCosts && Array.isArray(estimate.gasCosts)) {
+        gasCostUsd = estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+      }
       const FeeSwap = (Number.isFinite(gasCostUsd) && gasCostUsd > 0) ? gasCostUsd : getFeeSwap(chainName);
 
-      console.log(`[LIFI-ODOS] Using ODOS via LIFI: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
+      // Extract tool name from response
+      const toolUsed = response.tool || response.toolDetails?.key || 'odos';
+
+      console.log(`[LIFI-ODOS] Using ${toolUsed.toUpperCase()} via LIFI: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
 
       // Return format single-DEX (BUKAN multi-provider seperti LIFI biasa)
       return {
@@ -1170,12 +1162,14 @@
   };
 
 
-  // =============================
-  // LIFI Filtered Strategy Factory - Create filtered LIFI for any DEX
+
   // =============================
   /**
    * Factory function to create LIFI filtered strategies for specific DEX providers
    * This reduces code duplication for lifi-velora, lifi-okx, lifi-sushi, lifi-kyber, lifi-matcha
+   * 
+   * ✅ FIX: Using /v1/quote endpoint with allowExchanges query parameter (per LIFI docs)
+   * Reference: https://docs.li.fi/api-reference/get-a-quote-for-a-token-transfer-1
    */
   function createFilteredLifiStrategy(dexKey, dexTitle) {
     return {
@@ -1195,55 +1189,47 @@
           ? (SavedSettingData?.walletSolana || defaultSolAddr)
           : (SavedSettingData?.walletMeta || defaultEvmAddr);
 
-        // Filter for specific DEX only
-        const options = {
-          slippage: 0.03,
-          order: 'RECOMMENDED',
-          allowSwitchChain: false,
-          exchanges: {
-            allow: [dexKey]  // Filter for specific DEX only
-          }
-        };
-
-        const body = {
-          fromChainId: lifiChainId,
-          toChainId: lifiChainId,
-          fromTokenAddress: fromToken,
-          toTokenAddress: toToken,
+        // ✅ FIX: Use /v1/quote with allowExchanges query parameter (per LIFI documentation)
+        const params = new URLSearchParams({
+          fromChain: lifiChainId.toString(),
+          toChain: lifiChainId.toString(),
+          fromToken: fromToken,
+          toToken: toToken,
           fromAmount: amount_in_big.toString(),
           fromAddress: userAddr,
-          toAddress: userAddr,
-          options: options
-        };
+          allowExchanges: dexKey,  // ✅ Filter for specific DEX only (e.g., 'odos', 'paraswap')
+          slippage: '0.03',
+          order: 'RECOMMENDED'
+        });
 
         return {
-          url: 'https://li.quest/v1/advanced/routes',
-          method: 'POST',
-          data: JSON.stringify(body),
+          url: `https://li.quest/v1/quote?${params.toString()}`,
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             'x-lifi-api-key': apiKey
           }
         };
       },
       parseResponse: (response, { des_output, chainName }) => {
-        const routes = response?.routes;
-
-        if (!routes || !Array.isArray(routes) || routes.length === 0) {
-          throw new Error(`LIFI-${dexTitle}: No ${dexTitle} routes found`);
+        // /v1/quote returns a single Step object, not routes array
+        if (!response || !response.estimate || !response.estimate.toAmount) {
+          throw new Error(`LIFI-${dexTitle}: No valid quote received`);
         }
 
-        // Get best route (first)
-        const bestRoute = routes[0];
-        if (!bestRoute || !bestRoute.toAmount) {
-          throw new Error(`LIFI-${dexTitle}: Invalid route structure`);
-        }
+        const estimate = response.estimate;
+        const amount_out = parseFloat(estimate.toAmount) / Math.pow(10, des_output);
 
-        const amount_out = parseFloat(bestRoute.toAmount) / Math.pow(10, des_output);
-        const gasCostUsd = parseFloat(bestRoute.gasCostUSD || 0);
+        // Get gas cost from estimate
+        let gasCostUsd = 0;
+        if (estimate.gasCosts && Array.isArray(estimate.gasCosts)) {
+          gasCostUsd = estimate.gasCosts.reduce((sum, gc) => sum + parseFloat(gc.amountUSD || 0), 0);
+        }
         const FeeSwap = (Number.isFinite(gasCostUsd) && gasCostUsd > 0) ? gasCostUsd : getFeeSwap(chainName);
 
-        console.log(`[LIFI-${dexTitle}] Using ${dexTitle} via LIFI: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
+        // Extract tool name from response for transparency
+        const toolUsed = response.tool || response.toolDetails?.key || dexKey;
+
+        console.log(`[LIFI-${dexTitle}] Using ${toolUsed.toUpperCase()} via LIFI: ${amount_out.toFixed(6)} output, gas: $${FeeSwap.toFixed(4)}`);
 
         // Return single-DEX format (NOT multi-provider)
         return {
@@ -1255,6 +1241,7 @@
       }
     };
   }
+
 
   // =============================
   // LIFI Relay Strategy - Special handling for Relay (tool-based, not exchange-based)
@@ -1644,9 +1631,10 @@
   }
 
   // Create filtered SWING strategies for supported DEX providers
-  dexStrategies['swing-velora'] = createFilteredSwingStrategy('paraswap', 'VELORA');
+  // ✅ FIX: Key must match what SWING API returns in quote.integration field
+  dexStrategies['swing-velora'] = createFilteredSwingStrategy('velora', 'VELORA');  // SWING returns 'velora-delta', 'velora' etc
   dexStrategies['swing-odos'] = createFilteredSwingStrategy('odos', 'ODOS');
-  dexStrategies['swing-kyber'] = createFilteredSwingStrategy('kyberswap', 'KYBER');
+  dexStrategies['swing-kyber'] = createFilteredSwingStrategy('kyber', 'KYBER');  // SWING returns 'kyberswap' or 'kyber'
   dexStrategies['swing-matcha'] = createFilteredSwingStrategy('0x', 'MATCHA');
   dexStrategies['swing-okx'] = createFilteredSwingStrategy('okx', 'OKX');
 
@@ -2759,9 +2747,14 @@
   }
 
   // ========== REQUEST DEDUPLICATION & CACHING ==========
+  // ✅ PERF: Use LRUCache if available for memory-bounded caching (auto-eviction)
   // Cache untuk menyimpan response yang sudah berhasil (60 detik)
-  const DEX_RESPONSE_CACHE = new Map();
   const DEX_CACHE_TTL = 60000; // 60 seconds
+  const DEX_RESPONSE_CACHE = (typeof LRUCache !== 'undefined')
+    ? new LRUCache(200, DEX_CACHE_TTL)  // Max 200 items, 60s TTL
+    : new Map();  // Fallback to unbounded Map
+  const USE_LRU_CACHE = (typeof LRUCache !== 'undefined');
+  // Silent initialization - check getDexCacheStats() for cache info
 
   // Cache untuk menyimpan ongoing requests (mencegah duplicate concurrent requests)
   const DEX_INFLIGHT_REQUESTS = new Map();
@@ -2862,7 +2855,15 @@
 
       // ========== CHECK RESPONSE CACHE ==========
       // Check if we have a recent cached response
-      if (DEX_RESPONSE_CACHE.has(cacheKey)) {
+      // ✅ PERF: LRUCache handles TTL internally via get(), Map needs manual check
+      if (USE_LRU_CACHE) {
+        const cachedResponse = DEX_RESPONSE_CACHE.get(cacheKey);
+        if (cachedResponse !== undefined) {
+          console.log(`[DEX CACHE HIT] ${dexType.toUpperCase()} - LRU Cache hit!`);
+          resolve(cachedResponse);
+          return;
+        }
+      } else if (DEX_RESPONSE_CACHE.has(cacheKey)) {
         const cached = DEX_RESPONSE_CACHE.get(cacheKey);
         const now = Date.now();
         if (now - cached.timestamp < DEX_CACHE_TTL) {
@@ -2982,11 +2983,13 @@
             success: function (response) {
               try {
                 const parsed = strategy.parseResponse(response, requestParams);
-                const { amount_out, FeeSwap, dexTitle, subResults, isMultiDex } = parsed;
+                // ✅ FIX: Also extract routeTool from parsed response for tooltip transparency
+                const { amount_out, FeeSwap, dexTitle, subResults, isMultiDex, routeTool } = parsed;
                 res({
                   dexTitle, sc_input, des_input, sc_output, des_output, FeeSwap, amount_out, apiUrl: url, tableBodyId,
                   subResults: subResults || null, // Pass subResults untuk DZAP
-                  isMultiDex: isMultiDex || false  // Pass flag isMultiDex
+                  isMultiDex: isMultiDex || false,  // Pass flag isMultiDex
+                  routeTool: routeTool || null  // ✅ FIX: Pass routeTool untuk tooltip (e.g., "VELORA via SWING")
                 });
               } catch (error) {
                 rej({ statusCode: 500, pesanDEX: `Parse Error: ${error.message}`, DEX: sKey.toUpperCase() });
@@ -3079,10 +3082,15 @@
       const inflightPromise = runStrategy(selectedStrategy)
         .then((result) => {
           // SUCCESS: Cache the response for future use
-          DEX_RESPONSE_CACHE.set(cacheKey, {
-            response: result,
-            timestamp: Date.now()
-          });
+          // ✅ PERF: LRUCache stores value directly with internal TTL, Map needs wrapper
+          if (USE_LRU_CACHE) {
+            DEX_RESPONSE_CACHE.set(cacheKey, result);
+          } else {
+            DEX_RESPONSE_CACHE.set(cacheKey, {
+              response: result,
+              timestamp: Date.now()
+            });
+          }
           return result;
         })
         .catch((e1) => {
@@ -3121,10 +3129,15 @@
           return runStrategy(computedFallback)
             .then((result) => {
               // SUCCESS: Cache the fallback response
-              DEX_RESPONSE_CACHE.set(cacheKey, {
-                response: result,
-                timestamp: Date.now()
-              });
+              // ✅ PERF: LRUCache stores value directly with internal TTL, Map needs wrapper
+              if (USE_LRU_CACHE) {
+                DEX_RESPONSE_CACHE.set(cacheKey, result);
+              } else {
+                DEX_RESPONSE_CACHE.set(cacheKey, {
+                  response: result,
+                  timestamp: Date.now()
+                });
+              }
               return result;
             })
             .catch((e2) => {
@@ -3410,8 +3423,27 @@
     return fallbackSWOOP();
   }
 
+  // ✅ PERF: Debug helper to get cache statistics
+  function getCacheStats() {
+    if (USE_LRU_CACHE && DEX_RESPONSE_CACHE.getStats) {
+      return {
+        type: 'LRUCache',
+        ...DEX_RESPONSE_CACHE.getStats(),
+        inflightRequests: DEX_INFLIGHT_REQUESTS.size
+      };
+    }
+    return {
+      type: 'Map',
+      size: DEX_RESPONSE_CACHE.size,
+      inflightRequests: DEX_INFLIGHT_REQUESTS.size
+    };
+  }
+
+  // Expose to window for debugging
+  root.getDexCacheStats = getCacheStats;
+
   if (typeof App.register === 'function') {
-    App.register('Services', { DEX: { dexStrategies, getPriceDEX, getPriceAltDEX } });
+    App.register('Services', { DEX: { dexStrategies, getPriceDEX, getPriceAltDEX, getCacheStats } });
   }
 
   // Lightweight DEX registry for link builders and policy

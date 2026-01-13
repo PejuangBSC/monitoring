@@ -1,4 +1,3 @@
-
 const CONFIG_APP = {
     APP: {
         NAME: "MONITORING-KOIN",
@@ -7,7 +6,8 @@ const CONFIG_APP = {
         AUTORUN: true,
         AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur auto volume
         VOL_CHECK: true,
-        META_DEX: true,     // Set true untuk menghidupkan fitur META-DEX aggregator (LIFI, DZAP, Rubic, Rango)
+        META_DEX: false,     // Set true untuk menghidupkan fitur META-DEX aggregator (LIFI, DZAP, Rubic, Rango)
+        DEBUG_LOG: false,   // ✅ PERF: Set true untuk aktifkan debug logging (default: false untuk performance)
     },
     // ✅ META-DEX Configuration - Control meta-aggregator availability
     // Meta-aggregators: LIFI, DZAP, Rubic, Rango (EVM chains only)
@@ -653,36 +653,6 @@ try {
  * ========================================
  * FALLBACK POLICY:
  * ========================================
- * SWOOP Filtered (sudah ada di dex.js)
-swoop-velora ✅
-swoop-1inch ✅
-swoop-odos ✅
-swoop-kyber ✅
-swoop-matcha ✅
-swoop-okx ✅
-swoop-sushi ✅
-
-DZAP Filtered (baru dibuat)
-dzap-velora ✅
-dzap-odos ✅
-dzap-kyber ✅
-dzap-matcha ✅
-dzap-okx ✅
-
-SWING Filtered (new - alternative to DZAP)
-swing-velora ✅
-swing-odos ✅
-swing-kyber ✅
-swing-matcha ✅
-swing-okx ✅
-
-LIFI Filtered (sudah ada)
-lifi-okx ✅
-lifi-sushi ✅
-lifi-kyber ✅
-lifi-odos ✅
-lifi-1inch ✅
-lifi-fly ✅
  * - primary: Strategi utama yang dipilih pertama kali
  * - alternative: Strategi cadangan saat primary gagal (error 429, 500+, atau timeout)
  * - allowFallback: true/false - izinkan fallback ke alternative
@@ -691,7 +661,7 @@ const CONFIG_DEXS = {
     kyber: {
         label: 'KyberSwap',
         badgeClass: 'bg-kyberswap',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 200,  // Jeda API call (ms) - rate limiting
         warna: "#0b7e18ff", // hijau tosca KyberSwap
         builder: ({ chainName, tokenAddress, pairAddress }) =>
             `https://kyberswap.com/swap/${chainName}/${tokenAddress}-to-${pairAddress}`,
@@ -711,7 +681,7 @@ const CONFIG_DEXS = {
     sushi: {
         label: 'SUSHI',
         badgeClass: 'bg-sushi',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 150,  // Jeda API call (ms) - rate limiting
         proxy: true, // ✅ Enable proxy - SushiSwap API may have CORS restrictions
         warna: "#f085b7ff", // Pink/magenta SushiSwap brand color
         builder: ({ chainName, tokenAddress, pairAddress }) =>
@@ -732,7 +702,7 @@ const CONFIG_DEXS = {
     okx: {
         label: 'OKXDEX',
         badgeClass: 'bg-okxdex',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - OKX DEX Aggregator active
         warna: "#000000",
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
@@ -753,7 +723,7 @@ const CONFIG_DEXS = {
     relay: {
         label: 'Relay',
         badgeClass: 'bg-relay',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 400,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - Cross-chain bridge & swap aggregator
         warna: "#160783ff",  // Purple - Relay brand color
         builder: ({ chainName, chainCode, tokenAddress, pairAddress }) =>
@@ -764,16 +734,16 @@ const CONFIG_DEXS = {
                 pairtotoken: 'relay'           // DEX→CEX: Direct Relay API
             },
             alternative: {
-                tokentopair: 'lifi-relay',     // CEX→DEX: LIFI filtered (rotation)
-                pairtotoken: 'lifi-relay'      // DEX→CEX: LIFI filtered (rotation)
+                tokentopair: 'relay',     // CEX→DEX: LIFI filtered (rotation)
+                pairtotoken: 'relay'      // DEX→CEX: LIFI filtered (rotation)
             }
         },
-        allowFallback: true,  // ✅ Enable rotation between primary and alternative
+        allowFallback: false,  // ✅ Enable rotation between primary and alternative
     },
     flytrade: {
         label: 'Flytrade',
         badgeClass: 'bg-flytrade',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 300,  // Jeda API call (ms) - rate limiting
         warna: "#7d2ff4ff", // Indigo for Flytrade
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
@@ -786,16 +756,16 @@ const CONFIG_DEXS = {
                 pairtotoken: 'flytrade'        // DEX→CEX: Flytrade aggregator
             },
             alternative: {
-                tokentopair: 'lifi-flytrade',  // CEX→DEX: LIFI filtered (rotation)
-                pairtotoken: 'lifi-flytrade'   // DEX→CEX: LIFI filtered (rotation)
+                tokentopair: 'flytrade',  // CEX→DEX: LIFI filtered (rotation)
+                pairtotoken: 'flytrade'   // DEX→CEX: LIFI filtered (rotation)
             }
         },
-        allowFallback: true,  // ✅ Enable rotation between primary and alternative
+        allowFallback: false,  // ✅ Enable rotation between primary and alternative
     },
     matcha: {
         label: 'Matcha',
         badgeClass: 'bg-matcha',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 200,  // Jeda API call (ms) - rate limiting
         proxy: true, // ✅ Enable proxy - 0x API has CORS restrictions for browser requests
         warna: "#61ee73ff", // hitam abu-abu (Matcha/0x)
         builder: ({ chainName, tokenAddress, pairAddress, chainCode }) => {
@@ -823,17 +793,19 @@ const CONFIG_DEXS = {
     odos: {
         label: 'ODOS',
         badgeClass: 'bg-odos',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 350,  // Jeda API call (ms) - rate limiting
         warna: "#6e2006ff", // ungu-biru Odos
         builder: () => `https://app.odos.xyz`,
         // ⚡ ROTATION STRATEGY: Alternate between official API and filtered aggregators
-        primary: {
-            tokentopair: 'odos3',        // CEX→DEX: Official ODOS v3 API
-            pairtotoken: 'lifi-odos'         // DEX→CEX: Official ODOS v3 API
-        },
-        alternative: {
-            tokentopair: 'swoop-odos',    // CEX→DEX: LIFI filtered (rotation)
-            pairtotoken: 'odos3'    // DEX→CEX: SWOOP filtered (rotation)
+        fetchdex: {  // ✅ FIX: Added missing fetchdex wrapper
+            primary: {
+                tokentopair: 'odos3',        // CEX→DEX: Official ODOS v3 API
+                pairtotoken: 'lifi-odos'     // DEX→CEX: LIFI filtered for ODOS
+            },
+            alternative: {
+                tokentopair: 'swoop-odos',   // CEX→DEX: SWOOP filtered (rotation)
+                pairtotoken: 'odos3'         // DEX→CEX: Official ODOS v3 API
+            }
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
     },
@@ -842,7 +814,7 @@ const CONFIG_DEXS = {
     velora: {
         label: 'Velora',
         badgeClass: 'bg-velora',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 300,  // Jeda API call (ms) - rate limiting
         warna: "#1c64f2ff",
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
@@ -900,7 +872,7 @@ const CONFIG_DEXS = {
     kamino: {
         label: 'Kamino',
         badgeClass: 'bg-kamino',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 150,  // Jeda API call (ms) - rate limiting
         proxy: true,
         warna: "#7c3aed", // Kamino purple
         isMetaDex: true,  // ✅ META-DEX: Mark as meta-aggregator (Solana only)
@@ -920,7 +892,7 @@ const CONFIG_DEXS = {
     lifi: {
         label: 'LIFI',
         badgeClass: 'bg-lifi',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - LIFI as REST API provider
         warna: "#ea4aaa", // LIFI pink
         isMetaDex: true,  // ✅ META-DEX: Mark as meta-aggregator
@@ -965,7 +937,7 @@ const CONFIG_DEXS = {
     rango: {
         label: 'Rango',
         badgeClass: 'bg-rango',
-        delay: 100,  // Jeda API call (ms) - rate limiting
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false,
         proxy: true,  // Enable CORS proxy
         warna: "#00d4aa",  // Rango teal

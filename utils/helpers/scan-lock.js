@@ -14,7 +14,7 @@
  * - stopScanLockHeartbeat: Stop heartbeat interval
  */
 
-(function() {
+(function () {
     'use strict';
 
     // =================================================================================
@@ -73,7 +73,7 @@
             }
 
             return null;
-        } catch(e) {
+        } catch (e) {
             // console.error('[SCAN LOCK] Error getting global lock:', e);
             return null;
         }
@@ -138,7 +138,7 @@
             startScanLockHeartbeat(filterKey);
 
             return true;
-        } catch(e) {
+        } catch (e) {
             // console.error('[SCAN LOCK] Error setting lock:', e);
             return false;
         }
@@ -158,7 +158,7 @@
 
             // Stop heartbeat
             stopScanLockHeartbeat();
-        } catch(e) {
+        } catch (e) {
             // console.error('[SCAN LOCK] Error clearing lock:', e);
         }
     }
@@ -199,7 +199,7 @@
             const reason = `Scan sedang berjalan di tab lain (${lockMode}) - ${ageSeconds}s ago`;
 
             return { canScan: false, reason, lockInfo: lock };
-        } catch(e) {
+        } catch (e) {
             // console.error('[SCAN LOCK] Error checking can scan:', e);
             return { canScan: true, reason: 'Error checking - allowing scan', lockInfo: null };
         }
@@ -213,7 +213,8 @@
         stopScanLockHeartbeat(); // Clear any existing
 
         _scanLockHeartbeatKey = filterKey;
-        _scanLockHeartbeatInterval = setInterval(() => {
+
+        const heartbeatFn = () => {
             try {
                 const filter = getFromLocalStorage(filterKey, {});
                 if (filter.run === 'YES' && filter.runMeta) {
@@ -225,13 +226,25 @@
                     // Lock was cleared elsewhere - stop heartbeat
                     stopScanLockHeartbeat();
                 }
-            } catch(e) {
+            } catch (e) {
                 // console.error('[SCAN LOCK] Heartbeat error:', e);
             }
-        }, 30000); // Update every 30 seconds
+        };
+
+        // ✅ PERF: Use TimerManager for centralized timer control
+        if (typeof TimerManager !== 'undefined') {
+            TimerManager.setInterval('scan-lock-heartbeat', heartbeatFn, 30000, 'scan');
+        } else {
+            _scanLockHeartbeatInterval = setInterval(heartbeatFn, 30000); // Update every 30 seconds
+        }
     }
 
     function stopScanLockHeartbeat() {
+        // ✅ PERF: Use TimerManager for centralized timer control
+        if (typeof TimerManager !== 'undefined') {
+            TimerManager.clear('scan-lock-heartbeat');
+        }
+
         if (_scanLockHeartbeatInterval) {
             clearInterval(_scanLockHeartbeatInterval);
             _scanLockHeartbeatInterval = null;

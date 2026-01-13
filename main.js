@@ -575,7 +575,7 @@ function renderSettingsForm() {
                         <div class="uk-flex uk-flex-middle" style="gap: 4px;">
                             <input type="number" class="uk-input uk-form-small dex-delay-input"
                                    data-dex="${dexKey}"
-                                   value="${dexConfig.delay || 100}"
+                                   value="${dexConfig.delay || 150}"
                                    style="width:70px; text-align:center; border-color: ${dexColor}40;"
                                    min="0">
                             <span class="uk-text-meta uk-text-small">ms</span>
@@ -1869,8 +1869,13 @@ async function deferredInit() {
                 window.AUTORUN_ENABLED = $(this).is(':checked');
                 if (!window.AUTORUN_ENABLED) {
                     // cancel any pending autorun countdown
-                    try { clearInterval(window.__autoRunInterval); } catch (_) { }
-                    window.__autoRunInterval = null;
+                    // ✅ PERF: Use TimerManager for centralized timer control
+                    if (typeof TimerManager !== 'undefined') {
+                        TimerManager.clear('autorun-countdown');
+                    } else {
+                        try { clearInterval(window.__autoRunInterval); } catch (_) { }
+                        window.__autoRunInterval = null;
+                    }
                     // clear countdown label
                     $('#autoRunCountdown').text('');
                     // restore UI to idle state if not scanning

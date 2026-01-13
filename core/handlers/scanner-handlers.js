@@ -67,8 +67,13 @@
                 window.AUTORUN_ENABLED = $(this).is(':checked');
                 if (!window.AUTORUN_ENABLED) {
                     // cancel any pending autorun countdown
-                    try { clearInterval(window.__autoRunInterval); } catch (_) { }
-                    window.__autoRunInterval = null;
+                    // ✅ PERF: Use TimerManager for centralized timer control
+                    if (typeof TimerManager !== 'undefined') {
+                        TimerManager.clear('autorun-countdown');
+                    } else {
+                        try { clearInterval(window.__autoRunInterval); } catch (_) { }
+                        window.__autoRunInterval = null;
+                    }
                     // clear countdown label
                     $('#autoRunCountdown').text('');
                     // restore UI to idle state if not scanning

@@ -51,8 +51,15 @@ function setDexErrorBackground(cell) {
  */
 function clearDexTickerById(id) {
     try {
-        window._DEX_TICKERS = window._DEX_TICKERS || new Map();
         const key = String(id) + ':ticker';
+
+        // ✅ PERF: Use TimerManager for centralized timer control
+        if (typeof TimerManager !== 'undefined') {
+            TimerManager.clear(`dex-ticker-${key}`);
+        }
+
+        // Fallback to legacy method
+        window._DEX_TICKERS = window._DEX_TICKERS || new Map();
         if (window._DEX_TICKERS.has(key)) {
             // Hapus interval timer.
             clearInterval(window._DEX_TICKERS.get(key));
@@ -223,8 +230,13 @@ function setEditFormState(isScanning) {
  */
 async function startScanner(tokensToScan, settings, tableBodyId) {
     // Batalkan countdown auto-run yang mungkin sedang berjalan saat scan baru dimulai.
-    clearInterval(window.__autoRunInterval);
-    window.__autoRunInterval = null;
+    // ✅ PERF: Use TimerManager for centralized timer control
+    if (typeof TimerManager !== 'undefined') {
+        TimerManager.clear('autorun-countdown');
+    } else {
+        clearInterval(window.__autoRunInterval);
+        window.__autoRunInterval = null;
+    }
     $('#autoRunCountdown').text('');
 
     // ✅ VALIDATE: Check Matcha API keys before starting scan
@@ -1924,19 +1936,38 @@ async function startScanner(tokensToScan, settings, tableBodyId) {
                 const tick = () => {
                     // Double-check feature + user flags on each tick
                     const stillEnabled = (window.CONFIG_APP?.APP?.AUTORUN !== false) && window.AUTORUN_ENABLED;
-                    if (!stillEnabled) { clearInterval(window.__autoRunInterval); window.__autoRunInterval = null; return; }
-                    $cd.text(`AutoRun ${remain}s`).css({ color: '#e53935', fontWeight: 'bold' }); // REFACTORED
+                    if (!stillEnabled) {
+                        // ✅ PERF: Use TimerManager
+                        if (typeof TimerManager !== 'undefined') {
+                            TimerManager.clear('autorun-countdown');
+                        } else {
+                            clearInterval(window.__autoRunInterval);
+                            window.__autoRunInterval = null;
+                        }
+                        return;
+                    }
+                    $cd.text(`AutoRun ${remain}s`).css({ color: '#e53935', fontWeight: 'bold' });
                     remain -= 1;
                     if (remain < 0) {
-                        clearInterval(window.__autoRunInterval);
-                        window.__autoRunInterval = null;
-                        $cd.text('').css({ color: '', fontWeight: '' }); // REFACTORED
+                        // ✅ PERF: Use TimerManager
+                        if (typeof TimerManager !== 'undefined') {
+                            TimerManager.clear('autorun-countdown');
+                        } else {
+                            clearInterval(window.__autoRunInterval);
+                            window.__autoRunInterval = null;
+                        }
+                        $cd.text('').css({ color: '', fontWeight: '' });
                         // Trigger new scan using current filters/selection
                         $('#startSCAN').trigger('click');
                     }
                 };
-                clearInterval(window.__autoRunInterval); // REFACTORED
-                window.__autoRunInterval = setInterval(tick, 1000);
+                // ✅ PERF: Use TimerManager for centralized control
+                if (typeof TimerManager !== 'undefined') {
+                    TimerManager.setInterval('autorun-countdown', tick, 1000, 'scan');
+                } else {
+                    clearInterval(window.__autoRunInterval);
+                    window.__autoRunInterval = setInterval(tick, 1000);
+                }
                 tick();
             }
         } catch (_) { }
@@ -1957,8 +1988,14 @@ async function stopScanner() {
 
     isScanRunning = false;
     try { cancelAnimationFrame(animationFrameId); } catch (_) { }
-    clearInterval(window.__autoRunInterval);
-    window.__autoRunInterval = null;
+    // ✅ PERF: Use TimerManager for centralized timer control
+    if (typeof TimerManager !== 'undefined') {
+        TimerManager.clear('autorun-countdown');
+        TimerManager.clearCategory('scan');  // Clear all scan-related timers
+    } else {
+        clearInterval(window.__autoRunInterval);
+        window.__autoRunInterval = null;
+    }
     setPageTitleForRun(false);
     if (typeof form_on === 'function') form_on();
 
@@ -2051,8 +2088,13 @@ function stopScannerSoft() {
 
     // Simpan state 'run:NO' tanpa me-reload halaman.
     try { (async () => { await persistRunStateNo(); })(); } catch (_) { }
-    clearInterval(window.__autoRunInterval);
-    window.__autoRunInterval = null;
+    // ✅ PERF: Use TimerManager for centralized timer control
+    if (typeof TimerManager !== 'undefined') {
+        TimerManager.clear('autorun-countdown');
+    } else {
+        clearInterval(window.__autoRunInterval);
+        window.__autoRunInterval = null;
+    }
     if (typeof form_on === 'function') form_on();
 }
 

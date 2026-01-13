@@ -264,36 +264,20 @@ function getRandomApiKeyRango() {
 // =============================
 // All DEX API keys stored in one place for better security and management
 
-// 0x (Matcha) API Keys Pool - Multiple keys for rate limit distribution
+// 0x (Matcha) API Keys Pool - NO DEFAULT KEYS (User must provide their own)
 // Endpoint: https://api.0x.org/swap/allowance-handler/quote
 // Headers: 0x-api-key, 0x-version: v2
 // Get from: https://dashboard.0x.org
-const apiKeys0x = [
-    '2f0311a6-24f4-42cf-9a19-2375687f1196',
-'3b020d2e-ec48-4b74-8fed-1051a8064319',
-'f736d346-7312-4d51-b3b8-78319e8d110c',
-'52f6c85b-6133-49ad-bffd-f6ebc0b0d40d',
-'8296ff48-bc08-4da1-985f-abb69c3002d8',
-'4120cbc8-1dee-4134-b842-1859dc2d1ca8',
-'47817374-ce8f-4aa6-8078-d2990f863180',
-'b204754a-438f-418d-a6d8-6ae046302781',
-'d3bc56c8-94ae-49bc-8fe2-482004d34ee3',
-'e030487b-8981-423f-a69f-c37fa8fc2942',
-'40ea0809-5520-4754-ac66-416703ec2713',
-'81d7e77c-d37d-4a91-bf6e-6c0df840592b',
-'9407ddfd-d03e-4fb0-b013-d3df99b938fc',
-'93bd6c3a-6ea1-4b1b-91e4-2b4fe6b52f6e',
-'ebd3a2b4-1721-43b3-a021-d7a7b81d3acc',
-'c51797d7-fbe9-4fe9-8309-f786fe0346c5',
-    'a0ac4c53-70e8-4011-9797-f36015f924be',
-    'd52c2dbe-4ae8-4b43-9828-f860775524ea',
-];
+// ⚠️ Default keys removed - user MUST input API keys in settings
 
-// Helper function to get random 0x API key
+// Helper function for user API key rotation
 let zeroxKeyIndex = 0;
-function getRandomApiKey0x() {
-    const key = apiKeys0x[zeroxKeyIndex];
-    zeroxKeyIndex = (zeroxKeyIndex + 1) % apiKeys0x.length;
+function rotateUserApiKey0x(keys) {
+    if (!Array.isArray(keys) || keys.length === 0) {
+        return null;
+    }
+    const key = keys[zeroxKeyIndex % keys.length];
+    zeroxKeyIndex = (zeroxKeyIndex + 1) % keys.length;
     return key;
 }
 
@@ -330,8 +314,56 @@ function getRandomSwingProjectId() {
 }
 
 // Helper function to get 0x API key (with rotation)
+// ⚠️ NO DEFAULT KEYS - User MUST provide API keys in settings
+// Supports multiple keys (comma-separated) with automatic rotation
 function get0xApiKey() {
-    return getRandomApiKey0x();  // ✅ Call rotation function dynamically
+    try {
+        let userInput = null;
+
+        // 1. Try from window.SavedSettingData (in-memory cache)
+        if (typeof SavedSettingData !== 'undefined' && SavedSettingData && SavedSettingData.matchaApiKeys) {
+            userInput = SavedSettingData.matchaApiKeys;
+            console.log('[0x API] Reading keys from SavedSettingData (cached)');
+        }
+        // 2. Fallback: Read directly from IndexedDB/localStorage
+        else if (typeof getFromLocalStorage === 'function') {
+            const settings = getFromLocalStorage('SETTING_SCANNER', {});
+            if (settings && settings.matchaApiKeys) {
+                userInput = settings.matchaApiKeys;
+                console.log('[0x API] Reading keys from IndexedDB (direct read)');
+            }
+        }
+
+        if (!userInput) {
+            // No user keys found - return null (scanner will handle error)
+            console.error('[0x API] ⚠️ No API keys found! User must provide Matcha API keys in settings.');
+            console.error('[0x API] Get API keys from: https://dashboard.0x.org');
+            return null;
+        }
+
+        // Support both array and string (comma-separated)
+        let keys = [];
+        if (Array.isArray(userInput)) {
+            keys = userInput.filter(k => k && String(k).trim() !== '');
+        } else if (typeof userInput === 'string') {
+            keys = userInput.split(',')
+                .map(k => String(k).trim())
+                .filter(k => k !== '');
+        }
+
+        if (keys.length > 0) {
+            const rotatedKey = rotateUserApiKey0x(keys);
+            console.log(`[0x API] ✅ Using user API key (key ${zeroxKeyIndex}/${keys.length} total keys)`);
+            return rotatedKey;
+        }
+
+        // Empty keys array
+        console.error('[0x API] ⚠️ matchaApiKeys field exists but contains no valid keys!');
+        return null;
+    } catch (error) {
+        console.error('[0x API] Error getting API key:', error);
+        return null;
+    }
 }
 
 try {
@@ -340,8 +372,7 @@ try {
         window.getRandomApiKeyLIFI = window.getRandomApiKeyLIFI || getRandomApiKeyLIFI;
         window.apiKeysRango = window.apiKeysRango || apiKeysRango;
         window.getRandomApiKeyRango = window.getRandomApiKeyRango || getRandomApiKeyRango;
-        window.apiKeys0x = window.apiKeys0x || apiKeys0x;
-        window.getRandomApiKey0x = window.getRandomApiKey0x || getRandomApiKey0x;
+        window.rotateUserApiKey0x = window.rotateUserApiKey0x || rotateUserApiKey0x;  // ✅ User key rotation
         window.DEX_API_KEYS = window.DEX_API_KEYS || DEX_API_KEYS;
         window.get0xApiKey = window.get0xApiKey || get0xApiKey;
         window.SWING_PROJECT_IDS = window.SWING_PROJECT_IDS || SWING_PROJECT_IDS;
