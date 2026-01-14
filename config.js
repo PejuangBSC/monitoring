@@ -1,7 +1,7 @@
 const CONFIG_APP = {
     APP: {
         NAME: "APP_DEV",
-        VERSION: "2026.01.13",
+        VERSION: "2026.01.15",
         SCAN_LIMIT: false,
         AUTORUN: true,
         AUTO_VOLUME: true,   // Set false untuk menyembunyikan & menonaktifkan fitur auto volume
@@ -684,31 +684,34 @@ try {
  * - pairtotoken: Strategi untuk DEX → CEX (ActionKanan: swap pair ke token di DEX, jual token ke exchanger)
  *
  * ========================================
- * 3 KATEGORI STRATEGI FALLBACK:
+ * 2 MODE FETCH DEX:
  * ========================================
  *
- * KATEGORI 1: SAME PRIMARY + INTERNAL ALTERNATIVE (Kyber, ODOS, 1inch)
- * - Primary: Sama untuk kedua arah (kyber/odos2/odos3/hinkal-1inch)
- * - Alternative: Provider internal untuk kedua arah (zero-kyber/hinkal-odos/zero-1inch)
- * - Mengurangi beban ke SWOOP dengan menggunakan provider internal yang reliable
- * - Contoh: kyber (zero-kyber), odos (hinkal-odos), 1inch (hinkal ↔ zero)
+ * MODE 1: ALTERNATIVE (Fallback on Error)
+ * - Primary dipanggil terlebih dahulu
+ * - Alternative HANYA dipanggil jika primary gagal (error 429, 500+, atau timeout)
+ * - Contoh config:
+ *   fetchdex: {
+ *       primary: { tokentopair: 'kyber', pairtotoken: 'kyber' },
+ *       alternative: { tokentopair: 'lifi-kyber', pairtotoken: 'swoop-kyber' }
+ *   }
  *
- * KATEGORI 2: SAME PRIMARY + SWOOP ALTERNATIVE (0x, OKX)
- * - Primary: Sama untuk kedua arah (0x/okx API langsung)
- * - Alternative: SWOOP untuk kedua arah
- * - Contoh: 0x, okx
- *
- * KATEGORI 3: DIFFERENT PRIMARY + SWOOP ALTERNATIVE (ParaSwap)
- * - Primary: Berbeda per arah (v6 vs v5)
- * - Alternative: SWOOP untuk kedua arah
- * - Contoh: paraswap (v6/v5)
+ * MODE 2: SECONDARY (Rotation/Bergantian)
+ * - Primary dan secondary bergantian dipanggil (odd=primary, even=secondary)
+ * - Request 1, 3, 5... → primary
+ * - Request 2, 4, 6... → secondary
+ * - Jika yang dipilih gagal, fallback ke yang lain
+ * - Contoh config:
+ *   fetchdex: {
+ *       primary: { tokentopair: 'odos3', pairtotoken: 'hinkal-odos' },
+ *       secondary: { tokentopair: 'lifi-odos', pairtotoken: 'swoop-odos' }
+ *   }
  *
  * ========================================
  * FALLBACK POLICY:
  * ========================================
- * - primary: Strategi utama yang dipilih pertama kali
- * - alternative: Strategi cadangan saat primary gagal (error 429, 500+, atau timeout)
- * - allowFallback: true/false - izinkan fallback ke alternative
+ * - allowFallback: true/false - izinkan fallback ke alternative/secondary
+ * - Jika false, error langsung dikembalikan tanpa mencoba strategi lain
  */
 const CONFIG_DEXS = {
     kyber: {
@@ -723,7 +726,7 @@ const CONFIG_DEXS = {
                 tokentopair: 'kyber',          // CEX→DEX: Official KyberSwap API
                 pairtotoken: 'kyber'           // DEX→CEX: Official KyberSwap API
             },
-            alternative: {
+            secondary: {
                 tokentopair: 'lifi-kyber',     // CEX→DEX: LIFI filtered (rotation)
                 pairtotoken: 'swoop-kyber'     // DEX→CEX: SWOOP filtered (rotation)
             }
@@ -844,18 +847,18 @@ const CONFIG_DEXS = {
         badgeClass: 'bg-odos',
         warna: "#6e2006ff", // ungu-biru Odos
         builder: () => `https://app.odos.xyz`,
-        // ⚡ ROTATION STRATEGY: Alternate between official API and filtered aggregators
-        fetchdex: {  // ✅ FIX: Added missing fetchdex wrapper
+        // ⚡ MODE: SECONDARY (Rotation) - bergantian antara primary dan secondary
+        fetchdex: {
             primary: {
-                tokentopair: 'odos3',        // CEX→DEX: Official ODOS v3 API
-                pairtotoken: 'hinkal-odos'     // DEX→CEX: LIFI filtered for ODOS
+                tokentopair: 'odos3',          // CEX→DEX: Official ODOS v3 API (request ganjil)
+                pairtotoken: 'hinkal-odos'     // DEX→CEX: Hinkal ODOS proxy (request ganjil)
             },
-            alternative: {
-                tokentopair: 'lifi-odos',   // CEX→DEX: SWOOP filtered (rotation)
-                pairtotoken: 'swoop-odos'         // DEX→CEX: Official ODOS v3 API
+            secondary: {                       // ✅ ROTATION: bergantian dengan primary
+                tokentopair: 'lifi-odos',      // CEX→DEX: LIFI filtered (request genap)
+                pairtotoken: 'swoop-odos'      // DEX→CEX: SWOOP filtered (request genap)
             }
         },
-        allowFallback: true,  // ✅ Enable rotation between primary and alternative
+        allowFallback: true,  // ✅ Jika yang dipilih gagal, coba yang lain
     },
     // ============ DISABLED DEXes ============
 

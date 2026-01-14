@@ -2833,6 +2833,9 @@
   // -----------------------------
   // Helper: resolve fetch plan per DEX + arah
   // -----------------------------
+  // Determines which strategy to use based on fetchdex config:
+  // - secondary: rotation mode (odd/even alternation)
+  // - alternative: fallback mode (only on error)
   function actionKey(a) { return String(a || '').toLowerCase() === 'pairtotoken' ? 'pairtotoken' : 'tokentopair'; }
   function resolveFetchPlan(dexType, action, chainName) {
     try {
@@ -2846,12 +2849,20 @@
       const ak = actionKey(action);
       let primary = map.primary && map.primary[ak] ? String(map.primary[ak]).toLowerCase() : null;
 
-      // ✅ STRICT: Only use alternative from CONFIG_DEXS - NO GLOBAL FALLBACK
-      // If no alternative is specified in config, alternative will be null
+      // Parse secondary (rotation mode) dan alternative (fallback mode)
+      // - secondary: bergantian call API (odd=primary, even=secondary)
+      // - alternative: fallback ketika primary error (429, 500+, timeout)
+      let secondary = map.secondary && map.secondary[ak] ? String(map.secondary[ak]).toLowerCase() : null;
       let alternative = map.alternative && map.alternative[ak] ? String(map.alternative[ak]).toLowerCase() : null;
 
-      return { primary, alternative, normalizedKey: key };
-    } catch (_) { return { primary: null, alternative: null, normalizedKey: null }; }
+      // Determine mode:
+      // - 'rotation': If secondary exists → alternate between primary/secondary
+      // - 'fallback': If alternative exists → primary first, alternative on error
+      // - 'primary-only': Only primary, no secondary/alternative
+      const mode = secondary ? 'rotation' : (alternative ? 'fallback' : 'primary-only');
+
+      return { primary, secondary, alternative, mode, normalizedKey: key };
+    } catch (_) { return { primary: null, secondary: null, alternative: null, mode: 'primary-only', normalizedKey: null }; }
   }
 
   // ========== REQUEST DEDUPLICATION & CACHING ==========
@@ -2871,46 +2882,81 @@
   const DEX_DEDUP_LOG_TRACKER = new Map();
 
   // ========== ROTATION TRACKING ==========
-  // Track rotation state per DEX to alternate between primary and alternative
-  // Map<dexType, { counter: number, lastUsed: 'primary' | 'alternative' }>
+  // Track rotation state per DEX to alternate between primary and secondary
+  // Map<dexType, { counter: number, lastUsed: 'primary' | 'secondary' }>
   const DEX_ROTATION_STATE = new Map();
 
   /**
-   * Helper function to determine which strategy to use (primary or alternative)
-   * Uses round-robin rotation to alternate between primary and alternative
-   * @param {string} dexType - The DEX type key
+   * Select strategy based on mode configured in fetchdex:
+   * 
+   * MODE 'rotation' (secondary key exists):
+   * - Alternates between primary and secondary (odd/even counter)
+   * - Request 1, 3, 5... → primary
+   * - Request 2, 4, 6... → secondary
+   * - On error, fallback to the other strategy
+   * 
+   * MODE 'fallback' (alternative key exists):
+   * - Always use primary first
+   * - Only switch to alternative if primary fails (429, 500+, timeout)
+   * 
+   * MODE 'primary-only':
+   * - Only use primary, no fallback
+   * 
+   * @param {string} dexType - The DEX type key (for rotation tracking)
    * @param {string} primary - Primary strategy name
-   * @param {string|null} alternative - Alternative strategy name (null if not available)
-   * @returns {Object} { selectedStrategy: string, isAlternative: boolean, fallbackStrategy: string|null }
+   * @param {string|null} secondary - Secondary strategy for rotation mode
+   * @param {string|null} alternative - Alternative strategy for fallback mode
+   * @param {string} mode - 'rotation', 'fallback', or 'primary-only'
+   * @returns {Object} { selectedStrategy, fallbackStrategy, mode, isRotation, rotationInfo }
    */
-  function selectRotationStrategy(dexType, primary, alternative) {
-    // If no alternative, always use primary
-    if (!alternative) {
-      return { selectedStrategy: primary, isAlternative: false, fallbackStrategy: null };
+  function selectStrategy(dexType, primary, secondary, alternative, mode) {
+    // MODE: PRIMARY-ONLY (no secondary/alternative)
+    if (mode === 'primary-only' || (!secondary && !alternative)) {
+      return {
+        selectedStrategy: primary,
+        fallbackStrategy: null,
+        mode: 'primary-only',
+        isRotation: false
+      };
     }
 
-    // Get or initialize rotation state for this DEX
-    if (!DEX_ROTATION_STATE.has(dexType)) {
-      DEX_ROTATION_STATE.set(dexType, { counter: 0, lastUsed: null });
+    // MODE: FALLBACK (alternative only used when primary fails)
+    if (mode === 'fallback') {
+      return {
+        selectedStrategy: primary,  // Always start with primary
+        fallbackStrategy: alternative,  // Fallback on error
+        mode: 'fallback',
+        isRotation: false
+      };
     }
 
-    const state = DEX_ROTATION_STATE.get(dexType);
+    // MODE: ROTATION (alternate between primary and secondary)
+    if (mode === 'rotation') {
+      // Get or initialize rotation state for this DEX
+      if (!DEX_ROTATION_STATE.has(dexType)) {
+        DEX_ROTATION_STATE.set(dexType, { counter: 0, lastUsed: null });
+      }
 
-    // Increment counter and determine which strategy to use
-    state.counter++;
+      const state = DEX_ROTATION_STATE.get(dexType);
+      state.counter++;
 
-    // Round-robin: even counter = primary, odd counter = alternative
-    const useAlternative = (state.counter % 2) === 0;
+      // Odd counter = primary, Even counter = secondary
+      const useSecondary = (state.counter % 2) === 0;
+      const selectedStrategy = useSecondary ? secondary : primary;
+      const fallbackStrategy = useSecondary ? primary : secondary;
+      state.lastUsed = useSecondary ? 'secondary' : 'primary';
 
-    const selectedStrategy = useAlternative ? alternative : primary;
-    const fallbackStrategy = useAlternative ? primary : alternative;
-    state.lastUsed = useAlternative ? 'alternative' : 'primary';
+      return {
+        selectedStrategy,
+        fallbackStrategy,
+        mode: 'rotation',
+        isRotation: true,
+        rotationInfo: { counter: state.counter, used: state.lastUsed }
+      };
+    }
 
-    return {
-      selectedStrategy,
-      isAlternative: useAlternative,
-      fallbackStrategy
-    };
+    // Default fallback (should not reach here)
+    return { selectedStrategy: primary, fallbackStrategy: null, mode: 'unknown', isRotation: false };
   }
 
   /**
@@ -3153,23 +3199,33 @@
 
       const plan = resolveFetchPlan(dexType, action, chainName);
       const primary = plan.primary || String(dexType || '').toLowerCase();
+      const secondary = plan.secondary || null;
       const alternative = plan.alternative || null;
+      const mode = plan.mode || 'primary-only';
       const normalizedKey = plan.normalizedKey || String(dexType || '').toLowerCase();
 
       // ✅ Get allowFallback setting from config
       const dexConfig = (root.CONFIG_DEXS || {})[normalizedKey] || {};
       const allowFallback = dexConfig.allowFallback !== false; // Default: true (for backward compatibility)
 
-      // ========== ROTATION STRATEGY SELECTION ==========
-      // Use round-robin rotation to alternate between primary and alternative
-      const rotation = selectRotationStrategy(normalizedKey, primary, alternative);
-      const selectedStrategy = rotation.selectedStrategy;
-      const fallbackStrategy = rotation.fallbackStrategy;
-      const isUsingAlternative = rotation.isAlternative;
+      // ========== STRATEGY SELECTION ==========
+      // Select strategy based on mode:
+      // - 'rotation': alternate between primary/secondary (odd=primary, even=secondary)
+      // - 'fallback': primary first, alternative only on error
+      // - 'primary-only': always use primary
+      const strategySelection = selectStrategy(normalizedKey, primary, secondary, alternative, mode);
+      const selectedStrategy = strategySelection.selectedStrategy;
+      const fallbackStrategy = strategySelection.fallbackStrategy;
+      const isRotationMode = strategySelection.isRotation;
 
-      // DEBUG: Log strategy selection with rotation info
+      // DEBUG: Log strategy selection with mode info
       const displayDex = normalizedKey !== String(dexType || '').toLowerCase() ? `${dexType.toUpperCase()}→${normalizedKey.toUpperCase()}` : dexType.toUpperCase();
-      console.log(`[DEX ROTATION] ${chainName?.toUpperCase() || 'CHAIN'} ${displayDex} ${action}: selected='${selectedStrategy}' (${isUsingAlternative ? 'ALTERNATIVE' : 'PRIMARY'}), fallback='${fallbackStrategy}', allowFallback=${allowFallback}`);
+      const modeLabel = mode === 'rotation'
+        ? `ROTATION #${strategySelection.rotationInfo?.counter || 0} (${strategySelection.rotationInfo?.used || 'primary'})`
+        : mode === 'fallback'
+          ? 'FALLBACK-MODE'
+          : 'PRIMARY-ONLY';
+      console.log(`[DEX STRATEGY] ${chainName?.toUpperCase() || 'CHAIN'} ${displayDex} ${action}: mode='${modeLabel}', selected='${selectedStrategy}'${fallbackStrategy ? `, fallback='${fallbackStrategy}'` : ''}, allowFallback=${allowFallback}`);
 
       // ========== CREATE INFLIGHT REQUEST PROMISE ==========
       // Create promise chain and store in inflight cache to prevent duplicate requests
@@ -3191,11 +3247,6 @@
           const code = Number(e1 && e1.statusCode);
           const noResp = !Number.isFinite(code) || code === 0;
 
-          // ✅ FIX: Allow fallback for timeout/network error on ALL DEXs with alternative strategy
-          // OLD: Only allowed for hardcoded list (odos, kyber, relay)
-          // NEW: Allow for any DEX with computedFallback and allowFallback=true
-          const isNoRespFallback = noResp && computedFallback && allowFallback;
-
           // ========== FALLBACK LOGIC ==========
           // Check if fallback is allowed and fallback strategy exists
           const computedFallback = fallbackStrategy;
@@ -3206,18 +3257,22 @@
             throw e1; // Don't fallback, throw error directly
           }
 
+          // ✅ FIX: Allow fallback for timeout/network error on ALL DEXs with fallback strategy
+          const isNoRespFallback = noResp && computedFallback && allowFallback;
+
           // Fallback conditions (only if allowFallback is true):
           // 1. Rate limit (429)
           // 2. Server error (500+)
-          // 3. No response (timeout/network error) for ALL DEXs with alternative strategy
+          // 3. No response (timeout/network error) for ALL DEXs with fallback strategy
           const shouldFallback = computedFallback && (
             (Number.isFinite(code) && (code === 429 || code >= 500)) || // Rate limit atau server error
-            isNoRespFallback // Atau no response (timeout/network error) - berlaku untuk semua DEX dengan fallback
+            isNoRespFallback // Atau no response (timeout/network error)
           );
           if (!shouldFallback) throw e1;
 
-          // DEBUG: Log fallback trigger
-          console.warn(`[DEX FALLBACK] ${chainName?.toUpperCase() || 'CHAIN'} ${dexType.toUpperCase()}: selected='${selectedStrategy}' FAILED (${code || 'no-response'}), trying fallback='${computedFallback}'`);
+          // DEBUG: Log fallback trigger with mode info
+          const fallbackReason = code === 429 ? 'RATE_LIMIT' : code >= 500 ? `SERVER_ERROR_${code}` : 'TIMEOUT/NO_RESPONSE';
+          console.warn(`[DEX FALLBACK] ${chainName?.toUpperCase() || 'CHAIN'} ${dexType.toUpperCase()}: mode='${mode}' selected='${selectedStrategy}' FAILED (${fallbackReason}), trying fallback='${computedFallback}'`);
 
           // Try fallback strategy
           return runStrategy(computedFallback)
