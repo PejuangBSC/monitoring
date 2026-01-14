@@ -312,6 +312,50 @@
         };
       }
     },
+    velora5: {
+      /**
+       * Velora v5 (ParaSwap v5 API)
+       * Endpoint: https://apiv5.paraswap.io/prices/
+       * 
+       * Used as alternative/fallback when velora6 fails.
+       * Note: v5 API has slightly different parameter names.
+       */
+      buildRequest: ({ codeChain, sc_input, sc_output, amount_in_big, des_input, des_output, SavedSettingData }) => {
+        const userAddr = SavedSettingData?.walletMeta || '0x0000000000000000000000000000000000000000';
+        const params = new URLSearchParams({
+          srcToken: sc_input,
+          destToken: sc_output,
+          amount: amount_in_big.toString(),
+          srcDecimals: String(des_input),
+          destDecimals: String(des_output),
+          partner: 'llamaswap',
+          side: 'SELL',
+          network: String(codeChain || ''),
+          excludeDEXS: 'ParaSwapPool,ParaSwapLimitOrders',
+          version: '6.2'
+        });
+        return {
+          url: `https://apiv5.paraswap.io/prices/?${params.toString()}`,
+          method: 'GET'
+        };
+      },
+      parseResponse: (response, { des_output, chainName }) => {
+        const route = response?.priceRoute;
+        const destAmountStr = route?.destAmount;
+        if (!destAmountStr) throw new Error('Invalid Velora v5 response');
+        const destAmountNum = parseFloat(destAmountStr);
+        if (!Number.isFinite(destAmountNum) || destAmountNum <= 0) throw new Error('Invalid Velora v5 dest amount');
+        const amount_out = destAmountNum / Math.pow(10, des_output);
+        const gasUsd = parseFloat(route.gasCostUSD || route.estimatedGasCostUSD || response?.gasCostUSD || 0);
+        const FeeSwap = (Number.isFinite(gasUsd) && gasUsd > 0) ? gasUsd : getFeeSwap(chainName);
+        return {
+          amount_out,
+          FeeSwap,
+          dexTitle: 'VELORA',
+          routeTool: 'VELORA V5'
+        };
+      }
+    },
     'hinkal-odos': {
       /**
        * Hinkal ODOS Proxy - Privacy-focused ODOS integration
@@ -735,7 +779,7 @@
         // Parse output amount from response (in base units)
         const outputAmount = parseFloat(response.assumedAmountOut);
         const amount_out = outputAmount / Math.pow(10, des_output);
-        
+
         // ✅ FIX: gasSpent adalah GAS UNITS, bukan USD!
         // Perlu dikonversi: gasSpent * gasPrice (wei) * nativeTokenPrice / 1e18
         let FeeSwap = getFeeSwap(chainName);

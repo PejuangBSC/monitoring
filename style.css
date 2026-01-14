@@ -1239,7 +1239,7 @@ body.dark-mode {
    Toast Notifications
    ========================================================================== */
 #toast-container.toast-center-center {
-    top: 50% !important;
+    top: 16% !important;
     left: 50% !important;
     right: auto !important;
     bottom: auto !important;
