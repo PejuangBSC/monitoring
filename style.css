@@ -12,13 +12,48 @@
     --bs-light: #f1f5f9;
     --bs-dark: #1e293b;
 
-    /* Flat design variables */
-    --shadow-sm: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --border-radius: 4px;
+    /* Modern Flat Design - Rounded */
+    --border-radius: 8px;
+    --border-radius-sm: 6px;
+    --border-radius-lg: 12px;
     --border-color: #e2e8f0;
-    --transition-smooth: all 0.2s ease;
+    --transition-smooth: all 0.15s ease;
+
+    /* Subtle Shadow System */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    /* ========== STANDARDIZED FORM CONTROL SIZES ========== */
+
+    /* Input Heights - Uniform across all form elements */
+    --input-height-xs: 22px;
+    --input-height-sm: 26px;
+    --input-height-md: 30px;
+    --input-height-lg: 34px;
+
+    /* Input Padding */
+    --input-padding-x: 8px;
+    --input-padding-y: 3px;
+
+    /* Font Sizes */
+    --input-font-xs: 10px;
+    --input-font-sm: 11px;
+    --input-font-md: 12px;
+    --input-font-lg: 13px;
+
+    /* Checkbox/Radio Sizes */
+    --checkbox-size-xs: 12px;
+    --checkbox-size-sm: 14px;
+    --checkbox-size-md: 16px;
+
+    /* Compact Spacing */
+    --space-xs: 3px;
+    --space-sm: 5px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
 }
 
 /* ==========================================================================
@@ -61,15 +96,20 @@
 }
 
 /* ==========================================================================
-   Base Styles - Flat Minimal Design
+   Base Styles - Modern Minimal Design
    ========================================================================== */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
     padding: 1px;
     background-color: #f8fafc;
     color: #0f172a;
     transition: var(--transition-smooth);
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Override system dark mode preference */
@@ -100,10 +140,10 @@ a:hover,
 }
 
 /* ==========================================================================
-   Flat Card Components
+   Card Components - Modern Minimalist
    ========================================================================== */
 
-/* Flat card design */
+/* Base card design */
 .header-card,
 #scanner-config,
 #filter-card,
@@ -112,8 +152,8 @@ a:hover,
 .uk-modal-dialog {
     background: #ffffff !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius) !important;
-    box-shadow: none;
+    border-radius: var(--border-radius-sm) !important;
+    box-shadow: var(--shadow-xs);
     transition: var(--transition-smooth);
 }
 
@@ -121,13 +161,27 @@ a:hover,
 #scanner-config:hover,
 #filter-card:hover,
 .uk-card-hover:hover {
-    border-color: var(--bs-primary);
-    box-shadow: none;
-    transform: none;
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
+/* Compact Header Card */
 .header-card {
-    padding: 8px 14px !important;
+    padding: 5px 10px !important;
+}
+
+/* Compact Scanner Config */
+#scanner-config {
+    padding: 6px 10px !important;
+}
+
+/* Compact Card Body */
+.uk-card-body {
+    padding: var(--space-md) !important;
+}
+
+.uk-padding-small {
+    padding: var(--space-sm) !important;
 }
 
 /* ==========================================================================
@@ -137,8 +191,6 @@ a:hover,
 #monitoring-scroll {
     max-height: calc(100vh - 220px);
     background: #ffffff !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius) !important;
     box-shadow: none;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
@@ -316,23 +368,68 @@ a:hover,
 }
 
 /* ==========================================================================
-   Form Controls - Rounded & Glass Effect
+   Form Controls - Modern Compact Design
    ========================================================================== */
+
+/* Base Form Elements - Standardized Sizing */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select,
-button,
 .uk-input,
 .uk-select,
-.uk-textarea,
-.uk-button {
-    border-radius: var(--border-radius) !important;
+.uk-textarea {
+    height: var(--input-height-sm);
+    padding: var(--input-padding-y) var(--input-padding-x);
+    font-size: var(--input-font-md);
+    border-radius: var(--border-radius-sm) !important;
     transition: var(--transition-smooth);
     background: #ffffff;
     border: 1px solid var(--border-color);
     font-weight: 500;
+    line-height: 1.4;
 }
 
+/* Small Form Controls */
+.uk-form-small .uk-input,
+.uk-form-small .uk-select,
+.uk-input.uk-form-small,
+.uk-select.uk-form-small {
+    height: var(--input-height-xs);
+    padding: 2px var(--space-sm);
+    font-size: var(--input-font-sm);
+}
+
+/* Textarea specific */
+textarea,
+.uk-textarea {
+    height: auto;
+    min-height: calc(var(--input-height-sm) * 2);
+    padding: var(--space-sm);
+}
+
+/* Base Button - Standardized Compact */
+button,
+.uk-button {
+    height: var(--input-height-sm);
+    line-height: calc(var(--input-height-sm) - 2px);
+    padding: 0 var(--space-md);
+    font-size: var(--input-font-md);
+    font-weight: 500;
+    border-radius: var(--border-radius-sm) !important;
+    transition: var(--transition-smooth);
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+}
+
+/* Small Button */
+.uk-button-small {
+    height: var(--input-height-xs);
+    line-height: calc(var(--input-height-xs) - 2px);
+    padding: 0 var(--space-sm);
+    font-size: var(--input-font-sm);
+}
+
+/* Focus States */
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
 select:focus,
@@ -340,71 +437,78 @@ select:focus,
 .uk-select:focus {
     outline: none;
     border-color: var(--bs-primary);
-    box-shadow: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
+/* Checkbox/Radio - Standardized Size */
 input[type="checkbox"],
 .uk-checkbox {
-    border-radius: 3px !important;
+    width: var(--checkbox-size-sm);
+    height: var(--checkbox-size-sm);
+    border-radius: var(--border-radius-sm) !important;
     accent-color: var(--bs-primary);
+    cursor: pointer;
+    margin: 0;
 }
 
 input[type="radio"],
 .uk-radio {
+    width: var(--checkbox-size-sm);
+    height: var(--checkbox-size-sm);
     border-radius: 50% !important;
     accent-color: var(--bs-primary);
+    cursor: pointer;
+    margin: 0;
 }
 
 .uk-button-group>.uk-button:first-child {
-    border-top-left-radius: var(--border-radius) !important;
-    border-bottom-left-radius: var(--border-radius) !important;
+    border-top-left-radius: var(--border-radius-sm) !important;
+    border-bottom-left-radius: var(--border-radius-sm) !important;
 }
 
 .uk-button-group>.uk-button:last-child {
-    border-top-right-radius: var(--border-radius) !important;
-    border-bottom-right-radius: var(--border-radius) !important;
+    border-top-right-radius: var(--border-radius-sm) !important;
+    border-bottom-right-radius: var(--border-radius-sm) !important;
 }
 
 /* ==========================================================================
-   Scanner Form Controls - Standardized Layout
+   Scanner Form Controls - Compact Standardized Layout
    ========================================================================== */
 .scanner-label {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-weight: bold;
-    font-size: 14px;
-    line-height: 1.4;
+    gap: var(--space-xs);
+    font-weight: 600;
+    font-size: var(--input-font-lg);
+    line-height: 1.3;
 }
 
 .scanner-label input[type="checkbox"] {
-    margin: 0;
-    width: 16px;
-    height: 16px;
+    width: var(--checkbox-size-sm);
+    height: var(--checkbox-size-sm);
     flex-shrink: 0;
 }
 
 .scanner-control {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    line-height: 1.4;
+    gap: var(--space-xs);
+    font-size: var(--input-font-md);
+    line-height: 1.3;
     white-space: nowrap;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    padding: 1px var(--space-xs);
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.15s ease;
 }
 
 .scanner-control:hover {
-    background-color: rgba(0, 0, 0, 0.03);
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 .scanner-control input[type="checkbox"] {
-    margin: 0;
-    width: 16px;
-    height: 16px;
+    width: var(--checkbox-size-sm);
+    height: var(--checkbox-size-sm);
     flex-shrink: 0;
-    cursor: pointer;
 }
 
 .scanner-control input[type="checkbox"]:checked {
@@ -420,37 +524,34 @@ input[type="radio"],
 .scanner-control-inline {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
 }
 
 .scanner-control-inline input.uk-input {
-    height: 28px;
-    padding: 4px 8px;
-    font-size: 13px;
+    height: var(--input-height-xs);
+    padding: 2px var(--space-sm);
+    font-size: var(--input-font-sm);
 }
 
-/* Auto Volume Level Input - Enhanced style */
+/* Auto Volume Level Input */
 #autoVolLevelInput input {
     font-weight: bold;
     text-align: center;
-    border-width: 2px;
-    transition: all 0.2s ease;
+    border-width: 1px;
 }
 
 #autoVolLevelInput input:focus {
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    outline: none;
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
-/* Scanner Form - Compact spacing between groups */
+/* Scanner Form - Ultra Compact */
 #FormScanner {
-    gap: 6px !important;
+    gap: var(--space-sm) !important;
 }
 
-/* Reduce spacing specifically between SCANNER and AUTO groups */
 #FormScanner .scanner-label+.scanner-label {
-    margin-left: -2px;
+    margin-left: -1px;
 }
 
 .scanner-actions {
@@ -458,10 +559,10 @@ input[type="radio"],
 }
 
 .scanner-actions .uk-button {
-    height: 28px;
-    line-height: 28px;
-    padding: 0 12px;
-    font-size: 13px;
+    height: var(--input-height-xs);
+    line-height: calc(var(--input-height-xs) - 2px);
+    padding: 0 var(--space-md);
+    font-size: var(--input-font-sm);
 }
 
 /* Flat button styles */
@@ -614,42 +715,38 @@ input[type="radio"],
 }
 
 /* ==========================================================================
-   Progress Bar - Modern Glass
+   Progress Bar - Compact Minimalist
    ========================================================================== */
 #progress-container {
     width: 100%;
-    background: rgba(233, 235, 238, 0.6);
-    backdrop-filter: blur(8px);
-    border-radius: 10px;
-    margin-top: 10px;
+    background: rgba(233, 235, 238, 0.5);
+    border-radius: var(--border-radius);
+    margin-top: var(--space-sm);
     overflow: hidden;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 #progress-bar {
-    height: 14px;
+    height: 8px;
     width: 0%;
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     background-color: var(--theme-accent, #42b72a);
     background-image: repeating-linear-gradient(45deg,
             var(--theme-accent, #42b72a) 0px,
-            var(--theme-accent, #42b72a) 14px,
-            rgba(255, 255, 255, 0.25) 14px,
-            rgba(255, 255, 255, 0.25) 28px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    background-size: 28px 28px;
-    animation: none;
+            var(--theme-accent, #42b72a) 8px,
+            rgba(255, 255, 255, 0.2) 8px,
+            rgba(255, 255, 255, 0.2) 16px);
+    background-size: 16px 16px;
     transition: width 0.3s ease;
 }
 
 #progress-text {
     color: white;
     text-align: center;
-    line-height: 14px;
+    line-height: 8px;
     display: block;
-    font-weight: bold;
-    font-size: 10px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+    font-size: 7px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================

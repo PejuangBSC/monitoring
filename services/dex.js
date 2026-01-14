@@ -109,47 +109,6 @@
   }
 
   // ============================================================================
-  // STRATEGY TIMEOUT HELPER
-  // ============================================================================
-  /**
-   * Get timeout for a specific strategy from CONFIG_UI.SETTINGS.timeout
-   * Supports exact match, wildcard patterns (e.g., 'lifi-*'), and default fallback.
-   * 
-   * @param {string} strategyName - The strategy name (e.g., 'kyber', 'lifi-odos', 'swoop-velora')
-   * @returns {number} - Timeout in milliseconds
-   * 
-   * Priority:
-   * 1. Exact match (e.g., 'kyber' → 3000)
-   * 2. Wildcard match (e.g., 'lifi-odos' matches 'lifi-*' → 6000)
-   * 3. Default fallback ('default' → 5000)
-   */
-  function getStrategyTimeout(strategyName) {
-    const timeoutConfig = (root.CONFIG_UI?.SETTINGS?.timeout) || {};
-    const sKey = String(strategyName || '').toLowerCase();
-
-    // 1. Exact match
-    if (timeoutConfig[sKey] !== undefined) {
-      return timeoutConfig[sKey];
-    }
-
-    // 2. Wildcard match (e.g., 'lifi-*' matches 'lifi-odos')
-    for (const pattern of Object.keys(timeoutConfig)) {
-      if (pattern.endsWith('-*')) {
-        const prefix = pattern.slice(0, -1); // Remove '*' → 'lifi-'
-        if (sKey.startsWith(prefix)) {
-          return timeoutConfig[pattern];
-        }
-      }
-    }
-
-    // 3. Default fallback
-    return timeoutConfig['default'] || 5000;
-  }
-
-  // Expose to window for external access
-  root.getStrategyTimeout = getStrategyTimeout;
-
-  // ============================================================================
   // 0x API CONFIGURATION
   // ============================================================================
   /**
@@ -735,38 +694,15 @@
         // Parse output amount from response (in base units)
         const outputAmount = parseFloat(response.assumedAmountOut);
         const amount_out = outputAmount / Math.pow(10, des_output);
-        
-        // ✅ FIX: gasSpent adalah GAS UNITS, bukan USD!
-        // Perlu dikonversi: gasSpent * gasPrice (wei) * nativeTokenPrice / 1e18
+
+        // Get gas fee (gasSpent is already in USD)
         let FeeSwap = getFeeSwap(chainName);
         try {
-          const gasUnits = parseFloat(response.gasSpent || 0);
-          const gasPriceWei = parseFloat(response.tx?.gasPrice || 0);
-
-          if (gasUnits > 0 && gasPriceWei > 0) {
-            // Get native token price from stored gas data
-            const allGasData = (typeof getFromLocalStorage === 'function')
-              ? getFromLocalStorage("ALL_GAS_FEES")
-              : null;
-
-            if (allGasData) {
-              const gasInfo = allGasData.find(g =>
-                String(g.chain || '').toLowerCase() === String(chainName || '').toLowerCase()
-              );
-
-              if (gasInfo && gasInfo.nativeTokenPrice) {
-                // Calculate: gasUnits * gasPriceWei / 1e9 (to gwei) * nativeTokenPrice / 1e9
-                // Simplified: gasUnits * gasPriceWei * nativeTokenPrice / 1e18
-                const gasUSD = (gasUnits * gasPriceWei * gasInfo.nativeTokenPrice) / 1e18;
-                if (Number.isFinite(gasUSD) && gasUSD > 0 && gasUSD < 100) { // Sanity check < $100
-                  FeeSwap = gasUSD;
-                  try { if (window.SCAN_LOG_ENABLED) console.log(`[Sushi] Gas fee calculated: ${gasUnits} units * ${gasPriceWei} wei * $${gasInfo.nativeTokenPrice} = $${gasUSD.toFixed(4)}`); } catch (_) { }
-                }
-              }
-            }
+          if (response.gasSpent && parseFloat(response.gasSpent) > 0) {
+            FeeSwap = parseFloat(response.gasSpent);
           }
         } catch (e) {
-          try { if (window.SCAN_LOG_ENABLED) console.warn('[Sushi API] Could not calculate gas fee, using default:', e); } catch (_) { }
+          console.warn('[Sushi API] Could not parse gas fee from response, using default');
         }
 
         // Log route info if available
@@ -2960,10 +2896,29 @@
 
       const SavedSettingData = getFromLocalStorage('SETTING_SCANNER', {});
 
-      // ✅ REFACTORED: Timeout now uses per-strategy config from CONFIG_UI.SETTINGS.timeout
-      // Each REST API provider has its own optimal timeout based on official API documentation
-      // The timeout will be determined per-strategy in runStrategy() function
+      // OPTIMIZED: Timeout mengikuti setting user (speedScan)
+      // CRITICAL: API timeout HARUS LEBIH KECIL dari scanner window untuk avoid cancel!
       const dexLower = String(dexType || '').toLowerCase();
+      const isOdosFamily = ['odos', 'odos3', 'hinkal-odos'].includes(dexLower);
+      // ✅ REMOVED: dzap, lifi are now REST API providers (single-quote), no longer multi-aggregators
+      const isMultiAggregator = ['swing'].includes(dexLower); // Only SWING still uses multi-aggregator
+
+      let timeoutMilliseconds;
+      if (isOdosFamily) {
+        // ✅ OPTIMIZED: Reduced from 8s to 4s (ODOS is fast enough with 4s)
+        timeoutMilliseconds = 4000;  // 4 seconds for ODOS (was 8s - too slow!)
+      } else if (isMultiAggregator) {
+        // ✅ FIX: Multi-aggregators (SWING only) need more time to fetch multiple routes
+        // Typical response time: 3-8 seconds depending on network and providers
+        timeoutMilliseconds = 8000;  // 8 seconds for multi-aggregators
+        console.log(`⏱️ [${dexLower.toUpperCase()} TIMEOUT] Using extended timeout: ${timeoutMilliseconds}ms for multi-aggregator`);
+      } else {
+        // ✅ FIX: Use TimeoutCount setting (not speedScan) for timeout value
+        // speedScan was incorrectly used before, causing default 1s timeout (too short!)
+        // TimeoutCount is the correct setting for DEX request timeout (default 10s)
+        const userTimeout = Number(SavedSettingData.TimeoutCount || 10000);
+        timeoutMilliseconds = Math.max(userTimeout, 3000);  // Min 3s (safety), max 30s (from config validation)
+      }
 
       const amount_in_big = BigInt(Math.round(Math.pow(10, des_input) * amount_in));
 
@@ -3021,11 +2976,6 @@
             originalUrl: url.substring(0, 80) + '...',
             finalUrl: finalUrl.substring(0, 80) + '...'
           });
-
-          // ✅ REFACTORED: Get timeout from per-strategy config (not global setting)
-          // Each REST API provider has its own optimal timeout
-          const timeoutMilliseconds = getStrategyTimeout(strategyName);
-          console.log(`⏱️ [${strategyName.toUpperCase()} TIMEOUT] ${timeoutMilliseconds}ms (from config)`);
 
           $.ajax({
             url: finalUrl, method, dataType: 'json', timeout: timeoutMilliseconds, headers, data,

@@ -1,6 +1,6 @@
 const CONFIG_APP = {
     APP: {
-        NAME: "MONITORING-KOIN",
+        NAME: "APP_DEV",
         VERSION: "2026.01.13",
         SCAN_LIMIT: false,
         AUTORUN: true,
@@ -393,6 +393,7 @@ const CONFIG_UI = {
         defaults: {
             tokensPerBatch: 3,              // Jumlah token per batch/grup
             delayBetweenGrup: 400,          // Delay antar batch (ms)
+            timeoutCount: 10000,            // Request timeout (ms)
             pnlFilter: 0,                   // Minimum PNL to show alert
 
             // Request timing controls
@@ -402,60 +403,6 @@ const CONFIG_UI = {
             // Snapshot validation timing controls
             snapshotBatchDelay: 300,        // Delay between snapshot validation batches (ms)
             snapshotRequestDelay: 150       // Delay between Web3 requests in snapshot batch (ms)
-        },
-
-        // ========== PER-STRATEGY TIMEOUT CONFIGURATION ==========
-        // Based on official API documentation and rate limits:
-        // - KyberSwap: 60 req/min, fast API
-        // - 0x/Matcha: <250ms median response, 10 RPS per chain
-        // - ODOS: 1-2 RPS (public), can have timeouts
-        // - Jupiter: 10 RPS (public), fast Solana
-        // - LI.FI: 200 req/min (authenticated), cross-chain needs more time
-        // =========================================================
-        timeout: {
-            // ========== Official DEX APIs ==========
-            // Fast APIs - optimized for quick scanning (500+ coins)
-            'kyber': 3000,           // KyberSwap: 3s (60 req/min, fast API)
-            'velora6': 4000,         // Velora v6.2: 4s (ParaSwap based)
-            'matcha': 3500,          // Matcha/0x: 3.5s (<250ms median, but allow buffer)
-            'delta-matcha': 3500,    // 1Delta Matcha: 3.5s (proxy to 0x)
-            'okx': 4000,             // OKX DEX: 4s
-            'relay': 5000,           // Relay: 5s (cross-chain bridge)
-            'flytrade': 4000,        // Flytrade: 4s
-            'sushi': 4000,           // SushiSwap: 4s
-
-            // ODOS Family - slower API, needs more time (1-2 RPS limit)
-            'odos': 5000,            // ODOS: 5s (1 RPS public limit, can timeout)
-            'odos2': 5000,           // ODOS v2: 5s
-            'odos3': 5000,           // ODOS v3: 5s
-            'hinkal-odos': 4000,     // Hinkal ODOS Proxy: 4s (typically faster)
-
-            // ========== Solana DEXes ==========
-            // Fast Solana APIs
-            'jupiter': 3000,         // Jupiter: 3s (10 RPS, fast Solana)
-            'dflow': 3000,           // DFlow: 3s (Solana fast)
-
-            // ========== Filtered Strategies (Wildcard) ==========
-            // Meta-aggregators filtered for specific DEX
-            'lifi-*': 6000,          // LIFI filtered: 6s (cross-chain, needs time)
-            'swoop-*': 10000,        // SWOOP filtered: 10s (railway.app slower, prevent cancel)
-            'swing-*': 6000,         // SWING filtered: 6s
-            'dzap-*': 6000,          // DZAP filtered: 6s (WARNING: 429 rate limit issues)
-            'rango-*': 6000,         // Rango filtered: 6s (WARNING: 403 forbidden issues)
-            'rubic-*': 6000,         // Rubic filtered: 6s
-
-            // ========== Multi-DEX Aggregators ==========
-            // Direct calls to meta-aggregators (not filtered)
-            'lifi': 6000,            // LIFI multi-quote: 6s
-            'swoop': 10000,          // SWOOP multi-quote: 10s (railway.app needs more time)
-            'swing': 6000,           // SWING multi-quote: 6s
-            'dzap': 6000,            // DZAP multi-quote: 6s
-            'rango': 6000,           // Rango multi-quote: 6s
-            'rubic': 6000,           // Rubic multi-quote: 6s
-            'kamino': 5000,          // Kamino (Solana): 5s
-
-            // ========== Default Fallback ==========
-            'default': 5000          // Default: 5s (balanced)
         },
 
         // Per-DEX overrides (optional)
@@ -473,6 +420,7 @@ const CONFIG_UI = {
         validation: {
             tokensPerBatch: { min: 1, max: 10 },
             delayBetweenGrup: { min: 100, max: 5000 },
+            timeoutCount: { min: 2000, max: 30000 },
             delayPerDexDirection: { min: 0, max: 2000 },
             delayPerToken: { min: 0, max: 2000 },
             snapshotBatchDelay: { min: 100, max: 2000 },
@@ -713,6 +661,7 @@ const CONFIG_DEXS = {
     kyber: {
         label: 'KyberSwap',
         badgeClass: 'bg-kyberswap',
+        delay: 200,  // Jeda API call (ms) - rate limiting
         warna: "#0b7e18ff", // hijau tosca KyberSwap
         builder: ({ chainName, tokenAddress, pairAddress }) =>
             `https://kyberswap.com/swap/${chainName}/${tokenAddress}-to-${pairAddress}`,
@@ -732,6 +681,7 @@ const CONFIG_DEXS = {
     sushi: {
         label: 'SUSHI',
         badgeClass: 'bg-sushi',
+        delay: 150,  // Jeda API call (ms) - rate limiting
         proxy: true, // ✅ Enable proxy - SushiSwap API may have CORS restrictions
         warna: "#f085b7ff", // Pink/magenta SushiSwap brand color
         builder: ({ chainName, tokenAddress, pairAddress }) =>
@@ -752,8 +702,8 @@ const CONFIG_DEXS = {
     okx: {
         label: 'OKXDEX',
         badgeClass: 'bg-okxdex',
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - OKX DEX Aggregator active
-        supportsSolana: true,  // OKX DEX supports Solana
         warna: "#000000",
         builder: ({ chainCode, tokenAddress, pairAddress }) =>
             `https://www.okx.com/web3/dex-swap?inputChain=${chainCode}&inputCurrency=${tokenAddress}&outputChain=${chainCode}&outputCurrency=${pairAddress}`,
@@ -773,6 +723,7 @@ const CONFIG_DEXS = {
     relay: {
         label: 'Relay',
         badgeClass: 'bg-relay',
+        delay: 400,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - Cross-chain bridge & swap aggregator
         warna: "#160783ff",  // Purple - Relay brand color
         builder: ({ chainName, chainCode, tokenAddress, pairAddress }) =>
@@ -792,6 +743,7 @@ const CONFIG_DEXS = {
     flytrade: {
         label: 'Flytrade',
         badgeClass: 'bg-flytrade',
+        delay: 300,  // Jeda API call (ms) - rate limiting
         warna: "#7d2ff4ff", // Indigo for Flytrade
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
@@ -813,8 +765,8 @@ const CONFIG_DEXS = {
     matcha: {
         label: 'Matcha',
         badgeClass: 'bg-matcha',
+        delay: 200,  // Jeda API call (ms) - rate limiting
         proxy: true, // ✅ Enable proxy - 0x API has CORS restrictions for browser requests
-        supportsSolana: true,  // Matcha supports Solana via 0x API
         warna: "#61ee73ff", // hitam abu-abu (Matcha/0x)
         builder: ({ chainName, tokenAddress, pairAddress, chainCode }) => {
             const isSolana = String(chainName || '').toLowerCase() === 'solana';
@@ -828,11 +780,11 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'delta-matcha',   // CEX→DEX: 1Delta proxy (fast, free)
-                pairtotoken: 'swoop-matcha'    // DEX→CEX: SWOOP filtered
+                pairtotoken: 'delta-matcha'    // DEX→CEX: SWOOP filtered
             },
             alternative: {
-                tokentopair: 'matcha',    // ✅ FIX: CEX→DEX: DZAP filtered (use dzap-matcha, not matcha)
-                pairtotoken: 'matcha'    // ✅ FIX: DEX→CEX: Rango filtered (use rango-matcha, not matcha)
+                tokentopair: 'swoop-matcha',    // ✅ FIX: CEX→DEX: DZAP filtered (use dzap-matcha, not matcha)
+                pairtotoken: 'swoop-matcha'    // ✅ FIX: DEX→CEX: Rango filtered (use rango-matcha, not matcha)
             }
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
@@ -841,17 +793,18 @@ const CONFIG_DEXS = {
     odos: {
         label: 'ODOS',
         badgeClass: 'bg-odos',
+        delay: 350,  // Jeda API call (ms) - rate limiting
         warna: "#6e2006ff", // ungu-biru Odos
         builder: () => `https://app.odos.xyz`,
         // ⚡ ROTATION STRATEGY: Alternate between official API and filtered aggregators
         fetchdex: {  // ✅ FIX: Added missing fetchdex wrapper
             primary: {
                 tokentopair: 'odos3',        // CEX→DEX: Official ODOS v3 API
-                pairtotoken: 'hinkal-odos'     // DEX→CEX: LIFI filtered for ODOS
+                pairtotoken: 'lifi-odos'     // DEX→CEX: LIFI filtered for ODOS
             },
             alternative: {
-                tokentopair: 'lifi-odos',   // CEX→DEX: SWOOP filtered (rotation)
-                pairtotoken: 'swoop-odos'         // DEX→CEX: Official ODOS v3 API
+                tokentopair: 'swoop-odos',   // CEX→DEX: SWOOP filtered (rotation)
+                pairtotoken: 'odos3'         // DEX→CEX: Official ODOS v3 API
             }
         },
         allowFallback: true,  // ✅ Enable rotation between primary and alternative
@@ -861,6 +814,7 @@ const CONFIG_DEXS = {
     velora: {
         label: 'Velora',
         badgeClass: 'bg-velora',
+        delay: 300,  // Jeda API call (ms) - rate limiting
         warna: "#1c64f2ff",
         builder: ({ chainName, tokenAddress, pairAddress }) => {
             const network = String(chainName || '').toLowerCase();
@@ -872,7 +826,7 @@ const CONFIG_DEXS = {
         fetchdex: {
             primary: {
                 tokentopair: 'velora6',        // CEX→DEX: Official Velora v6.2
-                pairtotoken: 'swoop-velora'         // DEX→CEX: Official Velora v6.2
+                pairtotoken: 'velora6'         // DEX→CEX: Official Velora v6.2
             },
             alternative: {
                 tokentopair: 'swing-velora',   // CEX→DEX: SWING filtered (rotation) - replaced SWOOP
@@ -887,7 +841,6 @@ const CONFIG_DEXS = {
     jupiter: {
         label: 'Jupiter',
         badgeClass: 'bg-jupiter',
-        supportsSolana: true,  // Solana-only DEX
         warna: "#a0df3bff", // Jupiter green
         builder: ({ tokenAddress, pairAddress }) =>
             `https://jup.ag/?sell=${tokenAddress}&buy=${pairAddress}`,
@@ -903,7 +856,6 @@ const CONFIG_DEXS = {
     dflow: {
         label: 'DFlow',
         badgeClass: 'bg-dflow',
-        supportsSolana: true,  // Solana-only DEX
         proxy: false, // Enable CORS proxy
         warna: "#00d4aa", // DFlow teal/cyan
         builder: ({ tokenAddress, pairAddress }) =>
@@ -920,6 +872,7 @@ const CONFIG_DEXS = {
     kamino: {
         label: 'Kamino',
         badgeClass: 'bg-kamino',
+        delay: 150,  // Jeda API call (ms) - rate limiting
         proxy: true,
         warna: "#7c3aed", // Kamino purple
         isMetaDex: true,  // ✅ META-DEX: Mark as meta-aggregator (Solana only)
@@ -939,6 +892,7 @@ const CONFIG_DEXS = {
     lifi: {
         label: 'LIFI',
         badgeClass: 'bg-lifi',
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false, // ✅ ENABLED - LIFI as REST API provider
         warna: "#ea4aaa", // LIFI pink
         isMetaDex: true,  // ✅ META-DEX: Mark as meta-aggregator
@@ -962,6 +916,7 @@ const CONFIG_DEXS = {
     rubic: {
         label: 'Rubic',
         badgeClass: 'bg-rubic',
+        delay: 1000,  // Rate limiting (1 req/sec recommended by Rubic)
         disabled: false,
         proxy: true,  // Enable CORS proxy to avoid 429 errors
         warna: "#7c3aed",  // Rubic purple
@@ -982,6 +937,7 @@ const CONFIG_DEXS = {
     rango: {
         label: 'Rango',
         badgeClass: 'bg-rango',
+        delay: 150,  // Jeda API call (ms) - rate limiting
         disabled: false,
         proxy: true,  // Enable CORS proxy
         warna: "#00d4aa",  // Rango teal
