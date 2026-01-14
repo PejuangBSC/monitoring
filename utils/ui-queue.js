@@ -56,7 +56,34 @@
                     if (document.hidden) {
                         this.pause();
                     } else {
+                        // Resume and immediately flush pending updates to reduce blank screen
+                        const pendingCount = this._getTotalQueued();
+                        let overlayId = null;
+
+                        // Show loading overlay if significant queue buildup
+                        if (pendingCount > 10 && typeof window !== 'undefined' && window.AppOverlay) {
+                            overlayId = window.AppOverlay.show({
+                                id: 'tab-resume-loading',
+                                title: 'Memuat Data...',
+                                message: `Memproses ${pendingCount} pembaruan UI`,
+                                spinner: true,
+                                freezeScreen: false // Allow user to see content
+                            });
+                        }
+
                         this.resume();
+
+                        // Force immediate processing of high-priority items
+                        if (pendingCount > 0) {
+                            this.flush(this.options.maxPerFrame * 3); // Process triple batch immediately
+                        }
+
+                        // Hide overlay after processing
+                        if (overlayId && window.AppOverlay) {
+                            setTimeout(() => {
+                                try { window.AppOverlay.hide(overlayId); } catch (_) { }
+                            }, 500); // Give UI time to settle
+                        }
                     }
                 });
             }
