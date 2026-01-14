@@ -565,20 +565,25 @@ function renderSettingsForm() {
         const dexLabel = (dexConfig.label || dexKey).toUpperCase();  // ✅ UPPERCASE semua
         const dexColor = dexConfig.warna || '#333';
 
+        // ✅ SOLANA BADGE: Show badge for DEXs that support Solana chain
+        const solanaBadge = dexConfig.supportsSolana
+            ? '<span style="background:#6b21a8; color:white; padding:1px 6px; border-radius:4px; font-size:10px; margin-left:6px; font-weight:bold;">SOLANA</span>'
+            : '';
+
         dexDelayHtml += `
-            <div class="uk-card uk-card-small uk-card-default uk-margin-small-bottom" style="border-left: 4px solid ${dexColor};">
-                <div class="uk-card-body uk-padding-small">
+            <div class="uk-card uk-card-small uk-card-default" style="border-left: 4px solid ${dexColor}; margin-bottom: 4px;">
+                <div style="padding: 4px 8px;">
                     <div class="uk-flex uk-flex-between uk-flex-middle">
-                        <label class="uk-text-bold uk-margin-remove" style="color: ${dexColor}; font-size: 13px;">
-                            ${dexLabel}
+                        <label class="uk-text-bold uk-margin-remove" style="color: ${dexColor}; font-size: 12px;">
+                            ${dexLabel}${solanaBadge}
                         </label>
                         <div class="uk-flex uk-flex-middle" style="gap: 4px;">
                             <input type="number" class="uk-input uk-form-small dex-delay-input"
                                    data-dex="${dexKey}"
                                    value="${dexConfig.delay || 150}"
-                                   style="width:70px; text-align:center; border-color: ${dexColor}40;"
+                                   style="width:60px; text-align:center; border-color: ${dexColor}40; padding: 2px 4px;"
                                    min="0">
-                            <span class="uk-text-meta uk-text-small">ms</span>
+                            <span class="uk-text-meta" style="font-size: 10px;">ms</span>
                         </div>
                     </div>
                 </div>
@@ -612,7 +617,6 @@ function renderSettingsForm() {
     console.log('[SETTINGS LOAD] matchaApiKeys field exists:', $('#matchaApiKeys').length > 0);
 
     $(`input[name=\"koin-group\"][value=\"${appSettings.scanPerKoin || 5}\"]`).prop('checked', true);
-    $(`input[name=\"waktu-tunggu\"][value=\"${appSettings.speedScan || 2}\"]`).prop('checked', true);
 
     // ✅ NEW: Restore checkbox scanner controls
     if (appSettings.autoRun !== undefined) {

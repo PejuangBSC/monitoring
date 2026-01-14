@@ -12,48 +12,15 @@
     --bs-light: #f1f5f9;
     --bs-dark: #1e293b;
 
-    /* Modern Flat Design - Rounded */
+    /* Modern design variables */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
     --border-radius: 8px;
     --border-radius-sm: 6px;
     --border-radius-lg: 12px;
     --border-color: #e2e8f0;
-    --transition-smooth: all 0.15s ease;
-
-    /* Subtle Shadow System */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-    /* ========== STANDARDIZED FORM CONTROL SIZES ========== */
-
-    /* Input Heights - Uniform across all form elements */
-    --input-height-xs: 22px;
-    --input-height-sm: 26px;
-    --input-height-md: 30px;
-    --input-height-lg: 34px;
-
-    /* Input Padding */
-    --input-padding-x: 8px;
-    --input-padding-y: 3px;
-
-    /* Font Sizes */
-    --input-font-xs: 10px;
-    --input-font-sm: 11px;
-    --input-font-md: 12px;
-    --input-font-lg: 13px;
-
-    /* Checkbox/Radio Sizes */
-    --checkbox-size-xs: 12px;
-    --checkbox-size-sm: 14px;
-    --checkbox-size-md: 16px;
-
-    /* Compact Spacing */
-    --space-xs: 3px;
-    --space-sm: 5px;
-    --space-md: 8px;
-    --space-lg: 12px;
-    --space-xl: 16px;
+    --transition-smooth: all 0.2s ease;
 }
 
 /* ==========================================================================
@@ -96,18 +63,17 @@
 }
 
 /* ==========================================================================
-   Base Styles - Modern Minimal Design
+   Base Styles - Flat Minimal Design
    ========================================================================== */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    letter-spacing: -0.01em;
     padding: 1px;
     background-color: #f8fafc;
     color: #0f172a;
     transition: var(--transition-smooth);
     min-height: 100vh;
+    font-size: 13px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -140,10 +106,10 @@ a:hover,
 }
 
 /* ==========================================================================
-   Card Components - Modern Minimalist
+   Flat Card Components
    ========================================================================== */
 
-/* Base card design */
+/* Flat card design */
 .header-card,
 #scanner-config,
 #filter-card,
@@ -152,8 +118,8 @@ a:hover,
 .uk-modal-dialog {
     background: #ffffff !important;
     border: 1px solid var(--border-color) !important;
-    border-radius: var(--border-radius-sm) !important;
-    box-shadow: var(--shadow-xs);
+    border-radius: var(--border-radius) !important;
+    box-shadow: none;
     transition: var(--transition-smooth);
 }
 
@@ -161,27 +127,13 @@ a:hover,
 #scanner-config:hover,
 #filter-card:hover,
 .uk-card-hover:hover {
-    border-color: rgba(37, 99, 235, 0.3);
-    box-shadow: var(--shadow-sm);
+    border-color: var(--bs-primary);
+    box-shadow: none;
+    transform: none;
 }
 
-/* Compact Header Card */
 .header-card {
-    padding: 5px 10px !important;
-}
-
-/* Compact Scanner Config */
-#scanner-config {
-    padding: 6px 10px !important;
-}
-
-/* Compact Card Body */
-.uk-card-body {
-    padding: var(--space-md) !important;
-}
-
-.uk-padding-small {
-    padding: var(--space-sm) !important;
+    padding: 8px 14px !important;
 }
 
 /* ==========================================================================
@@ -191,6 +143,8 @@ a:hover,
 #monitoring-scroll {
     max-height: calc(100vh - 220px);
     background: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius) !important;
     box-shadow: none;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
@@ -368,68 +322,23 @@ a:hover,
 }
 
 /* ==========================================================================
-   Form Controls - Modern Compact Design
+   Form Controls - Rounded & Glass Effect
    ========================================================================== */
-
-/* Base Form Elements - Standardized Sizing */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select,
+button,
 .uk-input,
 .uk-select,
-.uk-textarea {
-    height: var(--input-height-sm);
-    padding: var(--input-padding-y) var(--input-padding-x);
-    font-size: var(--input-font-md);
-    border-radius: var(--border-radius-sm) !important;
-    transition: var(--transition-smooth);
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-/* Small Form Controls */
-.uk-form-small .uk-input,
-.uk-form-small .uk-select,
-.uk-input.uk-form-small,
-.uk-select.uk-form-small {
-    height: var(--input-height-xs);
-    padding: 2px var(--space-sm);
-    font-size: var(--input-font-sm);
-}
-
-/* Textarea specific */
-textarea,
-.uk-textarea {
-    height: auto;
-    min-height: calc(var(--input-height-sm) * 2);
-    padding: var(--space-sm);
-}
-
-/* Base Button - Standardized Compact */
-button,
+.uk-textarea,
 .uk-button {
-    height: var(--input-height-sm);
-    line-height: calc(var(--input-height-sm) - 2px);
-    padding: 0 var(--space-md);
-    font-size: var(--input-font-md);
-    font-weight: 500;
-    border-radius: var(--border-radius-sm) !important;
+    border-radius: var(--border-radius) !important;
     transition: var(--transition-smooth);
     background: #ffffff;
     border: 1px solid var(--border-color);
+    font-weight: 500;
 }
 
-/* Small Button */
-.uk-button-small {
-    height: var(--input-height-xs);
-    line-height: calc(var(--input-height-xs) - 2px);
-    padding: 0 var(--space-sm);
-    font-size: var(--input-font-sm);
-}
-
-/* Focus States */
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
 select:focus,
@@ -437,78 +346,71 @@ select:focus,
 .uk-select:focus {
     outline: none;
     border-color: var(--bs-primary);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    box-shadow: none;
 }
 
-/* Checkbox/Radio - Standardized Size */
 input[type="checkbox"],
 .uk-checkbox {
-    width: var(--checkbox-size-sm);
-    height: var(--checkbox-size-sm);
-    border-radius: var(--border-radius-sm) !important;
+    border-radius: 3px !important;
     accent-color: var(--bs-primary);
-    cursor: pointer;
-    margin: 0;
 }
 
 input[type="radio"],
 .uk-radio {
-    width: var(--checkbox-size-sm);
-    height: var(--checkbox-size-sm);
     border-radius: 50% !important;
     accent-color: var(--bs-primary);
-    cursor: pointer;
-    margin: 0;
 }
 
 .uk-button-group>.uk-button:first-child {
-    border-top-left-radius: var(--border-radius-sm) !important;
-    border-bottom-left-radius: var(--border-radius-sm) !important;
+    border-top-left-radius: var(--border-radius) !important;
+    border-bottom-left-radius: var(--border-radius) !important;
 }
 
 .uk-button-group>.uk-button:last-child {
-    border-top-right-radius: var(--border-radius-sm) !important;
-    border-bottom-right-radius: var(--border-radius-sm) !important;
+    border-top-right-radius: var(--border-radius) !important;
+    border-bottom-right-radius: var(--border-radius) !important;
 }
 
 /* ==========================================================================
-   Scanner Form Controls - Compact Standardized Layout
+   Scanner Form Controls - Standardized Layout
    ========================================================================== */
 .scanner-label {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
-    font-weight: 600;
-    font-size: var(--input-font-lg);
-    line-height: 1.3;
+    gap: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1.4;
 }
 
 .scanner-label input[type="checkbox"] {
-    width: var(--checkbox-size-sm);
-    height: var(--checkbox-size-sm);
+    margin: 0;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
 }
 
 .scanner-control {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
-    font-size: var(--input-font-md);
-    line-height: 1.3;
+    gap: 4px;
+    font-size: 13px;
+    line-height: 1.4;
     white-space: nowrap;
-    padding: 1px var(--space-xs);
-    border-radius: var(--border-radius-sm);
-    transition: background-color 0.15s ease;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
 }
 
 .scanner-control:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 .scanner-control input[type="checkbox"] {
-    width: var(--checkbox-size-sm);
-    height: var(--checkbox-size-sm);
+    margin: 0;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
 .scanner-control input[type="checkbox"]:checked {
@@ -524,34 +426,37 @@ input[type="radio"],
 .scanner-control-inline {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: 4px;
 }
 
 .scanner-control-inline input.uk-input {
-    height: var(--input-height-xs);
-    padding: 2px var(--space-sm);
-    font-size: var(--input-font-sm);
+    height: 28px;
+    padding: 4px 8px;
+    font-size: 13px;
 }
 
-/* Auto Volume Level Input */
+/* Auto Volume Level Input - Enhanced style */
 #autoVolLevelInput input {
     font-weight: bold;
     text-align: center;
-    border-width: 1px;
+    border-width: 2px;
+    transition: all 0.2s ease;
 }
 
 #autoVolLevelInput input:focus {
-    border-color: var(--bs-primary) !important;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    outline: none;
 }
 
-/* Scanner Form - Ultra Compact */
+/* Scanner Form - Compact spacing between groups */
 #FormScanner {
-    gap: var(--space-sm) !important;
+    gap: 6px !important;
 }
 
+/* Reduce spacing specifically between SCANNER and AUTO groups */
 #FormScanner .scanner-label+.scanner-label {
-    margin-left: -1px;
+    margin-left: -2px;
 }
 
 .scanner-actions {
@@ -559,10 +464,10 @@ input[type="radio"],
 }
 
 .scanner-actions .uk-button {
-    height: var(--input-height-xs);
-    line-height: calc(var(--input-height-xs) - 2px);
-    padding: 0 var(--space-md);
-    font-size: var(--input-font-sm);
+    height: 28px;
+    line-height: 28px;
+    padding: 0 12px;
+    font-size: 13px;
 }
 
 /* Flat button styles */
@@ -715,14 +620,16 @@ input[type="radio"],
 }
 
 /* ==========================================================================
-   Progress Bar - Compact Minimalist
+   Progress Bar - Modern Glass
    ========================================================================== */
 #progress-container {
     width: 100%;
-    background: rgba(233, 235, 238, 0.5);
+    background: rgba(233, 235, 238, 0.6);
+    backdrop-filter: blur(8px);
     border-radius: var(--border-radius);
-    margin-top: var(--space-sm);
+    margin-top: 8px;
     overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 #progress-bar {
@@ -733,9 +640,11 @@ input[type="radio"],
     background-image: repeating-linear-gradient(45deg,
             var(--theme-accent, #42b72a) 0px,
             var(--theme-accent, #42b72a) 8px,
-            rgba(255, 255, 255, 0.2) 8px,
-            rgba(255, 255, 255, 0.2) 16px);
+            rgba(255, 255, 255, 0.25) 8px,
+            rgba(255, 255, 255, 0.25) 16px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
     background-size: 16px 16px;
+    animation: none;
     transition: width 0.3s ease;
 }
 
@@ -745,7 +654,7 @@ input[type="radio"],
     line-height: 8px;
     display: block;
     font-weight: 600;
-    font-size: 7px;
+    font-size: 8px;
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
@@ -2278,4 +2187,163 @@ body.dark-mode .sub-dex-name {
         width: 95vw;
         max-width: 95vw;
     }
+}
+
+/* ==========================================================================
+   CEX Badge Colors (from config.js WARNA)
+   ========================================================================== */
+.bg-binance {
+    background-color: #e0a50c !important;
+    color: white !important;
+}
+
+.bg-mexc {
+    background-color: #1448ce !important;
+    color: white !important;
+}
+
+.bg-gateio {
+    background-color: #D5006D !important;
+    color: white !important;
+}
+
+.bg-bybit {
+    background-color: #f29900 !important;
+    color: white !important;
+}
+
+.bg-bitget {
+    background-color: #1aaaba !important;
+    color: white !important;
+}
+
+.bg-kucoin {
+    background-color: #29b3af !important;
+    color: white !important;
+}
+
+.bg-indodax {
+    background-color: #1285b5 !important;
+    color: white !important;
+}
+
+/* ==========================================================================
+   DEX Badge Colors (from config.js WARNA)
+   ========================================================================== */
+.bg-kyberswap {
+    background-color: #0b7e18 !important;
+    color: white !important;
+}
+
+.bg-okxdex,
+.bg-okx {
+    background-color: #000000 !important;
+    color: white !important;
+}
+
+.bg-flytrade {
+    background-color: #7d2ff4 !important;
+    color: white !important;
+}
+
+.bg-matcha {
+    background-color: #61ee73 !important;
+    color: #1a1a1a !important;
+}
+
+.bg-odos {
+    background-color: #6e2006 !important;
+    color: white !important;
+}
+
+.bg-dflow {
+    background-color: #00d4aa !important;
+    color: #1a1a1a !important;
+}
+
+/* ==========================================================================
+   Chain Badge Colors (from config.js WARNA)
+   ========================================================================== */
+.bg-bsc {
+    background-color: #f0af18 !important;
+    color: #1a1a1a !important;
+}
+
+.bg-polygon {
+    background-color: #cd72f4 !important;
+    color: white !important;
+}
+
+.bg-arbitrum {
+    background-color: #a6b0c3 !important;
+    color: #1a1a1a !important;
+}
+
+.bg-ethereum {
+    background-color: #8098ee !important;
+    color: white !important;
+}
+
+.bg-base {
+    background-color: #1e46f9 !important;
+    color: white !important;
+}
+
+/* ==========================================================================
+   Form Input Standardization - Consistent Sizing
+   ========================================================================== */
+input.uk-input,
+select.uk-select,
+textarea.uk-textarea,
+.uk-form-small {
+    height: 32px;
+    padding: 4px 10px;
+    font-size: 13px;
+    border-radius: var(--border-radius-sm) !important;
+    font-family: inherit;
+}
+
+textarea.uk-textarea {
+    height: auto;
+    min-height: 64px;
+}
+
+input[type="checkbox"].uk-checkbox,
+input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+input[type="radio"].uk-radio,
+input[type="radio"] {
+    width: 14px;
+    height: 14px;
+}
+
+.uk-button {
+    border-radius: var(--border-radius-sm) !important;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+.uk-button-small {
+    height: 28px;
+    line-height: 26px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+/* Cards and containers with rounded corners */
+.uk-card,
+.uk-modal-dialog,
+.header-card,
+#scanner-config,
+#filter-card {
+    border-radius: var(--border-radius) !important;
+}
+
+/* Table container rounded */
+#monitoring-scroll {
+    border-radius: var(--border-radius) !important;
 }

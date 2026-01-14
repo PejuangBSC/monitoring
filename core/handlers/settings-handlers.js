@@ -70,7 +70,6 @@
         console.log('[SETTINGS] Keys count:', matchaApiKeys.split(',').filter(k => k).length);
 
         const scanPerKoin = $('input[name="koin-group"]:checked').val();
-        const speedScan = $('input[name="waktu-tunggu"]:checked').val();
 
         if (!nickname || nickname.length < 6) return UIkit.notification({ message: 'Nickname harus diisi (minimal 6 karakter)!', status: 'danger' });
         if (!/^[a-zA-Z\s]+$/.test(nickname)) return UIkit.notification({ message: 'Nickname hanya boleh berisi huruf dan spasi!', status: 'danger' });
@@ -153,7 +152,6 @@
             nickname, jedaTimeGroup, jedaKoin, walletMeta,
             matchaApiKeys,  // ✅ Save user-defined Matcha API keys (REQUIRED, multiple keys with rotation)
             scanPerKoin: parseInt(scanPerKoin, 10),
-            speedScan: parseFloat(speedScan),
             JedaDexs,
             userRPCs  // NEW: hanya simpan RPC yang diinput user (1 per chain)
             // ✅ REMOVED: Checkbox preferences (now stored per-chain in FILTER_*)
